@@ -4,9 +4,9 @@ dependencies = []
 
 [[package]]
 name = 'predicate_test'
-dependencies = ['std git+https://github.com/fuellabs/sway?tag=v0.14.2#6fc5c69f29a5aab0b6ca677d9384d0d5eaffb232']
+dependencies = ['std git+https://github.com/fuellabs/sway?tag=v0.14.5#60c626cf486d5c53c44d84db1ec81cb90174cad3']
 
 [[package]]
 name = 'std'
-source = 'git+https://github.com/fuellabs/sway?tag=v0.14.2#6fc5c69f29a5aab0b6ca677d9384d0d5eaffb232'
+source = 'git+https://github.com/fuellabs/sway?tag=v0.14.5#60c626cf486d5c53c44d84db1ec81cb90174cad3'
 dependencies = ['core']

@@ -4,11 +4,12 @@ use std::address::Address;
 use std::tx::*;
 use std::assert::assert;
 use std::hash::*;
+use std::contract_id::ContractId;
 
 /// Get the destination address for coins to send for an output given a pointer to the output.
 /// This method is only meaningful if the output type has the `to` field.
 // TO DO: This should probably go in std::tx
-fn tx_output_to(ptr: u32) -> Address {
+fn get_output_to(ptr: u32) -> Address {
     let address_bytes = asm(r1, r2: ptr) {
         lw r1 r2 i8;
         r1: b256
@@ -17,8 +18,18 @@ fn tx_output_to(ptr: u32) -> Address {
     ~Address::from(address_bytes)
 }
 
+// Get the ID of a contract input
+fn get_input_contract_id(index: u8) -> ContractId {
+    let ptr = tx_input_pointer(index);
+    let contract_id_bytes = asm(r1, r2: ptr) {
+        lw r1 r2 i200;
+        r1: b256
+    };
+    ~ContractId::from(contract_id_bytes)
+}
+
 fn get_input_type(index: u8) -> u8 {
-    let ptr = tx_input_pointer(1);
+    let ptr = tx_input_pointer(index);
     let input_type = tx_input_type(ptr);
     input_type
 }
@@ -37,22 +48,23 @@ fn get_script_data<T>() -> T {
 }
 
 // Anyone-can-spend predicate that only releases coins to a specified address
-fn main(receiver: Address) -> bool {
+fn main(receiver: Address, gateway: ContractId, token: ContractId) -> bool {
     // Transaction must have only four inputs: a Coin input (for fees), a Message, the gateway Contract, and the token Contract (in that order)
-    // note: contract inputs are only valid if the contract_id of the UXTO exists.
     let n_inputs = tx_inputs_count();
-    assert(n_inputs == 4 && get_input_type(0) == 0u8 && // index for Input.Coin?
-    get_input_type(1) == 2u8 && // index for Input.Message?
-    get_input_type(2) == 1u8 && // index for Input.Contract?
-    get_input_type(3) == 1u8 // index for Input.Contract?
-    );
+    assert(
+        n_inputs == 4 &&
+        get_input_type(0) == 0u8 &&
+        get_input_type(1) == 2u8 &&
+        get_input_type(2) == 1u8 && get_input_contract_id(2) == gateway &&
+        get_input_type(3) == 1u8 && get_input_contract_id(3) == token
+        );
 
-    // Verify a reasonable(?) amount of gas. (Do we also need to check Coin input >= gas_limit * gas_price, or does client do this over the sum of inputs ?
+    // Verify a reasonable(?) amount of gas.
     const REASONABLE_GAS = 42;
     let gasLimit = tx_gas_limit();
     assert(gasLimit >= REASONABLE_GAS);
 
-    // TO DO: Write script that must spend predicate so that len(script_data) and hash(script_data) are known.
+    // TO DO: Write script that must spend predicate so that len(script_data) and hash(script_data) can be hard-coded
     let script_data: [byte;
     100] = get_script_data(); // replace 100 with actual script length
     let script_data_hash = sha256(script_data);
@@ -61,7 +73,7 @@ fn main(receiver: Address) -> bool {
 
     // need to check if a == output.to for the Coin output. But can't loop in a predicate. Assume it's first output for now:
     let ptr = tx_output_pointer(0);
-    let address = tx_output_to(ptr);
+    let address = get_output_to(ptr);
     assert(address == receiver);
 
     true
