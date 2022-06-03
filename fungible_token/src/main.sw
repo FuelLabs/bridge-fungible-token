@@ -1,40 +1,36 @@
 contract;
 
+dep abi;
+dep errors;
+dep events;
+
 use std::{
     address::Address, 
     assert::require,
     chain::auth::{AuthError, Sender, msg_sender},
+    context::{call_frames::{contract_id, msg_asset_id}, msg_amount},
+    contract_id::ContractId,
+    logging::log,
     result::*,
+    revert::revert,
+    token::{mint_to_address, mint_to_contract, burn},
     vm::evm::evm_address::EvmAddress
 };
 
-abi FungibleToken {
-    fn constructor(owner: Sender) -> bool;
-    fn mint(to: Sender, amount: u64) -> bool;
-    fn burn(from: Sender, amount: u64) -> bool;
-    fn name() -> str[11];
-    fn symbol() -> str[11];
-    fn decimals() -> u8;
-    fn layer1_token() -> EvmAddress;
-    fn layer1_decimals() -> u8;
-}
-
-enum Error {
-    CannotReinitialize: (),
-    StateNotInitialized: (),
-    UnauthorizedUser: (),
-}
+use abi::FungibleToken;
+use errors::Error;
+use events::{MintedEvent, BurnedEvent};
 
 storage {
-    owner: b256,
+    owner: ContractId,
     state: u64,
 }
 
 impl FungibleToken for Contract {
 
-    fn constructor(owner: Sender) -> bool {
+    fn constructor(owner: ContractId) -> bool {
         require(storage.state == 0, Error::CannotReinitialize);
-        storage.owner = _get_address(owner);
+        storage.owner = owner;
         storage.state = 1;
         true
     }
@@ -43,9 +39,23 @@ impl FungibleToken for Contract {
         require(storage.state == 1, Error::StateNotInitialized);
 
         let sender: Result<Sender, AuthError> = msg_sender();
-        let address = _get_address(sender.unwrap());
+        match sender.unwrap() {
+            Sender::ContractId(address) => {
+                require(storage.owner == address, Error::UnauthorizedUser);
 
-        require(storage.owner == address, Error::UnauthorizedUser);
+                match to {
+                    Sender::Address(address) => {
+                        mint_to_address(amount, address);
+                    },
+                    Sender::ContractId(address) => {
+                        mint_to_contract(amount, address);
+                    }
+                }
+            },
+            _ => revert(42),
+        }
+
+        log(MintedEvent {to, amount});
 
         true
     }
@@ -54,9 +64,17 @@ impl FungibleToken for Contract {
         require(storage.state == 1, Error::StateNotInitialized);
 
         let sender: Result<Sender, AuthError> = msg_sender();
-        let address = _get_address(sender.unwrap());
+        match sender.unwrap() {
+            Sender::ContractId(address) => {
+                require(storage.owner == address, Error::UnauthorizedUser);
+                require(contract_id() == msg_asset_id(), Error::IncorrectAssetDeposited);
+                require(amount == msg_amount(), Error::IncorrectAssetAmount);
+                burn(amount);
+            },
+            _ => revert(42),
+        }
 
-        require(storage.owner == address, Error::UnauthorizedUser);
+        log(BurnedEvent {from, amount});
 
         true
     }
@@ -79,11 +97,5 @@ impl FungibleToken for Contract {
 
     fn layer1_decimals() -> u8 {
         2
-    }
-}
-
-fn _get_address(user: Sender) -> b256 {
-    match user {
-        Sender::Address(address) => address.value, Sender::ContractId(address) => address.value, 
     }
 }
