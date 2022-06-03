@@ -6,20 +6,23 @@ use std::assert::assert;
 use std::hash::*;
 use std::contract_id::ContractId;
 
-/// Get the destination address for coins to send for an output given a pointer to the output.
+/// Get the destination ContractId for coins to send for an output given a pointer to the output.
 /// This method is only meaningful if the output type has the `to` field.
-// TO DO: This should probably go in std::tx
-fn get_output_to(ptr: u32) -> Address {
+fn get_output_to(ptr: u32) -> ContractId {
     let address_bytes = asm(r1, r2: ptr) {
         lw r1 r2 i8;
         r1: b256
     };
 
-    ~Address::from(address_bytes)
+    ~ContractId::from(address_bytes)
 }
 
 /// Get the ID of a contract input
 fn get_input_contract_id(index: u8) -> ContractId {
+
+    // Check that input at this index is a contract input
+    assert(get_input_type(index) == 1u8);
+
     let ptr = tx_input_pointer(index);
     let contract_id_bytes = asm(r1, r2: ptr) {
         lw r1 r2 i200;
@@ -33,6 +36,15 @@ fn get_input_type(index: u8) -> u8 {
     let ptr = tx_input_pointer(index);
     let input_type = tx_input_type(ptr);
     input_type
+}
+
+/// Get the script spending the input behind this predicate. TO DO : replace with std-lib version when ready
+fn get_script<T>() -> T {
+    let script_ptr = std::context::registers::instrs_start();
+    let script = asm(r1: script_ptr) {
+        r1: T
+    };
+    script
 }
 
 /// Get the script data of the script spending the input behind this predicate. TO DO : replace with std-lib version when ready
@@ -54,8 +66,6 @@ fn main() -> bool {
     /// CONSTANTS ///
     /////////////////
 
-    // The address that must receive the coin outpus
-    const COIN_OUTPUT_RECEIVER = ~Address::from(0x0000000000000000000000000000000000000000000000000000000000000000);
     // The gateway contract ID
     const GATEWAY_CONTRACT_ID = ~ContractId::from(0x0000000000000000000000000000000000000000000000000000000000000000);
     // The contract ID of the deposited token
@@ -70,22 +80,30 @@ fn main() -> bool {
     //////////////////
 
     // Transaction must have exactly four inputs: a Coin input (for fees), a Message, the gateway Contract, and the token Contract (in that order)
+    // TO DO: is there a more readable way to manage input/output types in Sway, rather than having to know the integer identifier of each type?
     let n_inputs = tx_inputs_count();
-    assert(n_inputs == 4 && get_input_type(0) == 0u8 && get_input_type(1) == 2u8 && get_input_type(2) == 1u8 && get_input_contract_id(2) == GATEWAY_CONTRACT_ID && get_input_type(3) == 1u8 && get_input_contract_id(3) == TOKEN_CONTRACT_ID);
+    assert(n_inputs == 4 && get_input_type(0) == 0u8 && get_input_type(1) == 2u8 && get_input_contract_id(2) == GATEWAY_CONTRACT_ID && get_input_contract_id(3) == TOKEN_CONTRACT_ID);
 
     // Verify a reasonable amount of gas. TO DO : define "reasonable"
     let gasLimit = tx_gas_limit();
     assert(gasLimit >= MIN_GAS);
 
-    // Check the spending script is the authorized script. TO DO: Write script that must spend predicate so that len(script_data) and hash(script_data) can be hard-coded
-    let script_data: [byte;
-    100] = get_script_data(); // replace 100 with actual script length
-    let script_data_hash = sha256(script_data);
-    assert(script_data_hash == SPENDING_SCRIPT_HASH);
+    // Check the spending script is the authorized script. TO DO: Write script that must spend predicate so that len(script) and hash(script) can be hard-coded
+    let script: [byte; 100] = get_script(); // replace 100 with actual script length
+    let script_hash = sha256(script);
+    assert(script_hash == SPENDING_SCRIPT_HASH);
+
+    // Check the script data is the expected gateway contractId
+    let script_data: b256 = get_script_data();
+    let script_data_contract_id = ~ContractId::from(script_data);
+    assert(script_data_contract_id == GATEWAY_CONTRACT_ID);
 
     // Check if output.to is the authorized receiver for the Coin output. Note: can't loop in a predicate. Assume it's first output for now:
     let ptr = tx_output_pointer(0);
     let address = get_output_to(ptr);
-    assert(address == COIN_OUTPUT_RECEIVER);
+    assert(address == GATEWAY_CONTRACT_ID);
+
+    // TO DO: Need to check there are no other coin outputs
+
     true
 }
