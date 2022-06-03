@@ -48,33 +48,31 @@ fn get_script_data<T>() -> T {
 }
 
 // Anyone-can-spend predicate that only releases coins to a specified address
-fn main(receiver: Address, gateway: ContractId, token: ContractId) -> bool {
-    // Transaction must have only four inputs: a Coin input (for fees), a Message, the gateway Contract, and the token Contract (in that order)
+fn main() -> bool {
+    // Hard-coded constants
+    const COIN_OUTPUT_RECEIVER = ~Address::from(0x0000000000000000000000000000000000000000000000000000000000000000);
+    const GATEWAY_CONTRACT_ID = ~ContractId::from(0x0000000000000000000000000000000000000000000000000000000000000000);
+    const TOKEN_CONTRACT_ID = ~ContractId::from(0x0000000000000000000000000000000000000000000000000000000000000000);
+    const MIN_GAS = 42;
+    const SPENDING_SCRIPT_HASH = 0x1010101010101010101010101010101010101010101010101010101010101010;
+
+    // Transaction must have exactly four inputs: a Coin input (for fees), a Message, the gateway Contract, and the token Contract (in that order)
     let n_inputs = tx_inputs_count();
-    assert(
-        n_inputs == 4 &&
-        get_input_type(0) == 0u8 &&
-        get_input_type(1) == 2u8 &&
-        get_input_type(2) == 1u8 && get_input_contract_id(2) == gateway &&
-        get_input_type(3) == 1u8 && get_input_contract_id(3) == token
-        );
+    assert(n_inputs == 4 && get_input_type(0) == 0u8 && get_input_type(1) == 2u8 && get_input_type(2) == 1u8 && get_input_contract_id(2) == GATEWAY_CONTRACT_ID && get_input_type(3) == 1u8 && get_input_contract_id(3) == TOKEN_CONTRACT_ID);
 
     // Verify a reasonable(?) amount of gas.
-    const REASONABLE_GAS = 42;
     let gasLimit = tx_gas_limit();
-    assert(gasLimit >= REASONABLE_GAS);
+    assert(gasLimit >= MIN_GAS);
 
     // TO DO: Write script that must spend predicate so that len(script_data) and hash(script_data) can be hard-coded
     let script_data: [byte;
     100] = get_script_data(); // replace 100 with actual script length
     let script_data_hash = sha256(script_data);
-    let EXPECTED_SCRIPT_HASH = 0x1010101010101010101010101010101010101010101010101010101010101010; // Hardcode hash of script that calls gateway with processMessage()
-    assert(script_data_hash == EXPECTED_SCRIPT_HASH);
+    assert(script_data_hash == SPENDING_SCRIPT_HASH);
 
     // need to check if a == output.to for the Coin output. But can't loop in a predicate. Assume it's first output for now:
     let ptr = tx_output_pointer(0);
     let address = get_output_to(ptr);
-    assert(address == receiver);
-
+    assert(address == COIN_OUTPUT_RECEIVER);
     true
 }
