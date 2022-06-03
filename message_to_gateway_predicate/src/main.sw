@@ -50,7 +50,6 @@ fn get_script_data<T>() -> T {
 
 /// Predicate verifying a message input is being spent according to the rules for a valid deposit
 fn main() -> bool {
-
     /////////////////
     /// CONSTANTS ///
     /////////////////

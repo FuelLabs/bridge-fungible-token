@@ -2,6 +2,6 @@
 authors = ["Simon"]
 entry = "main.sw"
 license = "Apache-2.0"
-name = "message_to_gateway_predicate"
+name = "gateway_abi"
 
 [dependencies]

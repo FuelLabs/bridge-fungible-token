@@ -2,6 +2,7 @@
 authors = ["Simon"]
 entry = "main.sw"
 license = "Apache-2.0"
-name = "message_to_gateway_predicate"
+name = "gateway_caller_script"
 
 [dependencies]
+gateway_abi = { path = "../gateway_abi" }

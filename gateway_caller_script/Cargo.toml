@@ -1,5 +1,5 @@
 [project]
-name = "predicate_test"
+name = "gateway_caller_script"
 version = "0.1.0"
 authors = ["Simon"]
 edition = "2021"
