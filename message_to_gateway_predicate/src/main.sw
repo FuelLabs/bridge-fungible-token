@@ -66,14 +66,16 @@ fn main() -> bool {
     /// CONSTANTS ///
     /////////////////
 
+    // TO DO: hard code actual constants
+
     // The gateway contract ID
-    const GATEWAY_CONTRACT_ID = ~ContractId::from(0x0000000000000000000000000000000000000000000000000000000000000000);
+    const GATEWAY_CONTRACT_ID = ~ContractId::from(0x1010101010101010101010101010101010101010101010101010101010101010);
     // The contract ID of the deposited token
-    const TOKEN_CONTRACT_ID = ~ContractId::from(0x0000000000000000000000000000000000000000000000000000000000000000);
+    const TOKEN_CONTRACT_ID = ~ContractId::from(0x2020202020202020202020202020202020202020202020202020202020202020);
     // The minimum amount of gas sent with the transaction
     const MIN_GAS = 42;
     // The hash of the script which must spend the input belonging to this predicate
-    const SPENDING_SCRIPT_HASH = 0x1010101010101010101010101010101010101010101010101010101010101010;
+    const SPENDING_SCRIPT_HASH = 0x3030303030303030303030303030303030303030303030303030303030303030;
 
     //////////////////
     /// CONDITIONS ///
@@ -88,8 +90,8 @@ fn main() -> bool {
     let gasLimit = tx_gas_limit();
     assert(gasLimit >= MIN_GAS);
 
-    // Check the spending script is the authorized script. TO DO: Write script that must spend predicate so that len(script) and hash(script) can be hard-coded
-    let script: [byte; 100] = get_script(); // replace 100 with actual script length
+    // Check the spending script is the authorized script.
+    let script: [byte; 100] = get_script(); // TO DO : replace hard-coded script length with actual script length
     let script_hash = sha256(script);
     assert(script_hash == SPENDING_SCRIPT_HASH);
 
