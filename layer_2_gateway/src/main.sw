@@ -1,6 +1,10 @@
 contract;
 
-use std::{storage::StorageMap, identity::Identity, vm::evm::evm_address::EvmAddress};
+use std::{storage::StorageMap, identity::Identity, vm::evm::evm_address::EvmAddress, context::{registers::balance, call_frames::msg_asset_id}};
+
+enum L2GatewayError {
+    NoCoinsForwarded: (),
+}
 
 
 storage {
@@ -16,11 +20,18 @@ abi L2Gateway {
 impl L2Gateway for Contract {
     fn withdraw_to(to: Identity) {
         // start withdrawal
-        // Verify an amount of cou=ins was sent with this transaction
-        // Find what contract the coins originat from
+        // Verify an amount of coins was sent with this transaction
+        let withdrawal_amount = balance();
+        require(withdrawal_amount != 0, L2GatewayError::NoCoinsForwarded);
+        // Find what contract the coins originate from
+        let origin_contract_id = msg_asset_id();
         // Verify this gateway can call to burn these coins
+        // ???
+        let token_contract = abi(FungibleToken, origin_contract_id);
         // Burn the coins sent (call `burn()` on L2 token contract)
+        token_contract.burn(withdrawal_amount)
         // Output a message to release tokens locked on L1
+        // ???
     }
 
     fn process_message() {
