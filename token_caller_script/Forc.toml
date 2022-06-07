@@ -2,6 +2,7 @@
 authors = ["Simon"]
 entry = "main.sw"
 license = "Apache-2.0"
-name = "gateway_abi"
+name = "token_caller_script"
 
 [dependencies]
+token_abi = { path = "../token_abi" }
