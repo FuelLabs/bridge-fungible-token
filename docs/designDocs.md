@@ -1,10 +1,34 @@
 # Design Documentation
 
+- [ETH Bridge](#eth-bridge)
+  - [ETH Bridge Deposit](#eth-bridge-deposit)
+  - [ETH Bridge Withdrawal](#eth-bridge-withdrawal)
 - [ERC20 Bridge](#erc20-bridge)
   - [ERC20 Bridge Deposit](#erc20-bridge-deposit)
   - [ERC20 Bridge Withdrawal](#erc20-bridge-withdrawal)
 
 This document defines the high level bridge implementation.
+
+## ETH Bridge
+
+The ETH bridge facilitates the transfer of ETH from Ethereum to be represented as the native token on Fuel.
+
+## ETH Bridge Deposit
+
+1. User starts a deposit by calling sendETH on the outbox contract which accepts a value that gets custodied by the inbox contract while bridged
+1. The inbox contract creates a message in the FuelMessageOutbox to be relayed later on Fuel by only the designated recipient
+1. User can now spend the amount value in the input message like any other input
+
+![ETH Deposit Diagram](/docs/imgs/FuelMessagingETHDeposit.png)
+
+## ETH Bridge Withdrawal
+
+1. User starts a withdrawal by creating a transaction that outputs a message output with a specific amount of ETH
+1. MessageOutput is noted on L1 by including the messagId in a merkle root in the state header committed to L1
+1. After any necessary finalization period, the user calls to the FuelMessageInbox with a merkle proof of the previous sent message
+1. The FuelMessageInbox verifies the given merkle proof and send the ETH to the designated message recipient
+
+![ETH Withdrawal Diagram](/docs/imgs/FuelMessagingETHDeposit.png)
 
 ## ERC20 Bridge
 
@@ -19,7 +43,7 @@ The ERC20 bridge facilitates the transfer of ERC20 tokens from Ethereum to be re
 1. A TX is built and submitted by either the user or some relayer that meets the requirements of the ERC20GatewayDepositPredicate
 1. A single call is made from the transaction script to the intended recipient Fuel token contract. This function verifies the sender and predicate owner of the InputMessage, parses the data from the InputMessage data field and mints the appropriate amount of tokens
 
-![ERC20 Deposit Diagram](/docs/imgs/FuelMessagingDeposit.png)
+![ERC20 Deposit Diagram](/docs/imgs/FuelMessagingERC20Deposit.png)
 
 ## ERC20 Bridge Withdrawal
 
@@ -30,4 +54,4 @@ The ERC20 bridge facilitates the transfer of ERC20 tokens from Ethereum to be re
 1. The FuelMessageInbox verifies the given merkle proof and makes the message call to the L1ERC20Gateway specified in the message
 1. The L1ERC20Gateway verifies it’s being called by the FuelMessageInbox and releases the specified amount of tokens to the specified address
 
-![ERC20 Withdrawal Diagram](/docs/imgs/FuelMessagingDeposit.png)
+![ERC20 Withdrawal Diagram](/docs/imgs/FuelMessagingERC20Withdraw.png)
