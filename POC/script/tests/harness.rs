@@ -3,7 +3,7 @@ use fuels_abigen_macro::abigen;
 
 use fuel_core::service::{Config, FuelService};
 use fuel_gql_client::client::FuelClient;
-use fuel_gql_client::fuel_tx::{Receipt, Transaction, AssetId};
+use fuel_gql_client::fuel_tx::{Receipt, Transaction, AssetId, Input, Output, UtxoId};
 use fuels_contract::script::Script;
 use fuel_crypto::Hasher;
 use fuels_signers::provider::Provider;
@@ -20,7 +20,7 @@ async fn run_script() {
     println!("Script hash   : 0x{}", script_hash);
 
     let predicate_binary = std::fs::read("../predicate/out/debug/predicate.bin").unwrap();
-    let predicate_hash = Hasher::hash(predicate_binary);
+    let predicate_hash = Hasher::hash(predicate_binary.clone());
     let predicate_hash_as_address = fuels::tx::Address::from(*predicate_hash);
     println!("Predicate hash: 0x{}", predicate_hash);
 
@@ -36,9 +36,32 @@ async fn run_script() {
     let predicate_balance = provider.get_asset_balance(&predicate_hash_as_address, native_asset).await.unwrap();
     println!("Predicate balance: {}", predicate_balance);
 
+    // Get predicate coin to spend
+    let predicate_coin: UtxoId = provider.get_coins(&predicate_hash_as_address).await.unwrap()[0].utxo_id.clone().into();
+    println!("{:?}", predicate_coin);
 
     // Need to configure inputs and outputs to send coins from predicate to another wallet. 
+    
     // Coin input will have a predicate attached
+    
+    let i1 = Input::CoinPredicate {
+        utxo_id: predicate_coin,
+        owner: predicate_hash_as_address,
+        amount: 1000,
+        asset_id: native_asset,
+        maturity: 0,
+        predicate: predicate_binary,
+        predicate_data: vec![],
+    };
+    
+
+    // a variable output for the coin transfer
+    // a change output ?
+    let o1 = Output::Variable{
+        to: predicate_hash_as_address,
+        amount: 0, 
+        asset_id: native_asset
+    };
 
 
     let tx = Transaction::Script {
@@ -49,15 +72,15 @@ async fn run_script() {
         receipts_root: Default::default(),
         script: script_binary, // Here we pass the compiled script into the transaction
         script_data: vec![],
-        inputs: vec![],
-        outputs: vec![],
+        inputs: vec![i1],
+        outputs: vec![o1],
         witnesses: vec![vec![].into()],
         metadata: None,
     };
 
     let script = Script::new(tx);
 
-    //let receipts = script.call(&client).await.unwrap();
+    let receipts = script.call(&client).await.unwrap();
 }
 
 
