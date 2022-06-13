@@ -1,28 +1,18 @@
-use fuels::{prelude::*, tx::ContractId};
-use fuels_abigen_macro::abigen;
-
-use fuel_core::service::{Config, FuelService};
-use fuel_gql_client::client::FuelClient;
-use fuel_gql_client::fuel_tx::{Receipt, Transaction, AssetId, Input, Output, UtxoId};
-use fuels_contract::script::Script;
+use fuels::prelude::*;
+use fuel_core::service::Config;
 use fuel_crypto::Hasher;
-use fuels_signers::provider::Provider;
-
-
+use fuel_gql_client::fuel_tx::{AssetId, Input, Output, Transaction, UtxoId};
+use fuels_contract::script::Script;
 
 // Predicate testing:
 
 // 0.1 Write a script that sends coin to an address, and compile. Get script hash
 // 0.2 Write a predicate that expects this script hash. Get predicate hash
-// 1. send some coins to the predicate hash 
+// 1. send some coins to the predicate hash
 // 2. Build corresponding script transaction that spends Coin input, provide predicate along with input (what about witness?)
-
-
-
 
 #[tokio::test]
 async fn run_script() {
-
     // Set up a wallet and send some native asset to the predicate hash
     let native_asset: AssetId = Default::default();
     let mut config = Config::local_node();
@@ -47,18 +37,35 @@ async fn run_script() {
     println!("Predicate hash: 0x{}", predicate_hash);
 
     // Transfer some coins to the predicate hash
-    let receipt = wallet.transfer(&predicate_hash_as_address, 1000, native_asset, TxParameters::default()).await.unwrap();
+    let _receipt = wallet
+        .transfer(
+            &predicate_hash_as_address,
+            1000,
+            native_asset,
+            TxParameters::default(),
+        )
+        .await
+        .unwrap();
 
     // Inspect predicate hash balance
-    let predicate_balance = provider.get_asset_balance(&predicate_hash_as_address, native_asset).await.unwrap();
+    let predicate_balance = provider
+        .get_asset_balance(&predicate_hash_as_address, native_asset)
+        .await
+        .unwrap();
     println!("Predicate balance: {}", predicate_balance);
 
     // Get predicate coin to spend
-    let predicate_coin: UtxoId = provider.get_coins(&predicate_hash_as_address).await.unwrap()[0].utxo_id.clone().into();
+    let predicate_coin: UtxoId = provider
+        .get_coins(&predicate_hash_as_address)
+        .await
+        .unwrap()[0]
+        .utxo_id
+        .clone()
+        .into();
 
-    // Configure inputs and outputs to send coins from predicate to another wallet. 
-    // Coin input will have a predicate attached
-    
+    // Configure inputs and outputs to send coins from predicate to another wallet.
+
+    // This is the coin belonging to the predicate hash
     let i1 = Input::CoinPredicate {
         utxo_id: predicate_coin,
         owner: predicate_hash_as_address,
@@ -68,15 +75,13 @@ async fn run_script() {
         predicate: predicate_binary,
         predicate_data: vec![],
     };
-    
 
     // A variable output for the coin transfer
-    let o1 = Output::Variable{
+    let o1 = Output::Variable {
         to: Address::zeroed(),
-        amount: 0, 
-        asset_id: AssetId::default()
+        amount: 0,
+        asset_id: AssetId::default(),
     };
-
 
     let tx = Transaction::Script {
         gas_price: 0,
@@ -94,6 +99,5 @@ async fn run_script() {
 
     let script = Script::new(tx);
 
-    let receipts = script.call(&client).await.unwrap();
+    let _receipts = script.call(&client).await.unwrap();
 }
-
