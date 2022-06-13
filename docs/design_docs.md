@@ -3,9 +3,9 @@
 - [ETH Bridge](#eth-bridge)
   - [ETH Bridge Deposit](#eth-bridge-deposit)
   - [ETH Bridge Withdrawal](#eth-bridge-withdrawal)
-- [ERC20 Bridge](#erc20-bridge)
-  - [ERC20 Bridge Deposit](#erc20-bridge-deposit)
-  - [ERC20 Bridge Withdrawal](#erc20-bridge-withdrawal)
+- [ERC-20 Bridge](#ERC-20-bridge)
+  - [ERC-20 Bridge Deposit](#ERC-20-bridge-deposit)
+  - [ERC-20 Bridge Withdrawal](#ERC-20-bridge-withdrawal)
 
 This document defines the high level bridge implementation.
 
@@ -30,11 +30,11 @@ The ETH bridge facilitates the transfer of ETH from Ethereum to be represented a
 
 ![ETH Withdrawal Diagram](/docs/imgs/FuelMessagingETHWithdraw.png)
 
-## ERC20 Bridge
+## ERC-20 Bridge
 
-The ERC20 bridge facilitates the transfer of ERC20 tokens from Ethereum to be represented as tokens on Fuel.
+The ERC-20 bridge facilitates the transfer of ERC-20 tokens from Ethereum to be represented as tokens on Fuel.
 
-### ERC20 Bridge Deposit
+### ERC-20 Bridge Deposit
 
 1. User starts a deposit by calling deposit (has already approved token transfer to `L1ERC20Gateway`)
 1. `L1ERC20Gateway` transfers tokens to itself to custody while bridged
@@ -45,7 +45,7 @@ The ERC20 bridge facilitates the transfer of ERC20 tokens from Ethereum to be re
 
 ![ERC20 Deposit Diagram](/docs/imgs/FuelMessagingERC20Deposit.png)
 
-### ERC20 Bridge Withdrawal
+### ERC-20 Bridge Withdrawal
 
 1. User starts a withdrawal by calling the `FuelMyToken` contract sending some coins to withdraw along with it
 1. `FuelMyToken` contract looks to see what coins it was sent, burns them and then creates a `MessageOutput` via opcode
