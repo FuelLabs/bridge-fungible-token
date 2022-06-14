@@ -13,7 +13,6 @@ use fuels_contract::script::Script;
 // 3. Check that coins were spent
 
 async fn get_balance(provider: &Provider, address: Address, asset: AssetId) -> u64 {
-    // Inspect predicate root balance
     let balance = provider
         .get_asset_balance(&address, asset)
         .await
@@ -34,21 +33,27 @@ async fn predicate_spend() {
     let client = &provider.client;
 
     // Get script bytecode and hash
-    let script_bytecode = std::fs::read("../script/out/debug/script.bin").unwrap();
+    let mut script_bytecode = std::fs::read("../script/out/debug/script.bin").unwrap().to_vec();
+    let mut padding = vec![0, 0, 0, 0]; // Pad to next multiple of 8 bytes to fill u64 array in sway
+    script_bytecode.append(&mut padding);
+
+    println!("Padded script   : {:?}", script_bytecode);
+    println!("Padded script length: {}", script_bytecode.len());
+
+
+    // Need to right-pad bytecode by 4 bytes
     let script_hash = Hasher::hash(&script_bytecode);
-    println!("Script hash   : 0x{}", script_hash);
+    println!("Script hash   : 0x{:?}", script_hash);
 
     // Get predicate bytecode and root
     let predicate_bytecode = std::fs::read("../predicate/out/debug/predicate.bin").unwrap();
     let predicate_root: [u8; 32] = (*Contract::root_from_code(&predicate_bytecode)).into();
-
-    let predicate_root_as_address = fuels::tx::Address::from(predicate_root);
-    println!("Predicate root: 0x{:?}", predicate_root);
+    let predicate_root = fuels::tx::Address::from(predicate_root);
 
     // Transfer some coins to the predicate root
     let _receipt = wallet
         .transfer(
-            &predicate_root_as_address,
+            &predicate_root,
             1000,
             native_asset,
             TxParameters::default(),
@@ -57,9 +62,10 @@ async fn predicate_spend() {
         .unwrap();
 
 
-    let mut predicate_balance = get_balance(&provider, predicate_root_as_address, native_asset).await;
+    let mut predicate_balance = get_balance(&provider, predicate_root, native_asset).await;
     println!("Predicate root balance before: {}", predicate_balance);
 
+    // Use default address as receiver - see script
     let receiver_address: Address = Address::new([0u8; 32]);
     let mut receiver_balance = get_balance(&provider, receiver_address, native_asset).await;
     println!("Receiver balance before: {}", receiver_balance);
@@ -69,7 +75,7 @@ async fn predicate_spend() {
 
     // Get predicate coin to spend
     let predicate_coin: UtxoId = provider
-        .get_coins(&predicate_root_as_address)
+        .get_coins(&predicate_root)
         .await
         .unwrap()[0]
         .utxo_id
@@ -81,7 +87,7 @@ async fn predicate_spend() {
     // This is the coin belonging to the predicate root
     let i1 = Input::CoinPredicate {
         utxo_id: predicate_coin,
-        owner: predicate_root_as_address,
+        owner: predicate_root,
         amount: 1000,
         asset_id: native_asset,
         maturity: 0,
@@ -96,12 +102,13 @@ async fn predicate_spend() {
         asset_id: AssetId::default(),
     };
 
-    // A variable output for the coin transfer
+    // A variable output for change (Does this need to be explicitly a Change output?)
     let o2 = Output::Variable {
         to: Address::default(),
         amount: 0,
         asset_id: AssetId::default(),
     };
+
 
     let tx = Transaction::Script {
         gas_price: 0,
@@ -122,7 +129,7 @@ async fn predicate_spend() {
     let _receipts = script.call(&client).await.unwrap();
 
 
-    predicate_balance = get_balance(&provider, predicate_root_as_address, native_asset).await;
+    predicate_balance = get_balance(&provider, predicate_root, native_asset).await;
     println!("Predicate root balance after: {}", predicate_balance);
 
     receiver_balance = get_balance(&provider, receiver_address, native_asset).await;
