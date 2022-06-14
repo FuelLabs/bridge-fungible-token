@@ -9,17 +9,25 @@ use fuels_contract::script::Script;
 // 0.1 Write a script that sends coin to an address, and compile. Get script hash
 // 0.2 Write a predicate that expects this script hash. Get predicate root
 // 1. send some coins to the predicate root
-// 2. Build corresponding script transaction that spends Coin input, provide predicate along with input (what about witness?)
+// 2. Build corresponding script transaction that spends Coin input, provide predicate along with input
+// 3. Check that coins were spent
+
+async fn get_balance(provider: &Provider, address: Address, asset: AssetId) -> u64 {
+    // Inspect predicate root balance
+    let balance = provider
+        .get_asset_balance(&address, asset)
+        .await
+        .unwrap();
+    balance
+}
 
 #[tokio::test]
-async fn run_script() {
+async fn predicate_spend() {
     // Set up a wallet and send some native asset to the predicate root
     let native_asset: AssetId = Default::default();
     let mut config = Config::local_node();
     config.predicates = true;
     let wallet = launch_custom_provider_and_get_single_wallet(config).await;
-    let wallet_balance = wallet.get_asset_balance(&native_asset).await.unwrap();
-    println!("Wallet balance: {}", wallet_balance);
 
     // Get provider and client
     let provider = wallet.get_provider().unwrap();
@@ -48,19 +56,16 @@ async fn run_script() {
         .await
         .unwrap();
 
-    // Inspect predicate root balance
-    let mut predicate_balance = provider
-        .get_asset_balance(&predicate_root_as_address, native_asset)
-        .await
-        .unwrap();
+
+    let mut predicate_balance = get_balance(&provider, predicate_root_as_address, native_asset).await;
     println!("Predicate root balance before: {}", predicate_balance);
 
     let receiver_address: Address = Address::new([0u8; 32]);
-    let mut receiver_balance = provider
-        .get_asset_balance(&receiver_address, native_asset)
-        .await
-        .unwrap();
+    let mut receiver_balance = get_balance(&provider, receiver_address, native_asset).await;
     println!("Receiver balance before: {}", receiver_balance);
+
+    assert_eq!(predicate_balance, 1000);
+    assert_eq!(receiver_balance, 0);
 
     // Get predicate coin to spend
     let predicate_coin: UtxoId = provider
@@ -93,7 +98,7 @@ async fn run_script() {
 
     // A variable output for the coin transfer
     let o2 = Output::Variable {
-        to: wallet.address(),
+        to: Address::default(),
         amount: 0,
         asset_id: AssetId::default(),
     };
@@ -117,21 +122,13 @@ async fn run_script() {
     let _receipts = script.call(&client).await.unwrap();
 
 
-    // Inspect predicate root balance
-    predicate_balance = provider
-    .get_asset_balance(&predicate_root_as_address, native_asset)
-    .await
-    .unwrap();
+    predicate_balance = get_balance(&provider, predicate_root_as_address, native_asset).await;
     println!("Predicate root balance after: {}", predicate_balance);
 
-    receiver_balance = provider
-        .get_asset_balance(&receiver_address, native_asset)
-        .await
-        .unwrap();
+    receiver_balance = get_balance(&provider, receiver_address, native_asset).await;
     println!("Receiver balance after: {}", receiver_balance);
 
-
-
-
+    assert_eq!(predicate_balance, 0);
+    assert_eq!(receiver_balance, 1000);
 
 }
