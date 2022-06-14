@@ -8,6 +8,6 @@ use std::contract_id::ContractId;
 
 fn main() -> () {
     let receiver = ~Address::from(NATIVE_ASSET_ID);
-    let amount = 0;
+    let amount = 1000;
     transfer_to_output(amount, ~ContractId::from(NATIVE_ASSET_ID), receiver);
 }
