@@ -17,7 +17,7 @@ fn main() -> b256 {
     // Add this to make the script bigger, and not a multiple of 8 bytes (412 bytes => 51.5 words)
     let a = sha256(2);
 
-    // length of return array is script length padded to nearest full word
+    // length of array is script length padded to nearest full word
     let script: [u64; 52] = get_script_bytecode();
     sha256(script)
 

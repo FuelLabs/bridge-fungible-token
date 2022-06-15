@@ -34,14 +34,15 @@ pub async fn run_compiled_script(binary_filepath: &str) -> Result<Vec<Receipt>, 
 #[tokio::test]
 async fn test_run_compiled_script() {
 
+    let path_to_bin = "../temp/out/debug/temp.bin";
+
     // Calculate padded script hash
-    let mut script_bytecode = std::fs::read("../temp/out/debug/temp.bin").unwrap().to_vec();
+    let mut script_bytecode = std::fs::read(path_to_bin).unwrap().to_vec();
     let padding = script_bytecode.len() % 8;
     script_bytecode.append(&mut vec![0; padding]);
     let script_hash = Hasher::hash(&script_bytecode); // This is the hard that must be hard-coded in the predicate
 
     // Run script and get the hash it returns
-    let path_to_bin = "../temp/out/debug/temp.bin";
     let return_val = run_compiled_script(path_to_bin).await.unwrap();
     let script_hash_from_vm = unsafe{Bytes32::from_slice_unchecked(return_val[0].data().unwrap())};
 
