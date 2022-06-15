@@ -3,14 +3,14 @@ contract;
 use std::{
     address::Address,
     assert::require,
-    chain::auth::{AuthError, Sender, msg_sender},
+    chain::auth::{AuthError, msg_sender},
     context::{call_frames::{contract_id, msg_asset_id}, msg_amount},
     contract_id::ContractId,
-    indentity::Identity,
+    identity::Identity,
     logging::log,
     result::*,
     revert::revert,
-    token::{mint_to_address, mint_to_contract, burn},
+    token::{mint_to, burn},
     vm::evm::evm_address::EvmAddress
 };
 
@@ -23,9 +23,9 @@ use std::{
 ////////////////////////////////////////
 
 storage {
-    // @todo decide if this should be an Identity. try to make the token general-purpose
-    owner: ContractId,
-    state: u64,
+    initialized: bool,
+    // @todo rethink storing Identities.
+    owner: Identity,
     refund_amounts: StorageMap<(b256, b256), u64>,
 }
 
@@ -33,14 +33,29 @@ storage {
 // Helper functions
 ////////////////////////////////////////
 
-    fn process_message() {
-        // Finalize deposit
-        // Verify first message input owner predicate == MessageToGatewayPredicate
-        // Verify the msg sender is the L1ERC20Gateway contract
-        // *predicate will have already verified only 1 message input
-        // *predicate will have already verified this contract is supposed to receive mesage
-        // * no value will be sent by the L1ERC20Gateway contract
+fn caller_is_owner() -> bool {
+    let sender: Result<Sender, AuthError> = msg_sender();
+    match sender.unwrap() {
+        Identity::ContractId(id) => {
+            if storage.owner == id {
+                true
+            } else {
+                false
+            }
+        },
+        // we restrict access to the correct contract only
+        _ => false,
     }
+}
+
+fn process_message() {
+    // Finalize deposit
+    // Verify first message input owner predicate == MessageToGatewayPredicate
+    // Verify the msg sender is the L1ERC20Gateway contract
+    // *predicate will have already verified only 1 message input
+    // *predicate will have already verified this contract is supposed to receive mesage
+    // * no value will be sent by the L1ERC20Gateway contract
+}
 
 ////////////////////////////////////////
 // ABI definitions
@@ -67,15 +82,15 @@ abi L2ERC20Gateway {
 // Errors
 ////////////////////////////////////////
 
-enum FungibleTokenError {
+enum TokenError {
     CannotReinitialize: (),
-    StateNotInitialized: (),
+    ContractNotInitialized: (),
     IncorrectAssetAmount: (),
     IncorrectAssetDeposited: (),
     UnauthorizedUser: (),
 }
 
-enum L2GatewayError {
+enum GatewayError {
     NoCoinsForwarded: (),
 }
 
@@ -105,51 +120,25 @@ struct Withdrawal {
 
 impl FungibleToken for Contract {
     fn constructor(owner: ContractId) {
-        require(storage.state == 0, Error::CannotReinitialize);
+        require(storage.initialized == false, TokenError::CannotReinitialize);
         storage.owner = owner;
-        storage.state = 1;
-        true
+        storage.initialized = true;
     }
 
     // @todo decide if this needs to be public
     fn mint(to: Identity, amount: u64) {
-        require(storage.state == 1, Error::StateNotInitialized);
-
-        let sender: Result<Sender, AuthError> = msg_sender();
-        match sender.unwrap() {
-            Sender::ContractId(address) => {
-                require(storage.owner == address, Error::UnauthorizedUser);
-
-                match to {
-                    Sender::Address(address) => {
-                        mint_to_address(amount, address);
-                    },
-                    Sender::ContractId(address) => {
-                        mint_to_contract(amount, address);
-                    }
-                }
-            },
-            _ => revert(42),
-        }
-
+        require(caller_is_owner(), TokenError::UnauthorizedUser);
+        mint_to(amount, to);
         log(MintedEvent {to, amount});
     }
 
     // @todo decide if this needs to be public
     fn burn(from: Identity, amount: u64) {
-        require(storage.state == 1, Error::StateNotInitialized);
+        require(caller_is_owner(), TokenError::UnauthorizedUser);
+        require(contract_id() == msg_asset_id(), TokenError::IncorrectAssetDeposited);
+        require(amount == msg_amount(), TokenError::IncorrectAssetAmount);
 
-        let sender: Result<Sender, AuthError> = msg_sender();
-        match sender.unwrap() {
-            Sender::ContractId(address) => {
-                require(storage.owner == address, Error::UnauthorizedUser);
-                require(contract_id() == msg_asset_id(), Error::IncorrectAssetDeposited);
-                require(amount == msg_amount(), Error::IncorrectAssetAmount);
-                burn(amount);
-            },
-            _ => revert(42),
-        }
-
+        burn(amount);
         log(BurnedEvent {from, amount});
     }
 
@@ -166,7 +155,7 @@ impl FungibleToken for Contract {
     }
 
     fn layer1_token() -> EvmAddress {
-        ~EvmAddress::from(~b267::min())
+        ~EvmAddress::from(~b256::min())
     }
 
     fn layer1_decimals() -> u8 {
@@ -188,16 +177,12 @@ impl L2ERC20Gateway for Contract {
     ///
     /// * When no coins were sent with call
     fn withdraw_to(to: Identity) {
-        // start withdrawal
-        // Verify an amount of coins was sent with this transaction
         let withdrawal_amount = balance();
-        require(withdrawal_amount != 0, L2GatewayError::NoCoinsForwarded);
-        // Find what contract the coins originate from
+        require(withdrawal_amount != 0, GatewayError::NoCoinsForwarded);
         let origin_contract_id = msg_asset_id();
-        // Verify this gateway can call to burn these coins
-        // ???
+        // Verify this contract can burn these coins ???
         let token_contract = abi(FungibleToken, origin_contract_id);
-        // Burn the coins sent (call `burn()` on L2 token contract)
+
         token_contract.burn{
             coins: withdrawal_amount,
             asset_id: origin_contract_id
@@ -209,5 +194,22 @@ impl L2ERC20Gateway for Contract {
         log(withdrawal);
     }
 
-    fn finalize_deposit() {}
+    fn finalize_deposit() {
+        // verify msg_sender is the L1ERC20Gateway contract
+        let sender: Result<Identity, AuthError> = msg_sender();
+        match sender.unwrap() {
+
+        }
+
+
+        // Verify first message owner input predicate == ERC20GatewayDepositPredicate
+        // * predicate will have already verified only 1 msg input
+        // * predicate will have already verified this contract is supposed to recieve message
+
+        // Parse messsage data (asset: ContractId, fuel_token: ContractId, to: Identity, amount: u64)
+
+        // verify asset matches hardcoded L1 token
+        // start token mint process
+        // if mint fails or is invalid for any reason (i.e: precision), register it to be refunded later
+    }
 }
