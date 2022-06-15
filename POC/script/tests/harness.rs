@@ -6,10 +6,10 @@ use fuels_contract::script::Script;
 
 // Predicate testing:
 
-// 0.1 Write a script that sends coin to an address, and compile. Get script hash
-// 0.2 Write a predicate that expects this script hash. Get predicate root
+// 0.1 Write a script that sends coin to an address
+// 0.2 Write a predicate that expects this script hash
 // 1. send some coins to the predicate root
-// 2. Build corresponding script transaction that spends Coin input, provide predicate along with input
+// 2. Build script transaction that spends Coin input, providing predicate along with input
 // 3. Check that coins were spent
 
 async fn get_balance(provider: &Provider, address: Address, asset: AssetId) -> u64 {
@@ -25,24 +25,21 @@ async fn predicate_spend() {
     // Set up a wallet and send some native asset to the predicate root
     let native_asset: AssetId = Default::default();
     let mut config = Config::local_node();
-    config.predicates = true;
+    config.predicates = true; // predicates are currently disabled by default
     let wallet = launch_custom_provider_and_get_single_wallet(config).await;
 
     // Get provider and client
     let provider = wallet.get_provider().unwrap();
     let client = &provider.client;
 
-    // Get script bytecode and hash
     let mut script_bytecode = std::fs::read("../script/out/debug/script.bin").unwrap().to_vec();
-    let mut padding = vec![0, 0, 0, 0]; // Pad to next multiple of 8 bytes to fill u64 array in sway
-    script_bytecode.append(&mut padding);
+    let padding = script_bytecode.len() % 8;
+    script_bytecode.append(&mut vec![0; padding]);
+    let script_hash = Hasher::hash(&script_bytecode); // This is the hard that must be hard-coded in the predicate
+
 
     println!("Padded script   : {:?}", script_bytecode);
     println!("Padded script length: {}", script_bytecode.len());
-
-
-    // Need to right-pad bytecode by 4 bytes
-    let script_hash = Hasher::hash(&script_bytecode);
     println!("Script hash   : 0x{:?}", script_hash);
 
     // Get predicate bytecode and root
@@ -127,7 +124,6 @@ async fn predicate_spend() {
     let script = Script::new(tx);
 
     let _receipts = script.call(&client).await.unwrap();
-
 
     predicate_balance = get_balance(&provider, predicate_root, native_asset).await;
     println!("Predicate root balance after: {}", predicate_balance);
