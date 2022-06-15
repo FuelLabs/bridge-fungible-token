@@ -7,7 +7,7 @@ use std::hash::*;
 use std::contract_id::ContractId;
 
 /// Get the ID of a contract input
-fn get_input_contract_id(index: u8) -> ContractId {
+fn get_contract_input_contract_id(index: u8) -> ContractId {
     // Check that input at this index is a contract input
     assert(get_input_type(index) == 1u8);
 
@@ -18,6 +18,14 @@ fn get_input_contract_id(index: u8) -> ContractId {
     };
     ~ContractId::from(contract_id_bytes)
 }
+
+fn get_message_input_data_contract_id(index: u8) -> ContractId {
+    // Check that input at this index is a message input
+    assert(get_input_type(index) == 2u8);
+
+    // TO DO
+}
+
 
 /// Get the type of an input at a given index
 fn get_input_type(index: u8) -> u8 {
@@ -48,10 +56,6 @@ fn main() -> bool {
     /// CONSTANTS ///
     /////////////////
 
-    // TO DO: hard code actual constants
-
-    // The contract ID of the deposited token
-    const TOKEN_CONTRACT_ID = ~ContractId::from(0x1010101010101010101010101010101010101010101010101010101010101010);
     // The minimum gas limit for the transaction not to revert out-of-gas.
     const MIN_GAS = 42;
     // The hash of the script which must spend the input belonging to this predicate
@@ -62,8 +66,7 @@ fn main() -> bool {
     //////////////////
 
     // Verify script bytecode hash is expected
-    let script: [byte;
-    252] = get_script(); // Note : Make sure 252 equal to actual compiled script length
+    let script: [u64; 20] = get_script(); // Note : Make sure length is script bytecode length rounded up to next word
     let script_hash = sha256(script);
     assert(script_hash == SPENDING_SCRIPT_HASH);
 
@@ -72,9 +75,17 @@ fn main() -> bool {
     assert(gasLimit >= MIN_GAS);
 
     // Transaction must have exactly three inputs: a Coin input (for fees), a Message, and the token Contract (in that order)
-    // TO DO: is there a more readable/maintainable way to manage input/output types in Sway, rather than having to know the integer identifier of each type?
+    // Message and Contract input types are verified in contract id getter functions
     let n_inputs = tx_inputs_count();
-    assert(n_inputs == 3 && get_input_type(0) == 0u8 && get_input_type(1) == 2u8 && get_input_contract_id(3) == TOKEN_CONTRACT_ID);
+    assert(n_inputs == 3);
+    assert(get_input_type(0) == 0u8);
+
+    let input_contract_id = get_contract_input_contract_id(3);
+    let message_data_contract_id = get_message_input_data_contract_id(2);
+
+    // Check contract ID from the contract input matches the one specified in the message data
+    assert(input_contract_id == message_data_contract_id);
+
 
     // Transation must have exactly 2 outputs: OutputVariable and OutputContract (in that order)
     let n_outputs = tx_outputs_count();
