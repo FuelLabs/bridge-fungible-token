@@ -98,17 +98,17 @@ enum GatewayError {
 // Events
 ////////////////////////////////////////
 
-pub struct MintedEvent {
+pub struct MintEvent {
     to: Identity,
     amount: u64,
 }
 
-pub struct BurnedEvent {
+pub struct BurnEvent {
     from: Identity,
     amount: u64,
 }
 
-struct Withdrawal {
+struct WithdrawalEvent {
     to: Identity,
     amount: u64,
     asset: ContractId,
@@ -191,6 +191,12 @@ impl L2ERC20Gateway for Contract {
         // @todo implement me!
         // Output a message to release tokens locked on L1
         // send_message(...);
+        let withdrawal = WithdrawalEvent {
+            to: to,
+            amount: withdrawal_amount,
+            asset: origin_contract_id,
+        };
+
         log(withdrawal);
     }
 
