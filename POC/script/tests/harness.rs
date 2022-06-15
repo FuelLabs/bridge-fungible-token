@@ -34,13 +34,14 @@ async fn predicate_spend() {
 
     let mut script_bytecode = std::fs::read("../script/out/debug/script.bin").unwrap().to_vec();
     let padding = script_bytecode.len() % 8;
+    let script_bytecode_unpadded = script_bytecode.clone();
     script_bytecode.append(&mut vec![0; padding]);
     let script_hash = Hasher::hash(&script_bytecode); // This is the hard that must be hard-coded in the predicate
 
-
-    println!("Padded script   : {:?}", script_bytecode);
+    println!("Unpadded script length: {}", script_bytecode_unpadded.len());
     println!("Padded script length: {}", script_bytecode.len());
-    println!("Script hash   : 0x{:?}", script_hash);
+    //println!("Padded script   : {:?}", script_bytecode);
+    println!("Padded script hash   : 0x{:?}", script_hash);
 
     // Get predicate bytecode and root
     let predicate_bytecode = std::fs::read("../predicate/out/debug/predicate.bin").unwrap();
@@ -113,7 +114,7 @@ async fn predicate_spend() {
         maturity: 0,
         byte_price: 0,
         receipts_root: Default::default(),
-        script: script_bytecode,
+        script: script_bytecode_unpadded,
         script_data: vec![],
         inputs: vec![i1],
         outputs: vec![o1, o2],
