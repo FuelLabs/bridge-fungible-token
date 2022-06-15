@@ -6,14 +6,25 @@ use std::assert::assert;
 use std::hash::*;
 use std::contract_id::ContractId;
 
+
+// TO DO: Is there a better way to do this ? 
+const INPUT_COIN = 0u8;
+const INPUT_CONTRACT = 1u8;
+const INPUT_MESSAGE = 2u8;
+const OUTPUT_CONTRACT = 1u8;
+const OUTPUT_VARIABLE = 4u8;
+
+// TO DO : factor out these functions to a library (or add to std::tx)
+
 /// Get the ID of a contract input
 fn get_contract_input_contract_id(index: u8) -> ContractId {
     // Check that input at this index is a contract input
-    assert(get_input_type(index) == 1u8);
+    assert(get_input_type(index) == INPUT_CONTRACT);
 
     let ptr = tx_input_pointer(index);
     let contract_id_bytes = asm(r1, r2: ptr) {
-        lw r1 r2 i200;
+        // TO DO: Check this offset : Contract ID is after InputType (8 bytes) + 6 word, = 8 + (6 * 32) = 200
+        lw r1 r2 i200;  
         r1: b256
     };
     ~ContractId::from(contract_id_bytes)
@@ -21,9 +32,15 @@ fn get_contract_input_contract_id(index: u8) -> ContractId {
 
 fn get_message_input_data_contract_id(index: u8) -> ContractId {
     // Check that input at this index is a message input
-    assert(get_input_type(index) == 2u8);
+    assert(get_input_type(index) == INPUT_MESSAGE);
 
-    // TO DO
+    let ptr = tx_input_pointer(index);
+    let contract_id_bytes = asm(r1, r2: ptr) {
+        // TO DO: Check this offset : Contract ID is after InputType (8 bytes) + 10 words, = 8 + (10 * 32) = 328
+        lw r1 r2 i328;  
+        r1: b256
+    };
+    ~ContractId::from(contract_id_bytes)
 }
 
 
@@ -41,7 +58,7 @@ fn get_output_type(index: u8) -> u8 {
     output_type
 }
 
-/// Get the script spending the input belonging to this predicate hash. TO DO : replace with std-lib version when ready
+/// Get the script spending the input belonging to this predicate hash.
 fn get_script<T>() -> T {
     let script_ptr = std::context::registers::instrs_start();
     let script = asm(r1: script_ptr) {
@@ -75,10 +92,9 @@ fn main() -> bool {
     assert(gasLimit >= MIN_GAS);
 
     // Transaction must have exactly three inputs: a Coin input (for fees), a Message, and the token Contract (in that order)
-    // Message and Contract input types are verified in contract id getter functions
-    let n_inputs = tx_inputs_count();
-    assert(n_inputs == 3);
-    assert(get_input_type(0) == 0u8);
+    // (Message and Contract input types are verified in contract id getter functions)
+    assert(tx_inputs_count() == 3);
+    assert(get_input_type(0) == INPUT_COIN);
 
     let input_contract_id = get_contract_input_contract_id(3);
     let message_data_contract_id = get_message_input_data_contract_id(2);
@@ -89,7 +105,7 @@ fn main() -> bool {
 
     // Transation must have exactly 2 outputs: OutputVariable and OutputContract (in that order)
     let n_outputs = tx_outputs_count();
-    assert(n_outputs == 2 && get_output_type(0) == 4u8 && get_output_type(1) == 1u8); // Single output is OutputVariable
+    assert(n_outputs == 2 && get_output_type(0) == OUTPUT_VARIABLE && get_output_type(1) == OUTPUT_CONTRACT); // Single output is OutputVariable
 
     true
 }

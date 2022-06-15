@@ -18,7 +18,7 @@ fn get_input_contract_id(index: u8) -> ContractId {
 
 fn main() -> bool {
 
-    // Get contract ID. Predicate has already checked this corresponds to the contract ID specified in the Message data
+    // Get contract ID. Predicate has already checked this contract input corresponds to the contract ID specified in the Message data
     let input_contract_id = get_input_contract_id(3);
 
     let token_contract = abi(Token, input_contract_id.into());
