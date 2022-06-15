@@ -6,6 +6,16 @@ enum L2GatewayError {
     NoCoinsForwarded: (),
 }
 
+struct Withdrawal {
+    to: Identity,
+    amount: u64,
+    asset: ContractId,
+}
+
+struct Message {
+    // ?
+}
+
 
 storage {
     refund_amounts: StorageMap<(b256, b256), u64>,
@@ -18,6 +28,10 @@ abi L2Gateway {
 }
 
 impl L2Gateway for Contract {
+
+    /// Withdraw coins back to L1 and burn the corresponding amount of coins on L2.
+    /// Revert if:
+    /// no coins sent with call
     fn withdraw_to(to: Identity) {
         // start withdrawal
         // Verify an amount of coins was sent with this transaction
@@ -29,9 +43,13 @@ impl L2Gateway for Contract {
         // ???
         let token_contract = abi(FungibleToken, origin_contract_id);
         // Burn the coins sent (call `burn()` on L2 token contract)
-        token_contract.burn(withdrawal_amount)
+        token_contract.burn{
+            coins: withdrawal_amount,
+            asset_id: origin_contract_id
+        } (withdrawal_amount);
         // Output a message to release tokens locked on L1
-        // ???
+        send_message(...);
+        log(withdrawal);
     }
 
     fn process_message() {
