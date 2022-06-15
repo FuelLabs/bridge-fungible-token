@@ -191,13 +191,12 @@ impl L2ERC20Gateway for Contract {
         // @todo implement me!
         // Output a message to release tokens locked on L1
         // send_message(...);
-        let withdrawal = WithdrawalEvent {
+
+        log(WithdrawalEvent {
             to: to,
             amount: withdrawal_amount,
             asset: origin_contract_id,
-        };
-
-        log(withdrawal);
+        });
     }
 
     fn finalize_deposit() {
