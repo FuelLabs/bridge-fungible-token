@@ -1,5 +1,6 @@
 contract;
 
+use core::num::*;
 use std::{
     address::Address,
     assert::require,
@@ -8,11 +9,15 @@ use std::{
     contract_id::ContractId,
     identity::Identity,
     logging::log,
+    option::*,
     result::*,
     revert::revert,
+    storage::StorageMap,
     token::{mint_to, burn},
+    tx::{tx_inputs_count, tx_input_pointer, tx_input_type},
     vm::evm::evm_address::EvmAddress
 };
+
 
 ////////////////////////////////////////
 // Constants
@@ -80,7 +85,7 @@ fn authenticate_message_owner() -> bool {
         if input_type != target_input_type {
             // type != InputMessage
             // Continue looping.
-            i = i + 1;
+            i += 1;
         } else {
             // @todo add function to stdlib::tx : tx_input_message_owner()
             let input_owner = Option::Some(tx_input_message_owner(input_pointer));
@@ -88,38 +93,38 @@ fn authenticate_message_owner() -> bool {
                 true
             } else {
                 // owner not matching
-                i = i + 1;
+                i += 1;
             }
         }
     }
     false
 }
 
-fn parse_message_data(input_ptr: u32) -> MessageData {
-    let target_input_type = 2u8;
-    let inputs_count = tx_inputs_count();
+// fn parse_message_data(input_ptr: u32) -> MessageData {
+//     let target_input_type = 2u8;
+//     let inputs_count = tx_inputs_count();
 
-    let mut i = 0u64;
+//     let mut i = 0u64;
 
-    while i < inputs_count {
-        let input_pointer = tx_input_pointer(i);
-        let input_type = tx_input_type(input_pointer);
-        if input_type != target_input_type {
-            // type != InputMessage
-            // Continue looping.
-            i = i + 1;
-        } else {
+//     while i < inputs_count {
+//         let input_pointer = tx_input_pointer(i);
+//         let input_type = tx_input_type(input_pointer);
+//         if input_type != target_input_type {
+//             // type != InputMessage
+//             // Continue looping.
+//             i = i + 1;
+//         } else {
 
-        }
-    }
+//         }
+//     }
 
-    MessageData {
-        asset:
-        fuel_token:
-        to:
-        amount:
-    };
-}
+//     MessageData {
+//         asset:
+//         fuel_token:
+//         to:
+//         amount:
+//     };
+// }
 
 
 
@@ -130,7 +135,7 @@ fn parse_message_data(input_ptr: u32) -> MessageData {
 abi FungibleToken {
     fn constructor(owner: Identity);
     fn mint(to: Identity, amount: u64);
-    fn burn(from: Identity, amount: u64);
+    fn burn(amount: u64);
     fn name() -> str[11];
     fn symbol() -> str[11];
     fn decimals() -> u8;
@@ -139,6 +144,7 @@ abi FungibleToken {
 abi L2ERC20Gateway {
     fn withdraw_refund(originator: Identity);
     fn withdraw_to(to: Identity);
+    #[storage(read, write)]
     fn finalize_deposit();
     fn layer1_token() -> EvmAddress;
     fn layer1_decimals() -> u8;
@@ -168,7 +174,7 @@ pub struct MintEvent {
 }
 
 pub struct BurnEvent {
-    from: Identity,
+    // from: Identity,
     amount: u64,
 }
 
@@ -185,25 +191,27 @@ struct WithdrawalEvent {
 impl FungibleToken for Contract {
     ///  owner is the L1ERC20Gateway contract ?
     fn constructor(owner: Identity) {
-        require(storage.initialized == false, TokenError::CannotReinitialize);
+        require(storage.initialized == false, TokenGatewayError::CannotReinitialize);
         storage.owner = owner;
         storage.initialized = true;
     }
 
     fn mint(to: Identity, amount: u64) {
-        require(msg_sender().unwrap() == storage.owner, TokenError::UnauthorizedUser);
+        let sender: Result<Identity, AuthError> = msg_sender();
+        require(sender.unwrap() == storage.owner, TokenGatewayError::UnauthorizedUser);
         mint_to(amount, to);
-        log(MintedEvent {to, amount});
+        log(MintEvent {to, amount});
     }
 
     // @todo decide if this needs to be public
-    fn burn(from: Identity, amount: u64) {
-        require(msg_sender().unwrap() == storage.owner, TokenError::UnauthorizedUser);
-        require(contract_id() == msg_asset_id(), TokenError::IncorrectAssetDeposited);
-        require(amount == msg_amount(), TokenError::IncorrectAssetAmount);
+    fn burn(amount: u64) {
+        require(msg_sender().unwrap() == storage.owner, TokenGatewayError::UnauthorizedUser);
+        require(contract_id() == msg_asset_id(), TokenGatewayError::IncorrectAssetDeposited);
+        require(amount == msg_amount(), TokenGatewayError::IncorrectAssetAmount);
 
         burn(amount);
-        log(BurnedEvent {from, amount});
+        // @todo consider adding msg_sender to log as a `from` field
+        log(BurnEvent {amount});
     }
 
     fn name() -> str[11] {
@@ -233,9 +241,10 @@ impl L2ERC20Gateway for Contract {
     ///
     /// * When no coins were sent with call
     fn withdraw_to(to: Identity) {
-        let withdrawal_amount = balance();
-        require(withdrawal_amount != 0, GatewayError::NoCoinsForwarded);
+        let withdrawal_amount = msg_amount();
+        require(withdrawal_amount != 0, TokenGatewayError::NoCoinsForwarded);
         let origin_contract_id = msg_asset_id();
+
         // Verify this contract can burn these coins ???
         let token_contract = abi(FungibleToken, origin_contract_id);
 
@@ -259,39 +268,32 @@ impl L2ERC20Gateway for Contract {
     fn finalize_deposit() {
         // verify msg_sender is the L1ERC20Gateway contract
         let sender = msg_sender();
-        require(sender == storage.owner, TokenGatewayError::UnauthorizedUser);
+        require(sender.unwrap() == storage.owner, TokenGatewayError::UnauthorizedUser);
         // check that first InputMessage.owner == predicate root
         require(authenticate_message_owner(), TokenGatewayError::IncorrectMessageOwner);
 
         // Parse message data (asset: ContractId, fuel_token: ContractId, to: Identity, amount: u64)
-        let message_data = parse_message_data();
-
-        // let message_data: MessageData = Message {
-        //     asset:
-        //     fuel_token:
-        //     to:
-        //     amount:
-        // };
+        // let message_data = parse_message_data();
 
         // verify asset matches hardcoded L1 token
-        require(message_data.asset == LAYER_1_TOKEN, TokenError::IncorrectAssetDeposited);
+        // require(message_data.asset == LAYER_1_TOKEN, TokenGatewayError::IncorrectAssetDeposited);
 
         // start token mint process
         // @todo work out how to mint. i.e: have an internal function we can call here, which is also used byt the public `mint` function.
         // Also, we may want to have both `mint` and `mint_to` exposed by the token contract, but `mint_to` perhaps doesn't need to be part of the general token spec... (would probably need to expose the generic `transfer` in that case, which would cover more use-cases. Under the hood, `mint` could be made to utilize `mint_to` or not, as needed by the specific token.
-        let tokengate = abi(FungibleToken, contract_id());
+        // let tokengate = abi(FungibleToken, contract_id());
 
-        if ! mint_deposit_amount(message_data.amount, message_data.to) {
-            // if mint fails or is invalid for any reason (i.e: precision), register it to be refunded later
+        // if ! mint_deposit_amount(message_data.amount, message_data.to) {
+        //     // if mint fails or is invalid for any reason (i.e: precision), register it to be refunded later
 
-        } else {
-            log(
-                MintEvent {
-                    amount: message_data.amount,
-                    to: message_data.to,
-                }
-            )
-        }
+        // } else {
+        //     log(
+        //         MintEvent {
+        //             amount: message_data.amount,
+        //             to: message_data.to,
+        //         }
+        //     )
+        // }
     }
 
     fn layer1_token() -> EvmAddress {
