@@ -17,7 +17,7 @@ fn get_script_bytecode<T>() -> T {
 fn main() -> bool {
 
     // The hash of the (padded) script which must spend the input belonging to this predicate
-    let SPENDING_SCRIPT_HASH = 0x71ae92b2c91233f4f1f45339a9db71a5cf8802e602f9773b0a80fd13d9f5873f;
+    let SPENDING_SCRIPT_HASH = 0xf105672ee975d22b230246f5f7b66da16d480a5f17ff71429646e374f36b9764;
 
     // Verify script bytecode hash is expected
     let script: [u64; 67] = get_script_bytecode(); // Note : 8 * 67 = 536, which is 4 bytes longer than the script. Need to pad script by 4 bytes before hashing for SPENDING_SCRIPT_HASH

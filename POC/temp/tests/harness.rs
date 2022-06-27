@@ -41,7 +41,7 @@ async fn test_run_compiled_script() {
     // VM will read (and hash) script bytecode in whole words, so pad to the next word.
     let padding = script_bytecode.len() % 8;
     script_bytecode.append(&mut vec![0; padding]);
-    let script_hash = Hasher::hash(&script_bytecode); // This is the hard that must be hard-coded in the predicate
+    let script_hash = Hasher::hash(&script_bytecode); // This is the hash that must be hard-coded in the predicate
 
     // Run script and get the hash it returns
     let return_val = run_compiled_script(path_to_bin).await.unwrap();
