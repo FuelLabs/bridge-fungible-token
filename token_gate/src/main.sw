@@ -3,7 +3,7 @@ contract;
 use core::num::*;
 use std::{
     address::Address,
-    assert::require,
+    assert::{assert, require},
     chain::auth::{AuthError, msg_sender},
     context::{call_frames::{contract_id, msg_asset_id}, msg_amount},
     contract_id::ContractId,
@@ -15,7 +15,7 @@ use std::{
     storage::StorageMap,
     token::{mint_to, burn},
     tx::{tx_inputs_count, tx_input_pointer, tx_input_type},
-    u256::U256,
+    // u256::U256,
     vm::evm::evm_address::EvmAddress
 };
 
@@ -24,12 +24,23 @@ use std::{
 // Constants
 ////////////////////////////////////////
 
-const PREDICATE_ROOT = ~b256::min();
+// @todo update with actual predicate root
+const PREDICATE_ROOT = 0x0000000000000000000000000000000000000000000000000000000000000000;
 const NAME = "Placeholder";
 const SYMBOL = "PLACEHOLDER";
 const DECIMALS = 18;
-const LAYER_1_TOKEN = ~EvmAddress::from(~b256::min());
+// @todo update with actual L1 token address
+const LAYER_1_TOKEN = 0x0000000000000000000000000000000000000000000000000000000000000000;
 const LAYER_1_DECIMALS = 18;
+
+// @todo use consts in stdlib when added
+const INPUT_COIN = 0u8;
+const INPUT_CONTRACT = 1u8;
+const INPUT_MESSAGE = 2u8;
+const OUTPUT_CONTRACT = 1u8;
+const OUTPUT_CHANGE = 3u8;
+const OUTPUT_VARIABLE = 4u8;
+
 
 ////////////////////////////////////////
 // Data
@@ -56,26 +67,85 @@ storage {
 // Helper functions
 ////////////////////////////////////////
 
-fn tx_input_message_owner(input_ptr: u32) -> Address {
-    let owner_addr = ~Address::from(asm(buffer, ptr: input_ptr) {
-        // Need to skip over 17? words, so add 8*18=144
-        addi ptr ptr i144;
-        // Save old stack pointer
-        move buffer sp;
-        // Extend stack by 32 bytes
-        cfei i32;
-        // Copy 32 bytes
-        mcpi buffer ptr i32;
-        // `buffer` now points to the 32 bytes
-        buffer: b256
-    });
+// @todo use general form tx_input_owner() when it lands in stdlib
+// fn tx_input_message_owner(input_ptr: u32) -> Address {
+//     let owner_addr = ~Address::from(asm(buffer, ptr: input_ptr) {
+//         // Need to skip over 17? words, so add 8*18=144
+//         addi ptr ptr i144;
+//         // Save old stack pointer
+//         move buffer sp;
+//         // Extend stack by 32 bytes
+//         cfei i32;
+//         // Copy 32 bytes
+//         mcpi buffer ptr i32;
+//         // `buffer` now points to the 32 bytes
+//         buffer: b256
+//     });
 
-    owner_addr
+//     owner_addr
+// }
+
+/// If the input's type is `InputCoin` or `InputMessage`,
+/// return the owner as an Option::Some(owner).
+/// Otherwise, returns Option::None.
+pub fn tx_input_owner(input_ptr: u32) -> Option<Address> {
+    let type = tx_input_type(input_ptr);
+    let owner_offset = match type {
+        0u8 => {
+            // Need to skip over six words, so add 8*6=48
+            48
+        },
+        2u8 => {
+            // Need to skip over eighteen words, so add 8*18=144
+            144
+        },
+        _ => {
+            return Option::None;
+        },
+    };
+
+    Option::Some(~Address::from(asm(
+        buffer,
+        ptr: input_ptr,
+        offset: owner_offset) {
+            // Need to skip over `offset` words
+            add ptr ptr offset;
+            // Save old stack pointer
+            move buffer sp;
+            // Extend stack by 32 bytes
+            cfei i32;
+            // Copy 32 bytes
+            mcpi buffer ptr i32;
+            // `buffer` now points to the 32 bytes
+            buffer: b256
+        }
+    ))
+
+}
+
+/// Get the type of an input at a given index
+// @todo extract to stdlib
+fn input_type(index: u8) -> u8 {
+    let ptr = tx_input_pointer(index);
+    let input_type = tx_input_type(ptr);
+    input_type
 }
 
 /// Check if the owner of an InputMessage matches PREDICATE_ROOT
 fn authenticate_message_owner() -> bool {
-    let target_input_type = 2u8;
+    // We know the expected order and types of the inputs
+    assert(input_type(1) == INPUT_MESSAGE);
+    let input_pointer = tx_input_pointer(1);
+    let owner = tx_input_owner(input_pointer).unwrap();
+
+    if owner.into() == PREDICATE_ROOT {
+        true
+    } else {
+        false
+    }
+}
+
+/**
     let inputs_count = tx_inputs_count();
 
     let mut i = 0u64;
@@ -83,7 +153,7 @@ fn authenticate_message_owner() -> bool {
     while i < inputs_count {
         let input_pointer = tx_input_pointer(i);
         let input_type = tx_input_type(input_pointer);
-        if input_type != target_input_type {
+        if input_type != INPUT_MESSAGE {
             // type != InputMessage
             // Continue looping.
             i += 1;
@@ -99,7 +169,7 @@ fn authenticate_message_owner() -> bool {
         }
     }
     false
-}
+*/
 
 // fn parse_message_data(input_ptr: u32) -> MessageData {
 //     let target_input_type = 2u8;
@@ -134,8 +204,11 @@ fn authenticate_message_owner() -> bool {
 ////////////////////////////////////////
 
 abi FungibleToken {
+    #[storage(read, write)]
     fn constructor(owner: Identity);
+    #[storage(read, write)]
     fn mint(to: Identity, amount: u64);
+    #[storage(read, write)]
     fn burn(amount: u64);
     fn name() -> str[11];
     fn symbol() -> str[11];
@@ -145,7 +218,7 @@ abi FungibleToken {
 abi L2ERC20Gateway {
     fn withdraw_refund(originator: Identity);
     fn withdraw_to(to: Identity);
-    #[storage(read, write)]
+    #[storage(read)]
     fn finalize_deposit();
     fn layer1_token() -> EvmAddress;
     fn layer1_decimals() -> u8;
@@ -191,12 +264,14 @@ struct WithdrawalEvent {
 
 impl FungibleToken for Contract {
     ///  owner is the L1ERC20Gateway contract ?
+    #[storage(read, write)]
     fn constructor(owner: Identity) {
         require(storage.initialized == false, TokenGatewayError::CannotReinitialize);
         storage.owner = owner;
         storage.initialized = true;
     }
 
+    #[storage(read, write)]
     fn mint(to: Identity, amount: u64) {
         let sender: Result<Identity, AuthError> = msg_sender();
         require(sender.unwrap() == storage.owner, TokenGatewayError::UnauthorizedUser);
@@ -205,6 +280,7 @@ impl FungibleToken for Contract {
     }
 
     // @todo decide if this needs to be public
+    #[storage(read, write)]
     fn burn(amount: u64) {
         require(msg_sender().unwrap() == storage.owner, TokenGatewayError::UnauthorizedUser);
         require(contract_id() == msg_asset_id(), TokenGatewayError::IncorrectAssetDeposited);
@@ -265,7 +341,7 @@ impl L2ERC20Gateway for Contract {
         });
     }
 
-    #[storage(read, write)]
+    #[storage(read)]
     fn finalize_deposit() {
         // The finalize_deposit() mainly just has to check that the value sent (which was a bigint) can fit inside a uint64 (needs to be passed as a Sway U256 !)
         // and that the ERC20 deposited matches what the contract expects. Otherwise, it needs to make a note of any refunds due, so that the ERC20 can be returned on the Ethereum side.
@@ -303,7 +379,7 @@ impl L2ERC20Gateway for Contract {
     }
 
     fn layer1_token() -> EvmAddress {
-        LAYER_1_TOKEN
+        ~EvmAddress::from(LAYER_1_TOKEN)
     }
 
     fn layer1_decimals() -> u8 {
