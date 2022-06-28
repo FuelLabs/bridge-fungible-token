@@ -26,7 +26,7 @@ use std::{
 
 // @todo update with actual predicate root
 const PREDICATE_ROOT = 0x0000000000000000000000000000000000000000000000000000000000000000;
-const NAME = "Placeholder";
+const NAME = "PLACEHOLDER";
 const SYMBOL = "PLACEHOLDER";
 const DECIMALS = 18;
 // @todo update with actual L1 token address
