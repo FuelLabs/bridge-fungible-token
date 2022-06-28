@@ -9,12 +9,13 @@ use std::{
     contract_id::ContractId,
     identity::Identity,
     logging::log,
-    option::*,
-    result::*,
+    option::Option,
+    result::Result,
     revert::revert,
     storage::StorageMap,
     token::{mint_to, burn},
     tx::{tx_inputs_count, tx_input_pointer, tx_input_type},
+    u256::U256,
     vm::evm::evm_address::EvmAddress
 };
 
@@ -266,6 +267,10 @@ impl L2ERC20Gateway for Contract {
 
     #[storage(read, write)]
     fn finalize_deposit() {
+        // The finalize_deposit() mainly just has to check that the value sent (which was a bigint) can fit inside a uint64 (needs to be passed as a Sway U256 !)
+        // and that the ERC20 deposited matches what the contract expects. Otherwise, it needs to make a note of any refunds due, so that the ERC20 can be returned on the Ethereum side.
+
+
         // verify msg_sender is the L1ERC20Gateway contract
         let sender = msg_sender();
         require(sender.unwrap() == storage.owner, TokenGatewayError::UnauthorizedUser);
@@ -283,6 +288,7 @@ impl L2ERC20Gateway for Contract {
         // Also, we may want to have both `mint` and `mint_to` exposed by the token contract, but `mint_to` perhaps doesn't need to be part of the general token spec... (would probably need to expose the generic `transfer` in that case, which would cover more use-cases. Under the hood, `mint` could be made to utilize `mint_to` or not, as needed by the specific token.
         // let tokengate = abi(FungibleToken, contract_id());
 
+        // @note for now, we've decided to mint_to only to EOA's, which can later be extended to mint to either (Identity)
         // if ! mint_deposit_amount(message_data.amount, message_data.to) {
         //     // if mint fails or is invalid for any reason (i.e: precision), register it to be refunded later
 
