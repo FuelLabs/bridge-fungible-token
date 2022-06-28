@@ -90,7 +90,7 @@ fn authenticate_message_owner() -> bool {
         } else {
             // @todo add function to stdlib::tx : tx_input_message_owner()
             let input_owner = Option::Some(tx_input_message_owner(input_pointer));
-            if input_owner.unwrap() == PREDICATE_ROOT {
+            if input_owner.unwrap().into() == PREDICATE_ROOT {
                 true
             } else {
                 // owner not matching
@@ -247,11 +247,11 @@ impl L2ERC20Gateway for Contract {
         let origin_contract_id = msg_asset_id();
 
         // Verify this contract can burn these coins ???
-        let token_contract = abi(FungibleToken, origin_contract_id);
+        let token_contract = abi(FungibleToken, origin_contract_id.into());
 
         token_contract.burn{
             coins: withdrawal_amount,
-            asset_id: origin_contract_id
+            asset_id: origin_contract_id.into()
         } (withdrawal_amount);
 
         // @todo implement me!
