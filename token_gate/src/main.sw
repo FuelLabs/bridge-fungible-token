@@ -16,7 +16,7 @@ use std::{
     token::{mint_to, burn},
     tx::{tx_inputs_count, tx_input_pointer, tx_input_type},
     // u256::U256,
-    vm::evm::evm_address::EvmAddress
+    vm::evm::evm_address::EvmAddress,
 };
 
 
@@ -142,7 +142,6 @@ fn authenticate_message_owner(input_ptr: u32) -> bool {
 }
 
 fn parse_message_data(input_ptr: u32) -> MessageData {
-
     // @todo replace dummy data with the real values
     MessageData {
         asset: 0x0000000000000000000000000000000000000000000000000000000000000000,
