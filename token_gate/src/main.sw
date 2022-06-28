@@ -47,7 +47,7 @@ const OUTPUT_VARIABLE = 4u8;
 ////////////////////////////////////////
 
 struct MessageData {
-    asset: ContractId,
+    asset: b256,
     fuel_token: ContractId,
     to: Identity,
     amount: u64,
@@ -132,12 +132,8 @@ fn input_type(index: u8) -> u8 {
 }
 
 /// Check if the owner of an InputMessage matches PREDICATE_ROOT
-fn authenticate_message_owner() -> bool {
-    // We know the expected order and types of the inputs
-    assert(input_type(1) == INPUT_MESSAGE);
-    let input_pointer = tx_input_pointer(1);
-    let owner = tx_input_owner(input_pointer).unwrap();
-
+fn authenticate_message_owner(input_ptr: u32) -> bool {
+    let owner = tx_input_owner(input_ptr).unwrap();
     if owner.into() == PREDICATE_ROOT {
         true
     } else {
@@ -145,57 +141,16 @@ fn authenticate_message_owner() -> bool {
     }
 }
 
-/**
-    let inputs_count = tx_inputs_count();
+fn parse_message_data(input_ptr: u32) -> MessageData {
 
-    let mut i = 0u64;
-
-    while i < inputs_count {
-        let input_pointer = tx_input_pointer(i);
-        let input_type = tx_input_type(input_pointer);
-        if input_type != INPUT_MESSAGE {
-            // type != InputMessage
-            // Continue looping.
-            i += 1;
-        } else {
-            // @todo add function to stdlib::tx : tx_input_message_owner()
-            let input_owner = Option::Some(tx_input_message_owner(input_pointer));
-            if input_owner.unwrap().into() == PREDICATE_ROOT {
-                true
-            } else {
-                // owner not matching
-                i += 1;
-            }
-        }
+    // @todo replace dummy data with the real values
+    MessageData {
+        asset: 0x0000000000000000000000000000000000000000000000000000000000000000,
+        fuel_token: contract_id(),
+        to: Identity::Address(~Address::from(0x0000000000000000000000000000000000000000000000000000000000000000)),
+        amount: 42
     }
-    false
-*/
-
-// fn parse_message_data(input_ptr: u32) -> MessageData {
-//     let target_input_type = 2u8;
-//     let inputs_count = tx_inputs_count();
-
-//     let mut i = 0u64;
-
-//     while i < inputs_count {
-//         let input_pointer = tx_input_pointer(i);
-//         let input_type = tx_input_type(input_pointer);
-//         if input_type != target_input_type {
-//             // type != InputMessage
-//             // Continue looping.
-//             i = i + 1;
-//         } else {
-
-//         }
-//     }
-
-//     MessageData {
-//         asset:
-//         fuel_token:
-//         to:
-//         amount:
-//     };
-// }
+}
 
 
 
@@ -305,7 +260,11 @@ impl FungibleToken for Contract {
 }
 
 impl L2ERC20Gateway for Contract {
-    fn withdraw_refund(originator: Identity) {}
+    fn withdraw_refund(originator: Identity) {
+        // check storage mapping refund_amounts first
+        // if valid, transfer to originator
+        // @todo consider if anyone can call this, or only the originalto themselves
+    }
 
     /// Withdraw coins back to L1 and burn the corresponding amount of coins
     /// on L2.
@@ -319,10 +278,11 @@ impl L2ERC20Gateway for Contract {
     /// * When no coins were sent with call
     fn withdraw_to(to: Identity) {
         let withdrawal_amount = msg_amount();
-        require(withdrawal_amount != 0, TokenGatewayError::NoCoinsForwarded);
-        let origin_contract_id = msg_asset_id();
 
-        // Verify this contract can burn these coins ???
+        // @todo review requirement
+        require(withdrawal_amount != 0, TokenGatewayError::NoCoinsForwarded);
+
+        let origin_contract_id = msg_asset_id();
         let token_contract = abi(FungibleToken, origin_contract_id.into());
 
         token_contract.burn{
@@ -330,8 +290,9 @@ impl L2ERC20Gateway for Contract {
             asset_id: origin_contract_id.into()
         } (withdrawal_amount);
 
-        // @todo implement me!
+        // for now, use a dummy message type to allow testing until real message inputs are implemented.
         // Output a message to release tokens locked on L1
+        // @todo implement me!
         // send_message(...);
 
         log(WithdrawalEvent {
@@ -348,16 +309,25 @@ impl L2ERC20Gateway for Contract {
 
 
         // verify msg_sender is the L1ERC20Gateway contract
-        let sender = msg_sender();
-        require(sender.unwrap() == storage.owner, TokenGatewayError::UnauthorizedUser);
-        // check that first InputMessage.owner == predicate root
-        require(authenticate_message_owner(), TokenGatewayError::IncorrectMessageOwner);
+        let sender = msg_sender().unwrap();
+        // @todo review requirement
+        require(sender == storage.owner, TokenGatewayError::UnauthorizedUser);
+
+        // @todo review requirement
+        assert(input_type(1) == INPUT_MESSAGE);
+
+        // we know the index where the InpuptMessage should be located
+        let input_pointer = tx_input_pointer(1);
+
+        // check that InputMessage.owner == predicate root
+        require(authenticate_message_owner(input_pointer), TokenGatewayError::IncorrectMessageOwner);
 
         // Parse message data (asset: ContractId, fuel_token: ContractId, to: Identity, amount: u64)
-        // let message_data = parse_message_data();
+        let message_data = parse_message_data(input_pointer);
 
         // verify asset matches hardcoded L1 token
-        // require(message_data.asset == LAYER_1_TOKEN, TokenGatewayError::IncorrectAssetDeposited);
+        // @todo review requirement
+        require(message_data.asset == LAYER_1_TOKEN, TokenGatewayError::IncorrectAssetDeposited);
 
         // start token mint process
         // @todo work out how to mint. i.e: have an internal function we can call here, which is also used byt the public `mint` function.
