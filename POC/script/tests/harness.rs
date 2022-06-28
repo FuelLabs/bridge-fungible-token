@@ -24,9 +24,11 @@ async fn get_balance(provider: &Provider, address: Address, asset: AssetId) -> u
 async fn predicate_spend() {
     // Set up a wallet and send some native asset to the predicate root
     let native_asset: AssetId = Default::default();
-    let mut config = Config::local_node();
-    config.predicates = true; // predicates are currently disabled by default
-    let wallet = launch_custom_provider_and_get_single_wallet(config).await;
+    let mut provider_config = Config::local_node();
+    provider_config.predicates = true; // predicates are currently disabled by default
+    let wallets_config = WalletsConfig::new(Some(1), Some(2), Some(10000));
+    let wallet = launch_custom_provider_and_get_single_wallet(provider_config).await;
+    //let wallet = launch_custom_provider_and_get_wallets(wallets_config, provider_config).await;
 
     // Get provider and client
     let provider = wallet.get_provider().unwrap();
@@ -118,7 +120,7 @@ async fn predicate_spend() {
         script_data: vec![],
         inputs: vec![i1],
         outputs: vec![o1, o2],
-        witnesses: vec![vec![].into()],
+        witnesses: vec![],
         metadata: None,
     };
 
