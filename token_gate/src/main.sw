@@ -174,7 +174,8 @@ abi L2ERC20Gateway {
     fn withdraw_to(to: Identity);
     #[storage(read, write)]
     fn finalize_deposit();
-    fn layer1_token() -> EvmAddress;
+    // @todo should return EvmAddress !
+    fn layer1_token() -> Address;
     fn layer1_decimals() -> u8;
 }
 
@@ -347,8 +348,8 @@ impl L2ERC20Gateway for Contract {
         // }
     }
 
-    fn layer1_token() -> EvmAddress {
-        ~EvmAddress::from(LAYER_1_TOKEN)
+    fn layer1_token() -> Address {
+        ~Address::from(LAYER_1_TOKEN)
     }
 
     fn layer1_decimals() -> u8 {
