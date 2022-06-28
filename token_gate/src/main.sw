@@ -218,7 +218,7 @@ abi FungibleToken {
 abi L2ERC20Gateway {
     fn withdraw_refund(originator: Identity);
     fn withdraw_to(to: Identity);
-    #[storage(read)]
+    #[storage(read, write)]
     fn finalize_deposit();
     fn layer1_token() -> EvmAddress;
     fn layer1_decimals() -> u8;
@@ -341,7 +341,7 @@ impl L2ERC20Gateway for Contract {
         });
     }
 
-    #[storage(read)]
+    #[storage(read, write)]
     fn finalize_deposit() {
         // The finalize_deposit() mainly just has to check that the value sent (which was a bigint) can fit inside a uint64 (needs to be passed as a Sway U256 !)
         // and that the ERC20 deposited matches what the contract expects. Otherwise, it needs to make a note of any refunds due, so that the ERC20 can be returned on the Ethereum side.
