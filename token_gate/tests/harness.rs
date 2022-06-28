@@ -2,9 +2,9 @@ use fuels::{prelude::*, tx::ContractId};
 use fuels_abigen_macro::abigen;
 
 // Load abi from json
-abigen!(MyContract, "out/debug/token_gate-abi.json");
+abigen!(TokenGate, "out/debug/token_gate-abi.json");
 
-async fn get_contract_instance() -> (MyContract, ContractId) {
+async fn get_contract_instance() -> (TokenGate, ContractId) {
     // Launch a local network and deploy the contract
     let wallet = launch_provider_and_get_single_wallet().await;
 
@@ -12,7 +12,7 @@ async fn get_contract_instance() -> (MyContract, ContractId) {
         .await
         .unwrap();
 
-    let instance = MyContract::new(id.to_string(), wallet);
+    let instance = TokenGate::new(id.to_string(), wallet);
 
     (instance, id)
 }
