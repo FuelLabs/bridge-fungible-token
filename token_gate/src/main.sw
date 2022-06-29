@@ -2,6 +2,8 @@ contract;
 
 dep fungible_token_abi;
 dep gateway_abi;
+dep errors;
+dep events;
 
 use core::num::*;
 use std::{
@@ -24,6 +26,8 @@ use std::{
 
 use fungible_token_abi::FungibleToken;
 use gateway_abi::L2ERC20Gateway;
+use events::*;
+use errors::*;
 
 
 ////////////////////////////////////////
@@ -70,13 +74,13 @@ storage {
 }
 
 ////////////////////////////////////////
-// Internal functions
+// Private functions
 ////////////////////////////////////////
 
 /// If the input's type is `InputCoin` or `InputMessage`,
 /// return the owner as an Option::Some(owner).
 /// Otherwise, returns Option::None.
-pub fn tx_input_owner(input_ptr: u32) -> Option<Address> {
+fn tx_input_owner(input_ptr: u32) -> Option<Address> {
     let type = tx_input_type(input_ptr);
     let owner_offset = match type {
         0u8 => {
@@ -137,46 +141,6 @@ fn parse_message_data(input_ptr: u32) -> MessageData {
         to: Identity::Address(~Address::from(0x0000000000000000000000000000000000000000000000000000000000000000)),
         amount: 42
     }
-}
-
-////////////////////////////////////////
-// Errors
-////////////////////////////////////////
-
-enum TokenGatewayError {
-    CannotReinitialize: (),
-    ContractNotInitialized: (),
-    IncorrectAssetAmount: (),
-    IncorrectAssetDeposited: (),
-    UnauthorizedUser: (),
-    NoCoinsForwarded: (),
-    IncorrectMessageOwner: (),
-}
-
-////////////////////////////////////////
-// Events
-////////////////////////////////////////
-
-pub struct MintEvent {
-    from: Identity,
-    amount: u64,
-}
-
-pub struct BurnEvent {
-    from: Identity,
-    amount: u64,
-}
-
-pub struct TransferEvent {
-    from: Identity,
-    to: Identity,
-    amount: u64,
-}
-
-struct WithdrawalEvent {
-    to: Identity,
-    amount: u64,
-    asset: ContractId,
 }
 
 ////////////////////////////////////////
