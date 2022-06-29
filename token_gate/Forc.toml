@@ -6,5 +6,6 @@ name = "token_gate"
 
 [dependencies]
 fungible_token_abi = { path = "../fungible_token_abi"}
+gateway_abi = { path = "../gateway_abi"}
 # TODO: use implicit std when new forc is released (> 0.16.2)
 std = { path = "../../sway/sway-lib-std" }
