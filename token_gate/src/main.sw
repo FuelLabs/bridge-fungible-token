@@ -16,9 +16,9 @@ use std::{
     result::Result,
     revert::revert,
     storage::StorageMap,
-    token::{mint_to, burn},
+    token::{mint, burn},
     tx::{tx_inputs_count, tx_input_pointer, tx_input_type},
-    // u256::U256,
+    u256::U256,
     vm::evm::evm_address::EvmAddress,
 };
 
@@ -34,10 +34,10 @@ use gateway_abi::L2ERC20Gateway;
 const PREDICATE_ROOT = 0x0000000000000000000000000000000000000000000000000000000000000000;
 const NAME = "PLACEHOLDER";
 const SYMBOL = "PLACEHOLDER";
-const DECIMALS = 18;
+const DECIMALS = 18u8;
 // @todo update with actual L1 token address
 const LAYER_1_TOKEN = 0x0000000000000000000000000000000000000000000000000000000000000000;
-const LAYER_1_DECIMALS = 18;
+const LAYER_1_DECIMALS = 18u8;
 
 // @todo use consts in stdlib when added
 const INPUT_COIN = 0u8;
@@ -70,26 +70,8 @@ storage {
 }
 
 ////////////////////////////////////////
-// Helper functions
+// Internal functions
 ////////////////////////////////////////
-
-// @todo use general form tx_input_owner() when it lands in stdlib
-// fn tx_input_message_owner(input_ptr: u32) -> Address {
-//     let owner_addr = ~Address::from(asm(buffer, ptr: input_ptr) {
-//         // Need to skip over 17? words, so add 8*18=144
-//         addi ptr ptr i144;
-//         // Save old stack pointer
-//         move buffer sp;
-//         // Extend stack by 32 bytes
-//         cfei i32;
-//         // Copy 32 bytes
-//         mcpi buffer ptr i32;
-//         // `buffer` now points to the 32 bytes
-//         buffer: b256
-//     });
-
-//     owner_addr
-// }
 
 /// If the input's type is `InputCoin` or `InputMessage`,
 /// return the owner as an Option::Some(owner).
@@ -130,7 +112,7 @@ pub fn tx_input_owner(input_ptr: u32) -> Option<Address> {
 }
 
 /// Get the type of an input at a given index
-// @todo extract to stdlib
+// TODO: extract to stdlib
 fn input_type(index: u8) -> u8 {
     let ptr = tx_input_pointer(index);
     let input_type = tx_input_type(ptr);
@@ -176,12 +158,18 @@ enum TokenGatewayError {
 ////////////////////////////////////////
 
 pub struct MintEvent {
-    to: Identity,
+    from: Identity,
     amount: u64,
 }
 
 pub struct BurnEvent {
-    // from: Identity,
+    from: Identity,
+    amount: u64,
+}
+
+pub struct TransferEvent {
+    from: Identity,
+    to: Identity,
     amount: u64,
 }
 
@@ -204,24 +192,29 @@ impl FungibleToken for Contract {
         storage.initialized = true;
     }
 
-    #[storage(read, write)]
-    fn mint(to: Identity, amount: u64) {
-        let sender: Result<Identity, AuthError> = msg_sender();
-        require(sender.unwrap() == storage.owner, TokenGatewayError::UnauthorizedUser);
-        mint_to(amount, to);
-        log(MintEvent {to, amount});
+    #[storage(read)]
+    fn mint(amount: u64) {
+        let sender = msg_sender().unwrap();
+        require(sender == storage.owner, TokenGatewayError::UnauthorizedUser);
+        mint(amount);
+        log(MintEvent {from: sender, amount});
     }
 
-    // @todo decide if this needs to be public
-    #[storage(read, write)]
+    #[storage(read)]
     fn burn(amount: u64) {
-        require(msg_sender().unwrap() == storage.owner, TokenGatewayError::UnauthorizedUser);
+        let sender = msg_sender().unwrap();
+        require(sender == storage.owner, TokenGatewayError::UnauthorizedUser);
         require(contract_id() == msg_asset_id(), TokenGatewayError::IncorrectAssetDeposited);
         require(amount == msg_amount(), TokenGatewayError::IncorrectAssetAmount);
 
         burn(amount);
-        // @todo consider adding msg_sender to log as a `from` field
-        log(BurnEvent {amount});
+        log(BurnEvent {from: sender, amount: amount});
+    }
+
+    // noop. implement a private fn which can be called by the mint() function ?
+    #[storage(read)]
+    fn transfer(to: Identity, amount: u64) {
+        ();
     }
 
     fn name() -> str[11] {
@@ -238,6 +231,7 @@ impl FungibleToken for Contract {
 }
 
 impl L2ERC20Gateway for Contract {
+    #[storage(read, write)]
     fn withdraw_refund(originator: Identity) {
         // check storage mapping refund_amounts first
         // if valid, transfer to originator
