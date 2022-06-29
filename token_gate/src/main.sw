@@ -1,5 +1,8 @@
 contract;
 
+dep fungible_token_abi;
+dep gateway_abi;
+
 use core::num::*;
 use std::{
     address::Address,
@@ -18,6 +21,9 @@ use std::{
     // u256::U256,
     vm::evm::evm_address::EvmAddress,
 };
+
+use fungible_token_abi::FungibleToken;
+use gateway_abi::L2ERC20Gateway;
 
 
 ////////////////////////////////////////
@@ -149,34 +155,6 @@ fn parse_message_data(input_ptr: u32) -> MessageData {
         to: Identity::Address(~Address::from(0x0000000000000000000000000000000000000000000000000000000000000000)),
         amount: 42
     }
-}
-
-
-
-////////////////////////////////////////
-// ABI definitions
-////////////////////////////////////////
-
-abi FungibleToken {
-    #[storage(read, write)]
-    fn constructor(owner: Identity);
-    #[storage(read, write)]
-    fn mint(to: Identity, amount: u64);
-    #[storage(read, write)]
-    fn burn(amount: u64);
-    fn name() -> str[11];
-    fn symbol() -> str[11];
-    fn decimals() -> u8;
-}
-
-abi L2ERC20Gateway {
-    fn withdraw_refund(originator: Identity);
-    fn withdraw_to(to: Identity);
-    #[storage(read, write)]
-    fn finalize_deposit();
-    // @todo should return EvmAddress !
-    fn layer1_token() -> Address;
-    fn layer1_decimals() -> u8;
 }
 
 ////////////////////////////////////////
