@@ -5,4 +5,5 @@ license = "Apache-2.0"
 name = "token_gate"
 
 [dependencies]
-std = { path = "../../sway-lib-std", package = "lib-std" }
+# TODO: use implicit std when new forc is released (> 0.16.2)
+std = { path = "../../sway/sway-lib-std" }
