@@ -4,7 +4,7 @@ source = 'path+from-root-8301F3F92B005965'
 dependencies = []
 
 [[package]]
-name = 'message_to_gateway_predicate'
+name = 'message_to_fungible_token_predicate'
 source = 'root'
 dependencies = ['std']
 

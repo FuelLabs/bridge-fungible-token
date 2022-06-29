@@ -1,4 +1,9 @@
 [[package]]
+name = 'L2ERC20Gateway_abi'
+source = 'root'
+dependencies = ['std']
+
+[[package]]
 name = 'core'
 source = 'path+from-root-8301F3F92B005965'
 dependencies = []
@@ -7,16 +12,3 @@ dependencies = []
 name = 'std'
 source = 'git+https://github.com/fuellabs/sway?tag=v0.16.2#7920330d34c97cf418b6d0e1561f978068158228'
 dependencies = ['core']
-
-[[package]]
-name = 'token_abi'
-source = 'path+from-root-E79157DE28E85651'
-dependencies = ['std']
-
-[[package]]
-name = 'token_caller_script'
-source = 'root'
-dependencies = [
-    'std',
-    'token_abi',
-]

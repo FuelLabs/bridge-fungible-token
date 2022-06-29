@@ -2,6 +2,6 @@
 authors = ["Simon"]
 entry = "main.sw"
 license = "Apache-2.0"
-name = "token_abi"
+name = "L2ERC20Gateway_abi"
 
 [dependencies]
