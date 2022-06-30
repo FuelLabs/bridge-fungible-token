@@ -70,7 +70,7 @@ struct MessageData {
 storage {
     initialized: bool,
     owner: Identity,
-    refund_amounts: StorageMap<(b256, b256), u64>,
+    refund_amounts: StorageMap<(b256, b256), U256>,
 }
 
 ////////////////////////////////////////
@@ -143,6 +143,14 @@ fn parse_message_data(input_ptr: u32) -> MessageData {
     }
 }
 
+fn transfer_tokens(amount: u64, asset: ContractId, to: Identity) {
+    transfer(amount, asset, to);
+}
+
+fn mint_tokens(amount: u64) {
+    mint(amount);
+}
+
 ////////////////////////////////////////
 // ABI Implementations
 ////////////////////////////////////////
@@ -160,7 +168,7 @@ impl FungibleToken for Contract {
     fn mint(amount: u64) {
         let sender = msg_sender().unwrap();
         require(sender == storage.owner, TokenGatewayError::UnauthorizedUser);
-        mint(amount);
+        mint_tokens(amount);
         log(MintEvent {from: sender, amount});
     }
 
@@ -175,10 +183,11 @@ impl FungibleToken for Contract {
         log(BurnEvent {from: sender, amount: amount});
     }
 
-    // noop. implement a private fn which can be called by the mint() function ?
     #[storage(read)]
     fn transfer(to: Identity, amount: u64) {
-        ();
+        let sender = msg_sender().unwrap();
+        require(sender == storage.owner, TokenGatewayError::UnauthorizedUser);
+        transfer_tokens(amount, contract_id(), to);
     }
 
     fn name() -> str[11] {
@@ -196,10 +205,23 @@ impl FungibleToken for Contract {
 
 impl L2ERC20Gateway for Contract {
     #[storage(read, write)]
+    // @todo rename to claim_refund() ?
+    // @todo consider if anyone can call this, or only the originator themselves
     fn withdraw_refund(originator: Identity) {
         // check storage mapping refund_amounts first
         // if valid, transfer to originator
-        // @todo consider if anyone can call this, or only the originalto themselves
+        // @todo rethink this. If refund_amounts mapping uses `Identity` I don't need to do this extra work.
+        let inner_value = match originator {
+            Identity::Address(a) => {
+                a.value
+            },
+            Identity::ContractId(c) => {
+                c.value
+            },
+        };
+
+        let amount = storage.refund_amounts.get(inner_value, contract_id())
+        transfer_tokens()
     }
 
     /// Withdraw coins back to L1 and burn the corresponding amount of coins
@@ -266,9 +288,8 @@ impl L2ERC20Gateway for Contract {
         require(message_data.asset == LAYER_1_TOKEN, TokenGatewayError::IncorrectAssetDeposited);
 
         // start token mint process
-        // @todo work out how to mint. i.e: have an internal function we can call here, which is also used byt the public `mint` function.
-        // Also, we may want to have both `mint` and `mint_to` exposed by the token contract, but `mint_to` perhaps doesn't need to be part of the general token spec... (would probably need to expose the generic `transfer` in that case, which would cover more use-cases. Under the hood, `mint` could be made to utilize `mint_to` or not, as needed by the specific token.
-        // let tokengate = abi(FungibleToken, contract_id());
+
+        let tokengate = abi(FungibleToken, contract_id());
 
         // @note for now, we've decided to mint_to only to EOA's, which can later be extended to mint to either (Identity)
         // if ! mint_deposit_amount(message_data.amount, message_data.to) {
