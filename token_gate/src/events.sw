@@ -1,8 +1,8 @@
 library events;
 
 use std::{
-    identity::Identity,
     contract_id::ContractId,
+    identity::Identity,
 };
 
 pub struct MintEvent {

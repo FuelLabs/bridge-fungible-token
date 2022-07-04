@@ -16,16 +16,16 @@ use std::{
     result::Result,
     revert::revert,
     storage::StorageMap,
-    token::{mint, burn, transfer},
+    token::{burn, mint, transfer},
     tx::{tx_inputs_count, tx_input_pointer, tx_input_type},
     u256::U256,
     vm::evm::evm_address::EvmAddress,
 };
 
+use errors::TokenGatewayError;
+use events::{BurnEvent, MintEvent, TransferEvent, WithdrawalEvent};
 use fungible_token_abi::FungibleToken;
 use gateway_abi::L2ERC20Gateway;
-use events::*;
-use errors::*;
 
 
 ////////////////////////////////////////
