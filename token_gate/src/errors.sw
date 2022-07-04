@@ -8,5 +8,5 @@ pub enum TokenGatewayError {
     UnauthorizedUser: (),
     NoCoinsForwarded: (),
     IncorrectMessageOwner: (),
-    Unburnablecoins: ()
+    UnburnableCoins: ()
 }
