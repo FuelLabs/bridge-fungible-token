@@ -1,13 +1,12 @@
 [project]
 name = "token_gate"
 version = "0.1.0"
-authors = ["Nicholas Furfaro"]
+authors = ["Fuel Labs <contact@fuel.sh>"]
 edition = "2021"
 license = "Apache-2.0"
 
 [dependencies]
 fuels = "0.16"
-fuels-abigen-macro = "0.16"
 tokio = { version = "1.12", features = ["rt", "macros"] }
 
 [[test]]

@@ -1,5 +1,4 @@
 use fuels::{prelude::*, tx::ContractId};
-use fuels_abigen_macro::abigen;
 
 abigen!(TokenGate, "out/debug/token_gate-abi.json");
 
@@ -49,7 +48,11 @@ mod token {
         }
     }
 
-    mod failures {}
+    mod failures {
+        #[tokio::test]
+        #[ignore]
+        async fn fails_to_reinitialize() {}
+    }
 }
 
 mod gateway {

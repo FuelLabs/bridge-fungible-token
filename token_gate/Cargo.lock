@@ -2992,7 +2992,6 @@ name = "token_gate"
 version = "0.1.0"
 dependencies = [
  "fuels",
- "fuels-abigen-macro",
  "tokio",
 ]
 
