@@ -265,11 +265,10 @@ impl L2ERC20Gateway for Contract {
 
         // verify msg_sender is the L1ERC20Gateway contract
         let sender = msg_sender().unwrap();
-        // @todo review requirement
+        // @review
         // does this matter? why does it matter who's calling this function, as long as there's a valid InputMessage attached.
         // require(sender == storage.owner, TokenGatewayError::UnauthorizedUser);
 
-        // @todo review requirement
         assert(input_type(1) == INPUT_MESSAGE);
 
         // we know the index where the InpuptMessage should be located
@@ -282,25 +281,27 @@ impl L2ERC20Gateway for Contract {
         let message_data = parse_message_data(input_pointer);
 
         // verify asset matches hardcoded L1 token
-        // @todo review requirement
+        // @review requirement
         require(message_data.asset == LAYER_1_TOKEN, TokenGatewayError::IncorrectAssetDeposited);
 
         // start token mint process
 
         let tokengate = abi(FungibleToken, contract_id().into());
 
-        // @note for now, we've decided to mint_to only to EOA's, which can later be extended to mint to either (Identity)
-        // if ! mint_deposit_amount(message_data.amount, message_data.to) {
-        //     // if mint fails or is invalid for any reason (i.e: precision), register it to be refunded later
+        // We've decided to mint_to only to EOA's to begin with.
+        if ! mint_tokens(message_data.amount, message_data.to) {
+            // if mint fails or is invalid for any reason (i.e: precision), register it to be refunded later
+            storage.refund_amounts = (msg_sender(), )
 
-        // } else {
-        //     log(
-        //         MintEvent {
-        //             amount: message_data.amount,
-        //             to: message_data.to,
-        //         }
-        //     )
-        // }
+
+        } else {
+            log(
+                MintEvent {
+                    amount: message_data.amount,
+                    to: message_data.to,
+                }
+            )
+        }
     }
 
     fn layer1_token() -> Address {
