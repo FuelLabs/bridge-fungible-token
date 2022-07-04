@@ -1,7 +1,5 @@
 contract;
 
-dep fungible_token_abi;
-dep gateway_abi;
 dep errors;
 dep events;
 
@@ -18,7 +16,7 @@ use std::{
     result::Result,
     revert::revert,
     storage::StorageMap,
-    token::{mint, burn},
+    token::{mint, burn, transfer},
     tx::{tx_inputs_count, tx_input_pointer, tx_input_type},
     u256::U256,
     vm::evm::evm_address::EvmAddress,
@@ -50,7 +48,6 @@ const INPUT_MESSAGE = 2u8;
 const OUTPUT_CONTRACT = 1u8;
 const OUTPUT_CHANGE = 3u8;
 const OUTPUT_VARIABLE = 4u8;
-
 
 ////////////////////////////////////////
 // Data
@@ -207,7 +204,7 @@ impl L2ERC20Gateway for Contract {
     #[storage(read, write)]
     // @todo rename to claim_refund() ?
     // @todo consider if anyone can call this, or only the originator themselves
-    fn withdraw_refund(originator: Identity) {
+    fn withdraw_refund(originator: Identity, asset: ContractId) {
         // check storage mapping refund_amounts first
         // if valid, transfer to originator
         // @todo rethink this. If refund_amounts mapping uses `Identity` I don't need to do this extra work.
@@ -220,8 +217,8 @@ impl L2ERC20Gateway for Contract {
             },
         };
 
-        let amount = storage.refund_amounts.get(inner_value, contract_id())
-        transfer_tokens()
+        let amount = storage.refund_amounts.get((inner_value, asset.into()));
+        transfer_tokens(amount, asset, originator);
     }
 
     /// Withdraw coins back to L1 and burn the corresponding amount of coins
@@ -243,10 +240,10 @@ impl L2ERC20Gateway for Contract {
         let origin_contract_id = msg_asset_id();
         let token_contract = abi(FungibleToken, origin_contract_id.into());
 
-        token_contract.burn{
+        require(token_contract.burn {
             coins: withdrawal_amount,
             asset_id: origin_contract_id.into()
-        } (withdrawal_amount);
+        } (withdrawal_amount), TokenGatewayError::UnburnableCoins);
 
         // for now, use a dummy message type to allow testing until real message inputs are implemented.
         // Output a message to release tokens locked on L1
@@ -269,7 +266,8 @@ impl L2ERC20Gateway for Contract {
         // verify msg_sender is the L1ERC20Gateway contract
         let sender = msg_sender().unwrap();
         // @todo review requirement
-        require(sender == storage.owner, TokenGatewayError::UnauthorizedUser);
+        // does this matter? why does it matter who's calling this function, as long as there's a valid InputMessage attached.
+        // require(sender == storage.owner, TokenGatewayError::UnauthorizedUser);
 
         // @todo review requirement
         assert(input_type(1) == INPUT_MESSAGE);
@@ -289,7 +287,7 @@ impl L2ERC20Gateway for Contract {
 
         // start token mint process
 
-        let tokengate = abi(FungibleToken, contract_id());
+        let tokengate = abi(FungibleToken, contract_id().into());
 
         // @note for now, we've decided to mint_to only to EOA's, which can later be extended to mint to either (Identity)
         // if ! mint_deposit_amount(message_data.amount, message_data.to) {
