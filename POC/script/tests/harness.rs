@@ -66,7 +66,7 @@ async fn predicate_spend() {
     println!("Predicate root balance before: {}", predicate_balance);
 
     // Use default address as receiver - see script
-    let receiver_address: Address = Address::new([0u8; 32]);
+    let receiver_address = Address::new([1u8; 32]);
     let mut receiver_balance = get_balance(&provider, receiver_address, native_asset).await;
     println!("Receiver balance before: {}", receiver_balance);
 
@@ -97,7 +97,7 @@ async fn predicate_spend() {
 
     // A variable output for the coin transfer
     let o1 = Output::Variable {
-        to: Address::zeroed(),
+        to: receiver_address,
         amount: 0,
         asset_id: AssetId::default(),
     };

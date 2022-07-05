@@ -5,3 +5,4 @@ license = "Apache-2.0"
 name = "message_to_fungible_token_predicate"
 
 [dependencies]
+std = { path = "/Users/simon/Documents/fuel/sway_master/sway-lib-std" }
