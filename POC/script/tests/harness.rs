@@ -1,17 +1,9 @@
 use fuels::prelude::*;
-//use fuel_core::service::Config;
 use fuels::test_helpers::Config;
 use fuel_crypto::Hasher;
 use fuel_gql_client::fuel_tx::{AssetId, Input, Output, Transaction, UtxoId, Contract};
 use fuels_contract::script::Script;
 
-// Predicate testing:
-
-// 0.1 Write a script that sends coin to an address
-// 0.2 Write a predicate that expects this script hash
-// 1. send some coins to the predicate root
-// 2. Build script transaction that spends Coin input, providing predicate along with input
-// 3. Check that coins were spent
 
 async fn get_balance(provider: &Provider, address: Address, asset: AssetId) -> u64 {
     let balance = provider
@@ -22,30 +14,26 @@ async fn get_balance(provider: &Provider, address: Address, asset: AssetId) -> u
 }
 
 #[tokio::test]
-async fn predicate_spend() {
-    // Set up a wallet and send some native asset to the predicate root
+async fn spend_predicate_with_script_constraint() {
+
+    // Set up a wallet
     let native_asset: AssetId = Default::default();
     let mut provider_config = Config::local_node();
     provider_config.predicates = true; // predicates are currently disabled by default
     let wallet = launch_custom_provider_and_get_single_wallet(Some(provider_config)).await;
 
-    // When `launch_custom_provider_and_get_wallets` lands, use this to test with other assets
-    //let wallets_config = WalletsConfig::new(Some(1), Some(2), Some(10000));
-    //let wallet = launch_custom_provider_and_get_wallets(wallets_config, provider_config).await;
-
     // Get provider and client
     let provider = wallet.get_provider().unwrap();
     let client = &provider.client;
 
+    // Get padded bytecode root that must be hardcoded into the predicate to constrain the spending transaction
     let mut script_bytecode = std::fs::read("../script/out/debug/script.bin").unwrap().to_vec();
     let padding = script_bytecode.len() % 8;
     let script_bytecode_unpadded = script_bytecode.clone();
     script_bytecode.append(&mut vec![0; padding]);
-    let script_hash = Hasher::hash(&script_bytecode); // This is the hash that must be hard-coded in the predicate
+    let script_hash = Hasher::hash(&script_bytecode);
 
-    println!("Unpadded script length: {}", script_bytecode_unpadded.len());
     println!("Padded script length: {}", script_bytecode.len());
-    //println!("Padded script   : {:?}", script_bytecode);
     println!("Padded script hash   : 0x{:?}", script_hash);
 
     // Get predicate bytecode and root
@@ -54,41 +42,37 @@ async fn predicate_spend() {
     let predicate_root = Address::from(predicate_root);
 
     // Transfer some coins to the predicate root
+    let transfer_amount: u64 = 1000;
+
     let _receipt = wallet.transfer(
         &predicate_root,
-        1000,
+        transfer_amount,
         native_asset,
         TxParameters::default()
     ).await.unwrap();
 
 
-
+    // Check set up completed correctly
     let mut predicate_balance = get_balance(&provider, predicate_root, native_asset).await;
-    println!("Predicate root balance before: {}", predicate_balance);
+    assert_eq!(predicate_balance, transfer_amount);
 
-    // Use default address as receiver - see script
-    let receiver_address = Address::new([1u8; 32]);
-    let mut receiver_balance = get_balance(&provider, receiver_address, native_asset).await;
-    println!("Receiver balance before: {}", receiver_balance);
-
-    assert_eq!(predicate_balance, 1000);
-    assert_eq!(receiver_balance, 0);
-
-    // Get predicate coin to spend
+    // Get the predicate coin to spend
     let predicate_coin = &provider
         .get_coins(&predicate_root)
         .await
         .unwrap()[0];
 
-    let predicate_coin_utxo_id = UtxoId::from(predicate_coin.utxo_id.clone());
+    // Specify the address receiving the coin output
+    let receiver_address = Address::new([1u8; 32]);
+    let mut receiver_balance = get_balance(&provider, receiver_address, native_asset).await;
 
-    // Configure inputs and outputs to send coins from predicate to another wallet.
+    // Configure inputs and outputs to send coins from predicate to receiver
 
     // This is the coin belonging to the predicate root
     let input_predicate = Input::CoinPredicate {
-        utxo_id: predicate_coin_utxo_id,
+        utxo_id: UtxoId::from(predicate_coin.utxo_id.clone()),
         owner: predicate_root,
-        amount: 1000,
+        amount: transfer_amount,
         asset_id: native_asset,
         maturity: 0,
         predicate: predicate_bytecode,
@@ -102,8 +86,8 @@ async fn predicate_spend() {
         asset_id: AssetId::default(),
     };
 
-    // A variable output for change (Does this need to be explicitly a Change output?)
-    let output_change = Output::Variable {
+    // Output for change
+    let output_change = Output::Change {
         to: Address::default(),
         amount: 0,
         asset_id: AssetId::default(),
@@ -129,10 +113,7 @@ async fn predicate_spend() {
     let _receipts = script.call(&client).await.unwrap();
 
     predicate_balance = get_balance(&provider, predicate_root, native_asset).await;
-    println!("Predicate root balance after: {}", predicate_balance);
-
     receiver_balance = get_balance(&provider, receiver_address, native_asset).await;
-    println!("Receiver balance after: {}", receiver_balance);
 
     assert_eq!(predicate_balance, 0);
     assert_eq!(receiver_balance, 1000);

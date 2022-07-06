@@ -78,8 +78,8 @@ fn main() -> bool {
     assert(input_contract_id == message_data_contract_id);
 
     // Transation must have exactly 3 outputs: OutputVariable, OutputContract, and OutputChange (in that order)
-    let n_outputs = tx_outputs_count();
-    assert(n_outputs == 3 && tx_output_type(0) == OUTPUT_VARIABLE && tx_output_type(1) == OUTPUT_CONTRACT && tx_output_type(2) == OUTPUT_CHANGE);
+    let output_count = tx_outputs_count();
+    assert(output_count == 3 && tx_output_type(0) == OUTPUT_VARIABLE && tx_output_type(1) == OUTPUT_CONTRACT && tx_output_type(2) == OUTPUT_CHANGE);
 
     true
 }
