@@ -1,10 +1,12 @@
 script;
 
-use std::address::Address;
-use std::constants::BASE_ASSET_ID;
-use std::contract_id::ContractId;
-use std::identity::Identity;
-use std::token::transfer;
+use std::{
+    address::Address,
+    constants::BASE_ASSET_ID,
+    contract_id::ContractId,
+    identity::Identity,
+    token::transfer,
+};
 
 fn main() -> () {
     // The predicate constrains the transaction to be precisely this script

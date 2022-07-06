@@ -1,21 +1,16 @@
+use fuel_crypto::Hasher;
+use fuel_gql_client::fuel_tx::{AssetId, Contract, Input, Output, Transaction, UtxoId};
 use fuels::prelude::*;
 use fuels::test_helpers::Config;
-use fuel_crypto::Hasher;
-use fuel_gql_client::fuel_tx::{AssetId, Input, Output, Transaction, UtxoId, Contract};
 use fuels_contract::script::Script;
 
-
 async fn get_balance(provider: &Provider, address: Address, asset: AssetId) -> u64 {
-    let balance = provider
-        .get_asset_balance(&address, asset)
-        .await
-        .unwrap();
+    let balance = provider.get_asset_balance(&address, asset).await.unwrap();
     balance
 }
 
 #[tokio::test]
 async fn spend_predicate_with_script_constraint() {
-
     // Set up a wallet
     let native_asset: AssetId = Default::default();
     let mut provider_config = Config::local_node();
@@ -27,7 +22,9 @@ async fn spend_predicate_with_script_constraint() {
     let client = &provider.client;
 
     // Get padded bytecode root that must be hardcoded into the predicate to constrain the spending transaction
-    let mut script_bytecode = std::fs::read("../script/out/debug/script.bin").unwrap().to_vec();
+    let mut script_bytecode = std::fs::read("../script/out/debug/script.bin")
+        .unwrap()
+        .to_vec();
     let padding = script_bytecode.len() % 8;
     let script_bytecode_unpadded = script_bytecode.clone();
     script_bytecode.append(&mut vec![0; padding]);
@@ -44,23 +41,21 @@ async fn spend_predicate_with_script_constraint() {
     // Transfer some coins to the predicate root
     let transfer_amount: u64 = 1000;
 
-    let _receipt = wallet.transfer(
-        &predicate_root,
-        transfer_amount,
-        native_asset,
-        TxParameters::default()
-    ).await.unwrap();
-
+    wallet
+        .transfer(
+            &predicate_root,
+            transfer_amount,
+            native_asset,
+            TxParameters::default(),
+        )
+        .await;
 
     // Check set up completed correctly
     let mut predicate_balance = get_balance(&provider, predicate_root, native_asset).await;
     assert_eq!(predicate_balance, transfer_amount);
 
     // Get the predicate coin to spend
-    let predicate_coin = &provider
-        .get_coins(&predicate_root)
-        .await
-        .unwrap()[0];
+    let predicate_coin = &provider.get_coins(&predicate_root).await.unwrap()[0];
 
     // Specify the address receiving the coin output
     let receiver_address = Address::new([1u8; 32]);
@@ -92,7 +87,6 @@ async fn spend_predicate_with_script_constraint() {
         asset_id: AssetId::default(),
     };
 
-
     let tx = Transaction::Script {
         gas_price: 0,
         gas_limit: 10_000_000,
@@ -116,5 +110,4 @@ async fn spend_predicate_with_script_constraint() {
 
     assert_eq!(predicate_balance, 0);
     assert_eq!(receiver_balance, 1000);
-
 }

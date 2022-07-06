@@ -1,21 +1,22 @@
 predicate;
 
-use std::address::Address;
-use std::tx::{
-    INPUT_COIN,
-    INPUT_CONTRACT,
-    INPUT_MESSAGE,
-    OUTPUT_CHANGE,
-    OUTPUT_CONTRACT,
-    OUTPUT_VARIABLE,
-    b256_from_pointer_offset,
-    tx_gas_limit,
-    tx_input_pointer,
-    tx_input_type,
-    tx_inputs_count,
-    tx_output_type,
-    tx_outputs_count,
-    tx_script_bytecode,
+use std::{
+    address::Address,
+    tx::{
+        INPUT_COIN,
+        INPUT_CONTRACT,
+        INPUT_MESSAGE,
+        OUTPUT_CHANGE,
+        OUTPUT_CONTRACT,
+        OUTPUT_VARIABLE,
+        b256_from_pointer_offset,
+        tx_gas_limit,
+        tx_input_pointer,
+        tx_input_type,
+        tx_inputs_count,
+        tx_output_type,
+        tx_outputs_count,
+    tx_script_bytecode}
 };
 
 use std::assert::assert;
