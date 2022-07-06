@@ -1,8 +1,7 @@
 use fuels::prelude::*;
-//use fuel_core::service::Config;
 use fuels::test_helpers::Config;
 use fuel_crypto::Hasher;
-use fuel_gql_client::fuel_tx::{AssetId, Input, Output, Transaction, UtxoId, Contract};
+use fuel_gql_client::fuel_tx::{AssetId, Contract, Input, Output, Transaction, UtxoId};
 use fuels_contract::script::Script;
 
 // Predicate testing:
@@ -37,15 +36,15 @@ async fn predicate_spend() {
     let provider = wallet.get_provider().unwrap();
     let client = &provider.client;
 
+    // This is to produce the padded script hash which must be hard-coded in the predicate,
+    // In order to constrain its spending transaction to be exactly this script
     let mut script_bytecode = std::fs::read("../script/out/debug/script.bin").unwrap().to_vec();
     let padding = script_bytecode.len() % 8;
     let script_bytecode_unpadded = script_bytecode.clone();
     script_bytecode.append(&mut vec![0; padding]);
-    let script_hash = Hasher::hash(&script_bytecode); // This is the hash that must be hard-coded in the predicate
+    let script_hash = Hasher::hash(&script_bytecode);
 
-    println!("Unpadded script length: {}", script_bytecode_unpadded.len());
     println!("Padded script length: {}", script_bytecode.len());
-    //println!("Padded script   : {:?}", script_bytecode);
     println!("Padded script hash   : 0x{:?}", script_hash);
 
     // Get predicate bytecode and root

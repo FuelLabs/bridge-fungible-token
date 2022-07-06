@@ -6,7 +6,14 @@ edition = "2021"
 license = "Apache-2.0"
 
 [dependencies]
-fuels = { version = "0.16", features = ["fuel-core-lib"] }
+
+# With this, test fails and output suggests fuel-core is at 0.8 (despite 0.9 specified below)
+fuels = "0.16" 
+
+# With this, test passes (also need to uncomment line 28 in harness.rs)
+# fuels = { version = "0.16", features = ["fuel-core-lib"] }
+
+
 fuel-core = { version = "0.9", default-features = false }
 fuel-crypto = "0.5"
 
