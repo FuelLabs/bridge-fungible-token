@@ -1,7 +1,7 @@
 [project]
 name = "gateway_caller_script"
 version = "0.1.0"
-authors = ["Simon"]
+authors = ["Fuel Labs <contact@fuel.sh>"]
 edition = "2021"
 license = "Apache-2.0"
 

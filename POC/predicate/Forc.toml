@@ -1,8 +1,8 @@
 [project]
-authors = ["Simon"]
+authors = ["Fuel Labs <contact@fuel.sh>"]
 entry = "main.sw"
 license = "Apache-2.0"
 name = "predicate"
 
 [dependencies]
-std = { path = "/Users/simon/Documents/fuel/sway_master/sway-lib-std" }
+std = { path = "/Users/Fuel Labs <contact@fuel.sh>/Documents/fuel/sway_master/sway-lib-std" }

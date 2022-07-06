@@ -23,7 +23,7 @@ use std::hash::*;
 use std::contract_id::ContractId;
 
 /// Get the ID of a contract input
-fn contract_input_contract_id(index: u8) -> ContractId {
+fn input_contract_id(index: u8) -> ContractId {
     // Check that input at this index is a contract input
     assert(tx_input_type(index) == INPUT_CONTRACT);
     let ptr = tx_input_pointer(index);
@@ -32,7 +32,8 @@ fn contract_input_contract_id(index: u8) -> ContractId {
 }
 
 /// Get the contract ID from a message input's data
-fn message_input_data_contract_id(index: u8) -> ContractId {
+/// Note : This function is specific to this bridge design
+fn contract_id_from_message_input(index: u8) -> ContractId {
     // Check that input at this index is a message input
     assert(tx_input_type(index) == INPUT_MESSAGE);
 
@@ -70,8 +71,8 @@ fn main() -> bool {
     // Transaction must have exactly three inputs: a Coin input (for fees), a Message, and the token Contract (in that order)
     assert(tx_inputs_count() == 3);
     assert(tx_input_type(0) == INPUT_COIN);
-    let message_data_contract_id = message_input_data_contract_id(1);
-    let input_contract_id = contract_input_contract_id(2);
+    let message_data_contract_id = contract_id_from_message_input(1);
+    let input_contract_id = input_contract_id(2);
 
     // Check contract ID from the contract input matches the one specified in the message data
     assert(input_contract_id == message_data_contract_id);
