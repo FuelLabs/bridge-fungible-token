@@ -5,4 +5,4 @@ license = "Apache-2.0"
 name = "message_to_fungible_token_predicate"
 
 [dependencies]
-std = { path = "/Users/Fuel Labs <contact@fuel.sh>/Documents/fuel/sway_master/sway-lib-std" }
+std = { path = "/Users/Simon/Documents/fuel/sway_master/sway-lib-std" }
