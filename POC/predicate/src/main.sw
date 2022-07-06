@@ -1,7 +1,7 @@
 predicate;
 
 use std::assert::assert;
-use std::hash::*;
+use std::hash::sha256;
 use std::tx::tx_script_bytecode;
 
 

@@ -19,7 +19,7 @@ use std::tx::{
 };
 
 use std::assert::assert;
-use std::hash::*;
+use std::hash::sha256;
 use std::contract_id::ContractId;
 
 /// Get the ID of a contract input

@@ -64,7 +64,6 @@ async fn spend_predicate_with_script_constraint() {
 
     // Specify the address receiving the coin output
     let receiver_address = Address::new([1u8; 32]);
-    let mut receiver_balance = get_balance(&provider, receiver_address, native_asset).await;
 
     // Configure inputs and outputs to send coins from predicate to receiver
 
@@ -113,7 +112,7 @@ async fn spend_predicate_with_script_constraint() {
     let _receipts = script.call(&client).await.unwrap();
 
     predicate_balance = get_balance(&provider, predicate_root, native_asset).await;
-    receiver_balance = get_balance(&provider, receiver_address, native_asset).await;
+    let receiver_balance = get_balance(&provider, receiver_address, native_asset).await;
 
     assert_eq!(predicate_balance, 0);
     assert_eq!(receiver_balance, 1000);
