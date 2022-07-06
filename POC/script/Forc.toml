@@ -5,3 +5,4 @@ license = "Apache-2.0"
 name = "script"
 
 [dependencies]
+std = { path = "/home/simon/fuel/swayMaster/sway-lib-std" }

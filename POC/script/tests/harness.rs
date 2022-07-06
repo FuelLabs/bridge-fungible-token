@@ -1,5 +1,6 @@
 use fuels::prelude::*;
-use fuel_core::service::Config;
+//use fuel_core::service::Config;
+use fuels::test_helpers::Config;
 use fuel_crypto::Hasher;
 use fuel_gql_client::fuel_tx::{AssetId, Input, Output, Transaction, UtxoId, Contract};
 use fuels_contract::script::Script;
@@ -26,8 +27,10 @@ async fn predicate_spend() {
     let native_asset: AssetId = Default::default();
     let mut provider_config = Config::local_node();
     provider_config.predicates = true; // predicates are currently disabled by default
-    let wallets_config = WalletsConfig::new(Some(1), Some(2), Some(10000));
-    let wallet = launch_custom_provider_and_get_single_wallet(provider_config).await;
+    let wallet = launch_custom_provider_and_get_single_wallet(Some(provider_config)).await;
+
+    // When `launch_custom_provider_and_get_wallets` lands, use this to test with other assets
+    //let wallets_config = WalletsConfig::new(Some(1), Some(2), Some(10000));
     //let wallet = launch_custom_provider_and_get_wallets(wallets_config, provider_config).await;
 
     // Get provider and client
@@ -38,7 +41,7 @@ async fn predicate_spend() {
     let padding = script_bytecode.len() % 8;
     let script_bytecode_unpadded = script_bytecode.clone();
     script_bytecode.append(&mut vec![0; padding]);
-    let script_hash = Hasher::hash(&script_bytecode); // This is the hard that must be hard-coded in the predicate
+    let script_hash = Hasher::hash(&script_bytecode); // This is the hash that must be hard-coded in the predicate
 
     println!("Unpadded script length: {}", script_bytecode_unpadded.len());
     println!("Padded script length: {}", script_bytecode.len());
@@ -48,18 +51,16 @@ async fn predicate_spend() {
     // Get predicate bytecode and root
     let predicate_bytecode = std::fs::read("../predicate/out/debug/predicate.bin").unwrap();
     let predicate_root: [u8; 32] = (*Contract::root_from_code(&predicate_bytecode)).into();
-    let predicate_root = fuels::tx::Address::from(predicate_root);
+    let predicate_root = Address::from(predicate_root);
 
     // Transfer some coins to the predicate root
-    let _receipt = wallet
-        .transfer(
-            &predicate_root,
-            1000,
-            native_asset,
-            TxParameters::default(),
-        )
-        .await
-        .unwrap();
+    let _receipt = wallet.transfer(
+        &predicate_root,
+        1000,
+        native_asset,
+        TxParameters::default()
+    ).await.unwrap();
+
 
 
     let mut predicate_balance = get_balance(&provider, predicate_root, native_asset).await;
@@ -74,19 +75,18 @@ async fn predicate_spend() {
     assert_eq!(receiver_balance, 0);
 
     // Get predicate coin to spend
-    let predicate_coin: UtxoId = provider
+    let predicate_coin = &provider
         .get_coins(&predicate_root)
         .await
-        .unwrap()[0]
-        .utxo_id
-        .clone()
-        .into();
+        .unwrap()[0];
+
+    let predicate_coin_utxo_id = UtxoId::from(predicate_coin.utxo_id.clone());
 
     // Configure inputs and outputs to send coins from predicate to another wallet.
 
     // This is the coin belonging to the predicate root
-    let i1 = Input::CoinPredicate {
-        utxo_id: predicate_coin,
+    let input_predicate = Input::CoinPredicate {
+        utxo_id: predicate_coin_utxo_id,
         owner: predicate_root,
         amount: 1000,
         asset_id: native_asset,
@@ -96,14 +96,14 @@ async fn predicate_spend() {
     };
 
     // A variable output for the coin transfer
-    let o1 = Output::Variable {
+    let output_variable = Output::Variable {
         to: receiver_address,
         amount: 0,
         asset_id: AssetId::default(),
     };
 
     // A variable output for change (Does this need to be explicitly a Change output?)
-    let o2 = Output::Variable {
+    let output_change = Output::Variable {
         to: Address::default(),
         amount: 0,
         asset_id: AssetId::default(),
@@ -118,8 +118,8 @@ async fn predicate_spend() {
         receipts_root: Default::default(),
         script: script_bytecode_unpadded,
         script_data: vec![],
-        inputs: vec![i1],
-        outputs: vec![o1, o2],
+        inputs: vec![input_predicate],
+        outputs: vec![output_variable, output_change],
         witnesses: vec![],
         metadata: None,
     };

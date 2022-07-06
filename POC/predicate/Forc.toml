@@ -5,4 +5,4 @@ license = "Apache-2.0"
 name = "predicate"
 
 [dependencies]
-std = { path = "/Users/Simon/Documents/fuel/sway_master/sway-lib-std" }
+std = { path = "/home/simon/fuel/swayMaster/sway-lib-std" }
