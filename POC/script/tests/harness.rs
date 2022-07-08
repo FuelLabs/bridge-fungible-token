@@ -41,14 +41,15 @@ async fn spend_predicate_with_script_constraint() {
     // Transfer some coins to the predicate root
     let transfer_amount: u64 = 1000;
 
-    wallet
+    let _receipt = wallet
         .transfer(
             &predicate_root,
             transfer_amount,
             native_asset,
             TxParameters::default(),
         )
-        .await;
+        .await
+        .unwrap();
 
     // Check set up completed correctly
     let mut predicate_balance = get_balance(&provider, predicate_root, native_asset).await;
