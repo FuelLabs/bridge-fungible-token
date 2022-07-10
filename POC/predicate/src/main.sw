@@ -9,6 +9,6 @@ fn main() -> bool {
 
     // Verify script bytecode hash is expected
     let script_bytcode: [u64;
-    102] = tx_script_bytecode(); // Note : 8 * 101 = 808, which is 4 bytes longer than the script. Need to pad script by 4 bytes before hashing for SPENDING_SCRIPT_HASH
+    102] = tx_script_bytecode(); // Note : 8 * 102 = 816, which is 4 bytes longer than the script. Need to pad script by 4 bytes before hashing for SPENDING_SCRIPT_HASH
     sha256(script_bytcode) == SPENDING_SCRIPT_HASH
 }
