@@ -6,7 +6,7 @@ use std::tx::{b256_from_pointer_offset, tx_input_pointer};
 
 /// Get the ID of a contract input
 /// Predicate has already checked that this input is an InputContract, so no need to check again
-fn contract_input_contract_id(index: u8) -> ContractId {
+fn input_contract_id(index: u8) -> ContractId {
     let ptr = tx_input_pointer(index);
     let contract_id_bytes = b256_from_pointer_offset(ptr, 128); // Contract ID starts at 17th word: 16 * 8 = 128
     ~ContractId::from(contract_id_bytes)
@@ -14,7 +14,7 @@ fn contract_input_contract_id(index: u8) -> ContractId {
 
 fn main() -> bool {
     // Get contract ID. Predicate has already checked this is an InputContract and that it corresponds to the contract ID specified in the Message data
-    let input_contract_id = contract_input_contract_id(2);
+    let input_contract_id = input_contract_id(2);
 
     // Finalize the deposit on the given contract
     let token = abi(L2ERC20Gateway, input_contract_id.into());
