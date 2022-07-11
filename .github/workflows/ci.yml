@@ -16,6 +16,8 @@ env:
   CARGO_TERM_COLOR: always
   REGISTRY: ghcr.io
   RUST_VERSION: 1.61.0
+  PATH_TO_SCRIPTS: .github/scripts
+
 
 jobs:
   lint-toml-files:
@@ -84,15 +86,8 @@ jobs:
         run: forc build --path ${{ matrix.project }}
 
        - name: Check Rust formatting
-        run: |
-          if [ ${{ matrix.project }} = 'POC/script' ]; then
-            cd ${{ matrix.project }}
-            cargo fmt --verbose --check
-          fi
-
+        run: : sh ${{ env.PATH_TO_SCRIPTS }}/fmt.sh ${{ matrix.project }}
+          
       - name: Run Forc tests
-        run: |
-          if [ ${{ matrix.project }} = 'POC/script' ]; then
-            cd ${{ matrix.project }}
-            forc test
-          fi
+        run: : sh ${{ env.PATH_TO_SCRIPTS }}/test.sh ${{ matrix.project }}
+    
