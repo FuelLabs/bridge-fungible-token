@@ -1,11 +1,6 @@
 script;
 
-use std::{
-    address::Address,
-    constants::BASE_ASSET_ID,
-    identity::Identity,
-    token::transfer,
-};
+use std::{address::Address, constants::BASE_ASSET_ID, identity::Identity, token::transfer};
 
 fn main() -> () {
     // The predicate constrains the transaction to be precisely this script
