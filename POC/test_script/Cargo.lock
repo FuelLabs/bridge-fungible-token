@@ -3536,9 +3536,7 @@ dependencies = [
 name = "test-script"
 version = "0.1.0"
 dependencies = [
- "fuel-core",
  "fuel-crypto",
- "fuel-gql-client",
  "fuels",
  "tokio",
 ]

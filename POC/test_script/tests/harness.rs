@@ -1,8 +1,8 @@
 use fuel_crypto::Hasher;
-use fuel_gql_client::fuel_tx::{AssetId, Contract, Input, Output, Transaction, UtxoId};
 use fuels::contract::script::Script;
 use fuels::prelude::*;
 use fuels::test_helpers::Config;
+use fuels::tx::{AssetId, Contract, Input, Output, Transaction, UtxoId};
 
 async fn get_balance(provider: &Provider, address: Address, asset: AssetId) -> u64 {
     let balance = provider.get_asset_balance(&address, asset).await.unwrap();
@@ -38,7 +38,8 @@ async fn spend_predicate_with_script_constraint() {
     println!("Padded script hash   : 0x{:?}", script_hash);
 
     // Get predicate bytecode and root
-    let predicate_bytecode = std::fs::read("../test_predicate/out/debug/test-predicate.bin").unwrap();
+    let predicate_bytecode =
+        std::fs::read("../test_predicate/out/debug/test-predicate.bin").unwrap();
     let predicate_root: [u8; 32] = (*Contract::root_from_code(&predicate_bytecode)).into();
     let predicate_root = Address::from(predicate_root);
 
