@@ -1,8 +1,8 @@
 use fuel_crypto::Hasher;
 use fuel_gql_client::fuel_tx::{AssetId, Contract, Input, Output, Transaction, UtxoId};
+use fuels::contract::script::Script;
 use fuels::prelude::*;
 use fuels::test_helpers::Config;
-use fuels_contract::script::Script;
 
 async fn get_balance(provider: &Provider, address: Address, asset: AssetId) -> u64 {
     let balance = provider.get_asset_balance(&address, asset).await.unwrap();

@@ -3080,7 +3080,6 @@ dependencies = [
  "fuel-crypto",
  "fuel-gql-client",
  "fuels",
- "fuels-contract",
  "tokio",
 ]
 
