@@ -3,7 +3,6 @@ script;
 use std::{
     address::Address,
     constants::BASE_ASSET_ID,
-    contract_id::ContractId,
     identity::Identity,
     token::transfer,
 };
