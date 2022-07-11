@@ -86,8 +86,7 @@ jobs:
         run: forc build --path ${{ matrix.project }}
 
       - name: Check Rust formatting
-        run: : sh ${{ env.PATH_TO_SCRIPTS }}/fmt.sh ${{ matrix.project }}
+        run: sh ${{ env.PATH_TO_SCRIPTS }}/fmt.sh ${{ matrix.project }}
           
-      - name: Run Forc tests
-        run: : sh ${{ env.PATH_TO_SCRIPTS }}/test.sh ${{ matrix.project }}
-    
+      - name: Run tests
+        run: sh ${{ env.PATH_TO_SCRIPTS }}/test.sh ${{ matrix.project }}
