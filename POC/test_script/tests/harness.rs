@@ -26,7 +26,7 @@ async fn spend_predicate_with_script_constraint() {
     let client = &provider.client;
 
     // Get padded bytecode root that must be hardcoded into the predicate to constrain the spending transaction
-    let mut script_bytecode = std::fs::read("../script/out/debug/script.bin")
+    let mut script_bytecode = std::fs::read("../test_script/out/debug/test-script.bin")
         .unwrap()
         .to_vec();
     let padding = script_bytecode.len() % 8;
@@ -38,7 +38,7 @@ async fn spend_predicate_with_script_constraint() {
     println!("Padded script hash   : 0x{:?}", script_hash);
 
     // Get predicate bytecode and root
-    let predicate_bytecode = std::fs::read("../predicate/out/debug/predicate.bin").unwrap();
+    let predicate_bytecode = std::fs::read("../test_predicate/out/debug/test-predicate.bin").unwrap();
     let predicate_root: [u8; 32] = (*Contract::root_from_code(&predicate_bytecode)).into();
     let predicate_root = Address::from(predicate_root);
 
