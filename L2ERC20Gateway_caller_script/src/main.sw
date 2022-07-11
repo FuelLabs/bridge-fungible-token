@@ -18,6 +18,6 @@ fn main() -> bool {
 
     // Finalize the deposit on the given contract
     let token = abi(L2ERC20Gateway, input_contract_id.into());
-    let value = token.finalizeDeposit();
+    let value = token.finalize_deposit();
     true
 }
