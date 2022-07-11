@@ -85,7 +85,7 @@ jobs:
       - name: Build Sway
         run: forc build --path ${{ matrix.project }}
 
-       - name: Check Rust formatting
+      - name: Check Rust formatting
         run: : sh ${{ env.PATH_TO_SCRIPTS }}/fmt.sh ${{ matrix.project }}
           
       - name: Run Forc tests
