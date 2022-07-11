@@ -86,13 +86,13 @@ jobs:
        - name: Check Rust formatting
         run: |
           if [ ${{ matrix.project }} = 'POC/script' ]; then
-          cd ${{ matrix.project }}
-          cargo fmt --verbose --check
+            cd ${{ matrix.project }}
+            cargo fmt --verbose --check
           fi
 
       - name: Run Forc tests
         run: |
           if [ ${{ matrix.project }} = 'POC/script' ]; then
-          cd ${{ matrix.project }}
-          forc test
+            cd ${{ matrix.project }}
+            forc test
           fi
