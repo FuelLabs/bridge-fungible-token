@@ -83,3 +83,14 @@ jobs:
       - name: Build Sway
         run: forc build --path ${{ matrix.project }}
 
+       - name: Check Rust formatting
+        run: |
+          if [ ${{ matrix.project }} = 'POC/script' ]; then
+          cd ${{ matrix.project }}
+          cargo fmt --verbose --check
+
+      - name: Run Forc tests
+        run: |
+          if [ ${{ matrix.project }} = 'POC/script' ]; then
+          cd ${{ matrix.project }}
+          forc test
