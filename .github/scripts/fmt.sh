@@ -2,8 +2,7 @@
 
 PROJECT=$1
 
-
-if [ ${{ matrix.project }} = 'POC/script' ]; then
-    cd ${{ matrix.project }}
+if [ $PROJECT = 'POC/script' ]; then
+    cd $PROJECT
     cargo fmt --verbose --check
 fi
