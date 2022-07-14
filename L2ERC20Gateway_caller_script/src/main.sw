@@ -5,7 +5,8 @@ use std::contract_id::ContractId;
 use std::tx::{b256_from_pointer_offset, tx_input_pointer};
 
 /// Get the ID of a contract input
-/// Predicate has already checked that this input is an InputContract, so no need to check again
+/// This function is the same as the one in the predicate, except here we do not check the input is the correct type.
+/// The predicate has already checked that this input is an InputContract, so there's no need to check again
 fn input_contract_id(index: u8) -> ContractId {
     let ptr = tx_input_pointer(index);
     let contract_id_bytes = b256_from_pointer_offset(ptr, 128); // Contract ID starts at 17th word: 16 * 8 = 128
