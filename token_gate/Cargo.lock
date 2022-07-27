@@ -89,9 +89,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.57"
+version = "1.0.58"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08f9b8508dccb7687a1d6c4ce66b2b0ecef467c94667de27d8d7fe1f8d2a9cdc"
+checksum = "bb07d2053ccdbe10e2af2995a2f116c1330396493dc1269f6a91d0ae82e19704"
 
 [[package]]
 name = "arrayvec"
@@ -1240,9 +1240,9 @@ dependencies = [
 
 [[package]]
 name = "fuels"
-version = "0.16.1"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c48167ce352a2e149bd62f7a83677d128c207234e88b057f09949ffa24257f72"
+checksum = "44974109e1070fadc51f546c30c738d099c7d64c45fe2bf8b220c949b923d4e7"
 dependencies = [
  "fuel-gql-client",
  "fuels-abigen-macro",
@@ -1250,13 +1250,14 @@ dependencies = [
  "fuels-core",
  "fuels-signers",
  "fuels-test-helpers",
+ "fuels-types",
 ]
 
 [[package]]
 name = "fuels-abigen-macro"
-version = "0.16.1"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6594e4086f60be10188951e702b233b95932957d80ff40b08f5adfc08f107f6c"
+checksum = "63c8cf8bdf6c8aa3ea3fbf332d44baf9060a842c48801ec562f5bb61a5bd2318"
 dependencies = [
  "fuels-core",
  "proc-macro2",
@@ -1267,15 +1268,16 @@ dependencies = [
 
 [[package]]
 name = "fuels-contract"
-version = "0.16.1"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfb64b068261673d4bd01a841863066d2772a2b4a4c3858b87b99a66826a8380"
+checksum = "de4a9aa3948c0c2241c91156b42506daa639dbe2e409d84253108e47caab6974"
 dependencies = [
  "anyhow",
  "bytes",
  "fuel-gql-client",
  "fuels-core",
  "fuels-signers",
+ "fuels-types",
  "hex",
  "proc-macro2",
  "quote",
@@ -1293,9 +1295,9 @@ dependencies = [
 
 [[package]]
 name = "fuels-core"
-version = "0.16.1"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef59692a8cbd4c3e706796d4333716e403cb897ace6a68a77d2e04b0fb43999f"
+checksum = "52de7cf79d52448c31c3f73b49e0f5b76fa21578ffad29c9fa68037ffec30386"
 dependencies = [
  "Inflector",
  "anyhow",
@@ -1307,6 +1309,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "rand 0.8.5",
+ "regex",
  "serde",
  "serde_json",
  "sha2 0.9.9",
@@ -1318,9 +1321,9 @@ dependencies = [
 
 [[package]]
 name = "fuels-signers"
-version = "0.16.1"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "48e0ba6327760a78a5062109d674e7fc355c9fd3aab5f43e001405cba12f2b55"
+checksum = "eac044342e5b28015af240bca2bb1221cdf1f80ac267babe4c80b5e364af3d6f"
 dependencies = [
  "async-trait",
  "bytes",
@@ -1331,6 +1334,7 @@ dependencies = [
  "fuel-crypto",
  "fuel-gql-client",
  "fuels-core",
+ "fuels-types",
  "hex",
  "rand 0.8.5",
  "serde",
@@ -1341,16 +1345,18 @@ dependencies = [
 
 [[package]]
 name = "fuels-test-helpers"
-version = "0.16.1"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54ebc9202174e349551e2a9c49431901edf79e013dec2bfcf6610a3ca7b015a4"
+checksum = "8628ccf8dc41b785964939c981504f38c8c6956748c060262ba8341c67535130"
 dependencies = [
+ "anyhow",
  "fuel-core-interfaces",
  "fuel-gql-client",
  "fuel-types",
  "fuels-contract",
  "fuels-core",
  "fuels-signers",
+ "fuels-types",
  "hex",
  "portpicker",
  "rand 0.8.5",
@@ -1363,14 +1369,19 @@ dependencies = [
 
 [[package]]
 name = "fuels-types"
-version = "0.16.1"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d42ba681cde83d12e6b757cd6e5cac792330f31eb0f4962f37ba90df6e31128"
+checksum = "83539b4e2cd4195fb0cba90e497c947e0ef6856eedf185d6eaeefea3927f6d9a"
 dependencies = [
  "anyhow",
+ "fuel-tx",
+ "hex",
+ "proc-macro2",
  "serde",
+ "serde_json",
  "strum",
  "strum_macros",
+ "thiserror",
 ]
 
 [[package]]
@@ -2325,9 +2336,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.5.6"
+version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d83f127d94bdbcda4c8cc2e50f6f84f4b611f69c902699ca385a39c3a75f9ff1"
+checksum = "4c4eb3267174b8c6c2f654116623910a0fef09c4753f8dd83db29c48a0df988b"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -2336,9 +2347,9 @@ dependencies = [
 
 [[package]]
 name = "regex-syntax"
-version = "0.6.26"
+version = "0.6.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49b3de9ec5dc0a3417da371aab17d729997c15010e7fd24ff707773a33bddb64"
+checksum = "a3f87b73ce11b1619a3c6332f45341e0047173771e8b8b73f87bfeefb7b56244"
 
 [[package]]
 name = "remove_dir_all"
