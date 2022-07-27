@@ -5,7 +5,10 @@ license = "Apache-2.0"
 name = "token_gate"
 
 [dependencies]
+<<<<<<< HEAD:token_gate/Forc.toml
 fungible_token_abi = { path = "../fungible_token_abi"}
 gateway_abi = { path = "../gateway_abi"}
 # TODO: use implicit std when new forc is released (> 0.16.2)
 std = { path = "../../sway/sway-lib-std" }
+=======
+>>>>>>> master:fungible_token_abi/Forc.toml
