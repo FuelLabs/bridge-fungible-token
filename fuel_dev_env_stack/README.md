@@ -32,11 +32,11 @@ To allocate more memory, go to Settings > Resources in the Docker UI and use the
 
 ## Basic config options
 
-A set of basic environment variables can be set before running:
+A set of basic environment variables can be set before running. The defaults are defined as:
 ```bash
-L1CHAIN_HTTP_PORT=
-FULE_CORE_HTTP_PORT=
-DEPLOYER_PORT=
+L1CHAIN_HTTP_PORT=9545
+FULE_CORE_HTTP_PORT=4000
+DEPLOYER_PORT=8080
 ```
 
 For example:
