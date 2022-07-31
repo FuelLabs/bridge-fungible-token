@@ -9,6 +9,10 @@ if [ -z "$CONTRACTS_RPC_URL" ]; then
     exit 1
 fi
 
+# clean up workspace
+echo "Cleaning workspace."
+rm -rf ./genesis
+
 # wait for the base layer to be up
 echo "Waiting for L1."
 curl \
