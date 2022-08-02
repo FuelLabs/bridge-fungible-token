@@ -6,3 +6,4 @@ WIP repo for developing and testing the Fuel messaging bridge
 
 - [Design Documents](./docs/design_docs.md)
 - [Full Stack Dev Environment](./fuel_dev_env_stack)
+- [Integration Tests](./integration_tests)

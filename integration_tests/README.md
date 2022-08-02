@@ -18,6 +18,10 @@ Install dependencies:
 npm ci
 ```
 
+### Running Tests
+
+Before running the integration tests, you need to spin up a full development stack complete with an Ethereum client and Fuel client. You can use the easy docker setup detailed [here](../fuel_dev_env_stack).
+
 Run tests:
 
 ```sh
