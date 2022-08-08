@@ -2,6 +2,7 @@ import chai from 'chai';
 import { solidity } from 'ethereum-waffle';
 import { ethers } from 'ethers';
 import { TestEnvironment, setupEnvironment } from '../scripts/setup';
+import { fuels_parseEther, fuels_formatEther } from '../scripts/utils';
 
 chai.use(solidity);
 const { expect } = chai;
@@ -28,12 +29,14 @@ describe('Transferring ETH', async () => {
 
 		it('Check ETH arrived on Fuel', async () => {
 			//TODO
+			//fuels_formatEther(...) == "0.1"
 		});
 	});
 
 	describe('Send ETH from Fuel', async () => {
 		it('Send ETH via OutputMessage', async () => {
 			//TODO
+			//fuels_parseEther("0.1")
 		});
 
 		it('Relay Message from Fuel on Ethereum', async () => {
