@@ -16,7 +16,7 @@ The ETH bridge facilitates the transfer of ETH from Ethereum to be represented a
 
 ### ETH Bridge Deposit
 
-1. User starts a deposit by calling `sendETH` on `FuelMessagePortal` which accepts a value of ETH that gets custodied by the `FuelMessagePortal` while bridged
+1. User starts a deposit by calling `sendETH()` on `FuelMessagePortal` which accepts an amount of ETH that gets custodied while bridged
 1. The Fuel client sees an outgoing message event emitted on the `FuelMessagePortal` and adds a corresponding `InputMessage` to the UTXO set with the designated owner
 1. The owner can now spend the amount value in the input message like any other input
 
@@ -25,8 +25,8 @@ The ETH bridge facilitates the transfer of ETH from Ethereum to be represented a
 ### ETH Bridge Withdrawal
 
 1. User starts a withdrawal by creating a transaction that outputs an `OutputMessage` with a specific amount of ETH
-1. All `OutputMessages` are committed to L1 via a merkle tree of all `OutputMessage` messageIds by a designated committer (either a multisig or future consensus contract)
-1. After a finalization period, the user calls to the `FuelMessagePortal` with a merkle proof of the previous sent message which then sends the ETH to the message recipient
+1. All `OutputMessages` are committed to L1 via a merkle tree of all `OutputMessage` `messageId`s by a designated committer (either a multisig or future consensus contract)
+1. After a finalization period, the user calls to the `FuelMessagePortal` with a merkle proof of the previously sent message which then sends the ETH to the message recipient
 
 ![ETH Withdrawal Diagram](/docs/imgs/FuelMessagingETHWithdraw.png)
 
@@ -36,7 +36,7 @@ The ERC-20 bridge facilitates the transfer of ERC-20 tokens from Ethereum to be 
 
 ### ERC-20 Bridge Deposit
 
-1. User starts a deposit by calling the deposit function on the `L1ERC20Gateway` (has already approved token transfer to `L1ERC20Gateway`)
+1. User starts a deposit by calling the `deposit()` function on the `L1ERC20Gateway` (after they have approved token transfer to `L1ERC20Gateway`)
 1. The `L1ERC20Gateway` transfers tokens to itself to custody while they are bridged
 1. The `L1ERC20Gateway` creates a message in the `FuelMessagePortal` to be relayed on Fuel with the `MessageToFungibleTokenPredicate` so that anyone can spend the `InputMessage` on a user's behalf but with guarantees that the transaction is built as it’s supposed to
 1. The Fuel client sees an outgoing message event emitted on the `FuelMessagePortal` and adds a corresponding `InputMessage` to the UTXO set with the designated owner
@@ -48,9 +48,9 @@ The ERC-20 bridge facilitates the transfer of ERC-20 tokens from Ethereum to be 
 ### ERC-20 Bridge Withdrawal
 
 1. User starts a withdrawal by calling the `FuelMyToken` contract sending some coins to withdraw along with it
-1. The `FuelMyToken` contract looks to see what coins it was sent, burns them and then creates a `OutputMessage` via the `SMO` opcode
-1. All `OutputMessages` are committed to L1 via a merkle tree of all `OutputMessage` messageIds by a designated committer (either a multisig or future consensus contract)
-1. After a finalization period, the user calls to the `FuelMessagePortal` with a merkle proof of the previous sent message which then calls to the `L1ERC20Gateway` with the abi specified in the message data
+1. The `FuelMyToken` contract looks to see what coins it was sent, burns them and then creates an `OutputMessage` via the `SMO` opcode
+1. All `OutputMessages` are committed to L1 via a merkle tree of all `OutputMessage` `messageId`s by a designated committer (either a multisig or future consensus contract)
+1. After a finalization period, the user calls to the `FuelMessagePortal` with a merkle proof of the previously sent message which then calls to the `L1ERC20Gateway` with the abi specified in the message data
 1. The `L1ERC20Gateway` verifies it’s being called by the `FuelMessagePortal` and releases the specified amount of tokens to the specified address
 
 ![ERC20 Withdrawal Diagram](/docs/imgs/FuelMessagingERC20Withdraw.png)
@@ -59,10 +59,10 @@ The ERC-20 bridge facilitates the transfer of ERC-20 tokens from Ethereum to be 
 
 In order to prevent messages getting lost during generic messaging from L1 to Fuel, developers should follow the following standard practice utilizing common libraries.
 
-1. Either a contract or EOA calls `sendMessage` on the `FuelMessagePortal` that creates a message to be relayed on Fuel with the `MessageToContractPredicate` so that anyone can spend the `InputMessage` on a user's behalf but with guarantees that the transaction is built as it’s supposed to
+1. Either a contract or EOA calls `sendMessage()` on the `FuelMessagePortal` that creates a message to be relayed on Fuel with the `MessageToContractPredicate` so that anyone can spend the `InputMessage` on a user's behalf but with guarantees that the transaction is built as it’s supposed to
 1. The Fuel client sees an outgoing message event emitted on the `FuelMessagePortal` and adds a corresponding `InputMessage` to the UTXO set with the designated predicate owner
 1. A transaction is built and submitted by either the user or some relayer that meets the requirements of the `MessageToContractPredicate`
-1. The transaction script sends any amount on the message to the recipient contract and calls `processMessage` on the recipient Fuel token contract
+1. The transaction script sends any amount on the message to the recipient contract and calls `processMessage()` on the recipient Fuel token contract
 1. This contract extends the standard `MessageRetryable` code which checks if the transaction includes the appropriate variable outputs exist on the transaction (if any) otherwise the `messageId` gets placed in storage to be retried in a later transaction
 
 ![Retryable Messages Diagram](/docs/imgs/FuelMessagingRetryableMessages.png)
