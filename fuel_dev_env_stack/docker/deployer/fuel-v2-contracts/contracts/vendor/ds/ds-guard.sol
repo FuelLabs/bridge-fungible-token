@@ -22,24 +22,15 @@ pragma solidity 0.8.9;
 import "./ds-auth.sol";
 
 contract DSGuardEvents {
-    event LogPermit(
-        bytes32 indexed src,
-        bytes32 indexed dst,
-        bytes32 indexed sig
-    );
+    event LogPermit(bytes32 indexed src, bytes32 indexed dst, bytes32 indexed sig);
 
-    event LogForbid(
-        bytes32 indexed src,
-        bytes32 indexed dst,
-        bytes32 indexed sig
-    );
+    event LogForbid(bytes32 indexed src, bytes32 indexed dst, bytes32 indexed sig);
 }
 
 contract DSGuard is DSAuth, DSAuthority, DSGuardEvents {
     bytes32 public constant ANY = bytes32(type(uint256).max);
 
-    mapping(bytes32 => mapping(bytes32 => mapping(bytes32 => bool)))
-        internal acl;
+    mapping(bytes32 => mapping(bytes32 => mapping(bytes32 => bool))) internal acl;
 
     function canCall(
         address src_,

@@ -35,10 +35,10 @@ contract DSToken is DSMath, DSAuth {
         symbol = symbol_;
     }
 
-    event Approval(address indexed src, address indexed guy, uint256 wad);
-    event Transfer(address indexed src, address indexed dst, uint256 wad);
-    event Mint(address indexed guy, uint256 wad);
-    event Burn(address indexed guy, uint256 wad);
+    event Approval(address indexed src, address indexed guy, uint wad);
+    event Transfer(address indexed src, address indexed dst, uint wad);
+    event Mint(address indexed guy, uint wad);
+    event Burn(address indexed guy, uint wad);
     event Stop();
     event Start();
 
@@ -51,7 +51,7 @@ contract DSToken is DSMath, DSAuth {
         return approve(guy, type(uint256).max);
     }
 
-    function approve(address guy, uint256 wad) public stoppable returns (bool) {
+    function approve(address guy, uint wad) public stoppable returns (bool) {
         allowance[msg.sender][guy] = wad;
 
         emit Approval(msg.sender, guy, wad);
@@ -59,22 +59,17 @@ contract DSToken is DSMath, DSAuth {
         return true;
     }
 
-    function transfer(address dst, uint256 wad) external returns (bool) {
+    function transfer(address dst, uint wad) external returns (bool) {
         return transferFrom(msg.sender, dst, wad);
     }
 
     function transferFrom(
         address src,
         address dst,
-        uint256 wad
+        uint wad
     ) public stoppable returns (bool) {
-        if (
-            src != msg.sender && allowance[src][msg.sender] != type(uint256).max
-        ) {
-            require(
-                allowance[src][msg.sender] >= wad,
-                "ds-token-insufficient-approval"
-            );
+        if (src != msg.sender && allowance[src][msg.sender] != type(uint256).max) {
+            require(allowance[src][msg.sender] >= wad, "ds-token-insufficient-approval");
             allowance[src][msg.sender] = sub(allowance[src][msg.sender], wad);
         }
 
@@ -87,44 +82,39 @@ contract DSToken is DSMath, DSAuth {
         return true;
     }
 
-    function push(address dst, uint256 wad) external {
+    function push(address dst, uint wad) external {
         transferFrom(msg.sender, dst, wad);
     }
 
-    function pull(address src, uint256 wad) external {
+    function pull(address src, uint wad) external {
         transferFrom(src, msg.sender, wad);
     }
 
     function move(
         address src,
         address dst,
-        uint256 wad
+        uint wad
     ) external {
         transferFrom(src, dst, wad);
     }
 
-    function mint(uint256 wad) external {
+    function mint(uint wad) external {
         mint(msg.sender, wad);
     }
 
-    function burn(uint256 wad) external {
+    function burn(uint wad) external {
         burn(msg.sender, wad);
     }
 
-    function mint(address guy, uint256 wad) public auth stoppable {
+    function mint(address guy, uint wad) public auth stoppable {
         balanceOf[guy] = add(balanceOf[guy], wad);
         totalSupply = add(totalSupply, wad);
         emit Mint(guy, wad);
     }
 
-    function burn(address guy, uint256 wad) public auth stoppable {
-        if (
-            guy != msg.sender && allowance[guy][msg.sender] != type(uint256).max
-        ) {
-            require(
-                allowance[guy][msg.sender] >= wad,
-                "ds-token-insufficient-approval"
-            );
+    function burn(address guy, uint wad) public auth stoppable {
+        if (guy != msg.sender && allowance[guy][msg.sender] != type(uint256).max) {
+            require(allowance[guy][msg.sender] >= wad, "ds-token-insufficient-approval");
             allowance[guy][msg.sender] = sub(allowance[guy][msg.sender], wad);
         }
 

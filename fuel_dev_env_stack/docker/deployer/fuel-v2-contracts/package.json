@@ -11,7 +11,8 @@
 		"compile": "npx hardhat compile --show-stack-traces"
 	},
 	"dependencies": {
-		"@openzeppelin/contracts": "^4.6.0"
+		"@openzeppelin/contracts": "^4.6.0",
+		"@fuel-contracts/merkle-sol": "^0.1.1"
 	},
 	"devDependencies": {
 		"@ethersproject/abstract-provider": "^5.1.0",

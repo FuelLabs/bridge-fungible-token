@@ -6,10 +6,8 @@ import { Provider as EthProvider } from '@ethersproject/providers';
 import { Provider as FuelProvider } from '@fuel-ts/providers';
 import { Wallet as FuelWallet } from '@fuel-ts/wallet';
 import { fuels_parseEther, fuels_formatEther } from '../scripts/utils';
-import { FuelMessageInbox } from '../fuel-v2-contracts-typechain/FuelMessageInbox.d';
-import { FuelMessageInbox__factory } from '../fuel-v2-contracts-typechain/factories/FuelMessageInbox__factory';
-import { FuelMessageOutbox } from '../fuel-v2-contracts-typechain/FuelMessageOutbox.d';
-import { FuelMessageOutbox__factory } from '../fuel-v2-contracts-typechain/factories/FuelMessageOutbox__factory';
+import { FuelMessagePortal } from '../fuel-v2-contracts-typechain/FuelMessagePortal.d';
+import { FuelMessagePortal__factory } from '../fuel-v2-contracts-typechain/factories/FuelMessagePortal__factory';
 import { L1ERC20Gateway } from '../fuel-v2-contracts-typechain/L1ERC20Gateway.d';
 import { L1ERC20Gateway__factory } from '../fuel-v2-contracts-typechain/factories/L1ERC20Gateway__factory';
 
@@ -30,8 +28,7 @@ export interface SetupOptions {
 export interface TestEnvironment {
 	eth: {
 		provider: EthProvider;
-		fuelMessageInbox: FuelMessageInbox;
-		fuelMessageOutbox: FuelMessageOutbox;
+		fuelMessagePortal: FuelMessagePortal;
 		l1ERC20Gateway: L1ERC20Gateway;
 		deployer: EthSigner;
 		signers: EthSigner[];
@@ -118,30 +115,24 @@ export async function setupEnvironment(opts: SetupOptions): Promise<TestEnvironm
 	} catch(e) {
 		throw new Error("Failed to connect to the deployer at (" + http_deployer + "). Are you sure it's running?");
 	}
-	if(!deployerAddresses.FuelMessageOutbox) {
-		throw new Error("Failed to get FuelMessageOutbox address from deployer");
+	if(!deployerAddresses.FuelMessagePortal) {
+		throw new Error("Failed to get FuelMessagePortal address from deployer");
 	}
-	const eth_fuelMessageOutboxAddress: string = deployerAddresses.FuelMessageOutbox;
-	if(!deployerAddresses.FuelMessageInbox) {
-		throw new Error("Failed to get FuelMessageInbox address from deployer");
-	}
-	const eth_fuelMessageInboxAddress: string = deployerAddresses.FuelMessageInbox;
+	const eth_fuelMessagePortalAddress: string = deployerAddresses.FuelMessagePortal;
 	if(!deployerAddresses.L1ERC20Gateway) {
 		throw new Error("Failed to get L1ERC20Gateway address from deployer");
 	}
 	const eth_l1ERC20GatewayAddress: string = deployerAddresses.L1ERC20Gateway;
 
 	// Connect existing contracts
-	let eth_fuelMessageInbox: FuelMessageInbox = FuelMessageInbox__factory.connect(eth_fuelMessageInboxAddress, eth_signer1);
-	let eth_fuelMessageOutbox: FuelMessageOutbox = FuelMessageOutbox__factory.connect(eth_fuelMessageOutboxAddress, eth_signer1);
+	let eth_fuelMessagePortal: FuelMessagePortal = FuelMessagePortal__factory.connect(eth_fuelMessagePortalAddress, eth_signer1);
 	let eth_l1ERC20Gateway: L1ERC20Gateway = L1ERC20Gateway__factory.connect(eth_l1ERC20GatewayAddress, eth_signer1);
 
 	// Return the Fuel harness object
 	return {
 		eth: {
 			provider: eth_provider,
-			fuelMessageInbox: eth_fuelMessageInbox,
-			fuelMessageOutbox: eth_fuelMessageOutbox,
+			fuelMessagePortal: eth_fuelMessagePortal,
 			l1ERC20Gateway: eth_l1ERC20Gateway,
 			deployer: eth_deployer,
 			signers: [eth_signer1, eth_signer2]

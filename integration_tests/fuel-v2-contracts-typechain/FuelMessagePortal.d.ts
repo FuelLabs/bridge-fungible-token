@@ -20,26 +20,31 @@ import { Listener, Provider } from "@ethersproject/providers";
 import { FunctionFragment, EventFragment, Result } from "@ethersproject/abi";
 import { TypedEventFilter, TypedEvent, TypedListener } from "./commons";
 
-interface FuelMessageOutboxInterface extends ethers.utils.Interface {
+interface FuelMessagePortalInterface extends ethers.utils.Interface {
   functions: {
     "ETH_DECIMALS()": FunctionFragment;
     "FUEL_BASE_ASSET_DECIMALS()": FunctionFragment;
     "MAX_MESSAGE_DATA_SIZE()": FunctionFragment;
-    "MESSAGE_INBOX()": FunctionFragment;
+    "c_0x2b840827(bytes32)": FunctionFragment;
+    "commitMessageRoot(bytes32)": FunctionFragment;
     "getFuelBaseAssetDecimals()": FunctionFragment;
+    "getMessageSender()": FunctionFragment;
     "owner()": FunctionFragment;
     "pause()": FunctionFragment;
     "paused()": FunctionFragment;
+    "relayMessage(bytes32,bytes32,bytes32,uint64,bytes,tuple)": FunctionFragment;
     "renounceOwnership()": FunctionFragment;
-    "s_defaultMessagePredicate()": FunctionFragment;
-    "s_messageNonce()": FunctionFragment;
+    "s_incomingMessageRootCommitter()": FunctionFragment;
+    "s_incomingMessageRoots(bytes32)": FunctionFragment;
+    "s_incomingMessageSuccessful(bytes32)": FunctionFragment;
+    "s_incomingMessageTimelock()": FunctionFragment;
+    "s_outgoingMessageNonce()": FunctionFragment;
     "sendETH(bytes32)": FunctionFragment;
-    "sendMessage(bytes32,bytes)": FunctionFragment;
-    "sendMessageWithOwner(bytes32,bytes32,bytes)": FunctionFragment;
-    "setDefaultMessagePredicate(bytes32)": FunctionFragment;
+    "sendMessage(bytes32,bytes32,bytes)": FunctionFragment;
+    "setIncomingMessageRootCommitter(address)": FunctionFragment;
+    "setIncomingMessageTimelock(uint64)": FunctionFragment;
     "transferOwnership(address)": FunctionFragment;
     "unpause()": FunctionFragment;
-    "withdrawETH(uint256)": FunctionFragment;
   };
 
   encodeFunctionData(
@@ -55,50 +60,82 @@ interface FuelMessageOutboxInterface extends ethers.utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "MESSAGE_INBOX",
-    values?: undefined
+    functionFragment: "c_0x2b840827",
+    values: [BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "commitMessageRoot",
+    values: [BytesLike]
   ): string;
   encodeFunctionData(
     functionFragment: "getFuelBaseAssetDecimals",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getMessageSender",
     values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(functionFragment: "pause", values?: undefined): string;
   encodeFunctionData(functionFragment: "paused", values?: undefined): string;
   encodeFunctionData(
+    functionFragment: "relayMessage",
+    values: [
+      BytesLike,
+      BytesLike,
+      BytesLike,
+      BigNumberish,
+      BytesLike,
+      {
+        root: BytesLike;
+        key: BigNumberish;
+        numLeaves: BigNumberish;
+        proof: BytesLike[];
+      }
+    ]
+  ): string;
+  encodeFunctionData(
     functionFragment: "renounceOwnership",
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "s_defaultMessagePredicate",
+    functionFragment: "s_incomingMessageRootCommitter",
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "s_messageNonce",
+    functionFragment: "s_incomingMessageRoots",
+    values: [BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "s_incomingMessageSuccessful",
+    values: [BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "s_incomingMessageTimelock",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "s_outgoingMessageNonce",
     values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "sendETH", values: [BytesLike]): string;
   encodeFunctionData(
     functionFragment: "sendMessage",
-    values: [BytesLike, BytesLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "sendMessageWithOwner",
     values: [BytesLike, BytesLike, BytesLike]
   ): string;
   encodeFunctionData(
-    functionFragment: "setDefaultMessagePredicate",
-    values: [BytesLike]
+    functionFragment: "setIncomingMessageRootCommitter",
+    values: [string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setIncomingMessageTimelock",
+    values: [BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "transferOwnership",
     values: [string]
   ): string;
   encodeFunctionData(functionFragment: "unpause", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "withdrawETH",
-    values: [BigNumberish]
-  ): string;
 
   decodeFunctionResult(
     functionFragment: "ETH_DECIMALS",
@@ -113,26 +150,50 @@ interface FuelMessageOutboxInterface extends ethers.utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "MESSAGE_INBOX",
+    functionFragment: "c_0x2b840827",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "commitMessageRoot",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
     functionFragment: "getFuelBaseAssetDecimals",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "getMessageSender",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "pause", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "paused", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "relayMessage",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "renounceOwnership",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "s_defaultMessagePredicate",
+    functionFragment: "s_incomingMessageRootCommitter",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "s_messageNonce",
+    functionFragment: "s_incomingMessageRoots",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "s_incomingMessageSuccessful",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "s_incomingMessageTimelock",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "s_outgoingMessageNonce",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "sendETH", data: BytesLike): Result;
@@ -141,11 +202,11 @@ interface FuelMessageOutboxInterface extends ethers.utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "sendMessageWithOwner",
+    functionFragment: "setIncomingMessageRootCommitter",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "setDefaultMessagePredicate",
+    functionFragment: "setIncomingMessageTimelock",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -153,10 +214,6 @@ interface FuelMessageOutboxInterface extends ethers.utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "unpause", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "withdrawETH",
-    data: BytesLike
-  ): Result;
 
   events: {
     "OwnershipTransferred(address,address)": EventFragment;
@@ -171,7 +228,7 @@ interface FuelMessageOutboxInterface extends ethers.utils.Interface {
   getEvent(nameOrSignatureOrTopic: "Unpaused"): EventFragment;
 }
 
-export class FuelMessageOutbox extends Contract {
+export class FuelMessagePortal extends Contract {
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;
@@ -212,7 +269,7 @@ export class FuelMessageOutbox extends Contract {
     toBlock?: string | number | undefined
   ): Promise<Array<TypedEvent<EventArgsArray & EventArgsObject>>>;
 
-  interface: FuelMessageOutboxInterface;
+  interface: FuelMessagePortalInterface;
 
   functions: {
     ETH_DECIMALS(overrides?: CallOverrides): Promise<[BigNumber]>;
@@ -229,13 +286,33 @@ export class FuelMessageOutbox extends Contract {
 
     "MAX_MESSAGE_DATA_SIZE()"(overrides?: CallOverrides): Promise<[BigNumber]>;
 
-    MESSAGE_INBOX(overrides?: CallOverrides): Promise<[string]>;
+    c_0x2b840827(
+      c__0x2b840827: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<[void]>;
 
-    "MESSAGE_INBOX()"(overrides?: CallOverrides): Promise<[string]>;
+    "c_0x2b840827(bytes32)"(
+      c__0x2b840827: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<[void]>;
+
+    commitMessageRoot(
+      messageRoot: BytesLike,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    "commitMessageRoot(bytes32)"(
+      messageRoot: BytesLike,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
 
     getFuelBaseAssetDecimals(overrides?: CallOverrides): Promise<[number]>;
 
     "getFuelBaseAssetDecimals()"(overrides?: CallOverrides): Promise<[number]>;
+
+    getMessageSender(overrides?: CallOverrides): Promise<[string]>;
+
+    "getMessageSender()"(overrides?: CallOverrides): Promise<[string]>;
 
     owner(overrides?: CallOverrides): Promise<[string]>;
 
@@ -253,6 +330,36 @@ export class FuelMessageOutbox extends Contract {
 
     "paused()"(overrides?: CallOverrides): Promise<[boolean]>;
 
+    relayMessage(
+      sender: BytesLike,
+      recipient: BytesLike,
+      nonce: BytesLike,
+      amount: BigNumberish,
+      data: BytesLike,
+      merkleProof: {
+        root: BytesLike;
+        key: BigNumberish;
+        numLeaves: BigNumberish;
+        proof: BytesLike[];
+      },
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    "relayMessage(bytes32,bytes32,bytes32,uint64,bytes,(bytes32,uint256,uint256,bytes32[]))"(
+      sender: BytesLike,
+      recipient: BytesLike,
+      nonce: BytesLike,
+      amount: BigNumberish,
+      data: BytesLike,
+      merkleProof: {
+        root: BytesLike;
+        key: BigNumberish;
+        numLeaves: BigNumberish;
+        proof: BytesLike[];
+      },
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
     renounceOwnership(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
@@ -261,13 +368,43 @@ export class FuelMessageOutbox extends Contract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    s_defaultMessagePredicate(overrides?: CallOverrides): Promise<[string]>;
+    s_incomingMessageRootCommitter(
+      overrides?: CallOverrides
+    ): Promise<[string]>;
 
-    "s_defaultMessagePredicate()"(overrides?: CallOverrides): Promise<[string]>;
+    "s_incomingMessageRootCommitter()"(
+      overrides?: CallOverrides
+    ): Promise<[string]>;
 
-    s_messageNonce(overrides?: CallOverrides): Promise<[BigNumber]>;
+    s_incomingMessageRoots(
+      arg0: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
 
-    "s_messageNonce()"(overrides?: CallOverrides): Promise<[BigNumber]>;
+    "s_incomingMessageRoots(bytes32)"(
+      arg0: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
+    s_incomingMessageSuccessful(
+      arg0: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<[boolean]>;
+
+    "s_incomingMessageSuccessful(bytes32)"(
+      arg0: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<[boolean]>;
+
+    s_incomingMessageTimelock(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    "s_incomingMessageTimelock()"(
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
+    s_outgoingMessageNonce(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    "s_outgoingMessageNonce()"(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     sendETH(
       recipient: BytesLike,
@@ -281,37 +418,35 @@ export class FuelMessageOutbox extends Contract {
 
     sendMessage(
       recipient: BytesLike,
+      owner: BytesLike,
       data: BytesLike,
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    "sendMessage(bytes32,bytes)"(
-      recipient: BytesLike,
-      data: BytesLike,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
-    sendMessageWithOwner(
+    "sendMessage(bytes32,bytes32,bytes)"(
       recipient: BytesLike,
       owner: BytesLike,
       data: BytesLike,
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    "sendMessageWithOwner(bytes32,bytes32,bytes)"(
-      recipient: BytesLike,
-      owner: BytesLike,
-      data: BytesLike,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
-    setDefaultMessagePredicate(
-      newMessagePredicate: BytesLike,
+    setIncomingMessageRootCommitter(
+      messageRootCommitter: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    "setDefaultMessagePredicate(bytes32)"(
-      newMessagePredicate: BytesLike,
+    "setIncomingMessageRootCommitter(address)"(
+      messageRootCommitter: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    setIncomingMessageTimelock(
+      messageTimelock: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    "setIncomingMessageTimelock(uint64)"(
+      messageTimelock: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
@@ -332,16 +467,6 @@ export class FuelMessageOutbox extends Contract {
     "unpause()"(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
-
-    withdrawETH(
-      amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
-    "withdrawETH(uint256)"(
-      amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
   };
 
   ETH_DECIMALS(overrides?: CallOverrides): Promise<BigNumber>;
@@ -356,13 +481,33 @@ export class FuelMessageOutbox extends Contract {
 
   "MAX_MESSAGE_DATA_SIZE()"(overrides?: CallOverrides): Promise<BigNumber>;
 
-  MESSAGE_INBOX(overrides?: CallOverrides): Promise<string>;
+  c_0x2b840827(
+    c__0x2b840827: BytesLike,
+    overrides?: CallOverrides
+  ): Promise<void>;
 
-  "MESSAGE_INBOX()"(overrides?: CallOverrides): Promise<string>;
+  "c_0x2b840827(bytes32)"(
+    c__0x2b840827: BytesLike,
+    overrides?: CallOverrides
+  ): Promise<void>;
+
+  commitMessageRoot(
+    messageRoot: BytesLike,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  "commitMessageRoot(bytes32)"(
+    messageRoot: BytesLike,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
 
   getFuelBaseAssetDecimals(overrides?: CallOverrides): Promise<number>;
 
   "getFuelBaseAssetDecimals()"(overrides?: CallOverrides): Promise<number>;
+
+  getMessageSender(overrides?: CallOverrides): Promise<string>;
+
+  "getMessageSender()"(overrides?: CallOverrides): Promise<string>;
 
   owner(overrides?: CallOverrides): Promise<string>;
 
@@ -380,6 +525,36 @@ export class FuelMessageOutbox extends Contract {
 
   "paused()"(overrides?: CallOverrides): Promise<boolean>;
 
+  relayMessage(
+    sender: BytesLike,
+    recipient: BytesLike,
+    nonce: BytesLike,
+    amount: BigNumberish,
+    data: BytesLike,
+    merkleProof: {
+      root: BytesLike;
+      key: BigNumberish;
+      numLeaves: BigNumberish;
+      proof: BytesLike[];
+    },
+    overrides?: PayableOverrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  "relayMessage(bytes32,bytes32,bytes32,uint64,bytes,(bytes32,uint256,uint256,bytes32[]))"(
+    sender: BytesLike,
+    recipient: BytesLike,
+    nonce: BytesLike,
+    amount: BigNumberish,
+    data: BytesLike,
+    merkleProof: {
+      root: BytesLike;
+      key: BigNumberish;
+      numLeaves: BigNumberish;
+      proof: BytesLike[];
+    },
+    overrides?: PayableOverrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   renounceOwnership(
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
@@ -388,13 +563,39 @@ export class FuelMessageOutbox extends Contract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  s_defaultMessagePredicate(overrides?: CallOverrides): Promise<string>;
+  s_incomingMessageRootCommitter(overrides?: CallOverrides): Promise<string>;
 
-  "s_defaultMessagePredicate()"(overrides?: CallOverrides): Promise<string>;
+  "s_incomingMessageRootCommitter()"(
+    overrides?: CallOverrides
+  ): Promise<string>;
 
-  s_messageNonce(overrides?: CallOverrides): Promise<BigNumber>;
+  s_incomingMessageRoots(
+    arg0: BytesLike,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
 
-  "s_messageNonce()"(overrides?: CallOverrides): Promise<BigNumber>;
+  "s_incomingMessageRoots(bytes32)"(
+    arg0: BytesLike,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
+  s_incomingMessageSuccessful(
+    arg0: BytesLike,
+    overrides?: CallOverrides
+  ): Promise<boolean>;
+
+  "s_incomingMessageSuccessful(bytes32)"(
+    arg0: BytesLike,
+    overrides?: CallOverrides
+  ): Promise<boolean>;
+
+  s_incomingMessageTimelock(overrides?: CallOverrides): Promise<BigNumber>;
+
+  "s_incomingMessageTimelock()"(overrides?: CallOverrides): Promise<BigNumber>;
+
+  s_outgoingMessageNonce(overrides?: CallOverrides): Promise<BigNumber>;
+
+  "s_outgoingMessageNonce()"(overrides?: CallOverrides): Promise<BigNumber>;
 
   sendETH(
     recipient: BytesLike,
@@ -408,37 +609,35 @@ export class FuelMessageOutbox extends Contract {
 
   sendMessage(
     recipient: BytesLike,
+    owner: BytesLike,
     data: BytesLike,
     overrides?: PayableOverrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  "sendMessage(bytes32,bytes)"(
-    recipient: BytesLike,
-    data: BytesLike,
-    overrides?: PayableOverrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
-  sendMessageWithOwner(
+  "sendMessage(bytes32,bytes32,bytes)"(
     recipient: BytesLike,
     owner: BytesLike,
     data: BytesLike,
     overrides?: PayableOverrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  "sendMessageWithOwner(bytes32,bytes32,bytes)"(
-    recipient: BytesLike,
-    owner: BytesLike,
-    data: BytesLike,
-    overrides?: PayableOverrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
-  setDefaultMessagePredicate(
-    newMessagePredicate: BytesLike,
+  setIncomingMessageRootCommitter(
+    messageRootCommitter: string,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  "setDefaultMessagePredicate(bytes32)"(
-    newMessagePredicate: BytesLike,
+  "setIncomingMessageRootCommitter(address)"(
+    messageRootCommitter: string,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  setIncomingMessageTimelock(
+    messageTimelock: BigNumberish,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  "setIncomingMessageTimelock(uint64)"(
+    messageTimelock: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -460,16 +659,6 @@ export class FuelMessageOutbox extends Contract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  withdrawETH(
-    amount: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
-  "withdrawETH(uint256)"(
-    amount: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
   callStatic: {
     ETH_DECIMALS(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -483,13 +672,33 @@ export class FuelMessageOutbox extends Contract {
 
     "MAX_MESSAGE_DATA_SIZE()"(overrides?: CallOverrides): Promise<BigNumber>;
 
-    MESSAGE_INBOX(overrides?: CallOverrides): Promise<string>;
+    c_0x2b840827(
+      c__0x2b840827: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
-    "MESSAGE_INBOX()"(overrides?: CallOverrides): Promise<string>;
+    "c_0x2b840827(bytes32)"(
+      c__0x2b840827: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    commitMessageRoot(
+      messageRoot: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    "commitMessageRoot(bytes32)"(
+      messageRoot: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     getFuelBaseAssetDecimals(overrides?: CallOverrides): Promise<number>;
 
     "getFuelBaseAssetDecimals()"(overrides?: CallOverrides): Promise<number>;
+
+    getMessageSender(overrides?: CallOverrides): Promise<string>;
+
+    "getMessageSender()"(overrides?: CallOverrides): Promise<string>;
 
     owner(overrides?: CallOverrides): Promise<string>;
 
@@ -503,17 +712,75 @@ export class FuelMessageOutbox extends Contract {
 
     "paused()"(overrides?: CallOverrides): Promise<boolean>;
 
+    relayMessage(
+      sender: BytesLike,
+      recipient: BytesLike,
+      nonce: BytesLike,
+      amount: BigNumberish,
+      data: BytesLike,
+      merkleProof: {
+        root: BytesLike;
+        key: BigNumberish;
+        numLeaves: BigNumberish;
+        proof: BytesLike[];
+      },
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    "relayMessage(bytes32,bytes32,bytes32,uint64,bytes,(bytes32,uint256,uint256,bytes32[]))"(
+      sender: BytesLike,
+      recipient: BytesLike,
+      nonce: BytesLike,
+      amount: BigNumberish,
+      data: BytesLike,
+      merkleProof: {
+        root: BytesLike;
+        key: BigNumberish;
+        numLeaves: BigNumberish;
+        proof: BytesLike[];
+      },
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     renounceOwnership(overrides?: CallOverrides): Promise<void>;
 
     "renounceOwnership()"(overrides?: CallOverrides): Promise<void>;
 
-    s_defaultMessagePredicate(overrides?: CallOverrides): Promise<string>;
+    s_incomingMessageRootCommitter(overrides?: CallOverrides): Promise<string>;
 
-    "s_defaultMessagePredicate()"(overrides?: CallOverrides): Promise<string>;
+    "s_incomingMessageRootCommitter()"(
+      overrides?: CallOverrides
+    ): Promise<string>;
 
-    s_messageNonce(overrides?: CallOverrides): Promise<BigNumber>;
+    s_incomingMessageRoots(
+      arg0: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
-    "s_messageNonce()"(overrides?: CallOverrides): Promise<BigNumber>;
+    "s_incomingMessageRoots(bytes32)"(
+      arg0: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    s_incomingMessageSuccessful(
+      arg0: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<boolean>;
+
+    "s_incomingMessageSuccessful(bytes32)"(
+      arg0: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<boolean>;
+
+    s_incomingMessageTimelock(overrides?: CallOverrides): Promise<BigNumber>;
+
+    "s_incomingMessageTimelock()"(
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    s_outgoingMessageNonce(overrides?: CallOverrides): Promise<BigNumber>;
+
+    "s_outgoingMessageNonce()"(overrides?: CallOverrides): Promise<BigNumber>;
 
     sendETH(recipient: BytesLike, overrides?: CallOverrides): Promise<void>;
 
@@ -524,37 +791,35 @@ export class FuelMessageOutbox extends Contract {
 
     sendMessage(
       recipient: BytesLike,
+      owner: BytesLike,
       data: BytesLike,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    "sendMessage(bytes32,bytes)"(
-      recipient: BytesLike,
-      data: BytesLike,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    sendMessageWithOwner(
+    "sendMessage(bytes32,bytes32,bytes)"(
       recipient: BytesLike,
       owner: BytesLike,
       data: BytesLike,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    "sendMessageWithOwner(bytes32,bytes32,bytes)"(
-      recipient: BytesLike,
-      owner: BytesLike,
-      data: BytesLike,
+    setIncomingMessageRootCommitter(
+      messageRootCommitter: string,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setDefaultMessagePredicate(
-      newMessagePredicate: BytesLike,
+    "setIncomingMessageRootCommitter(address)"(
+      messageRootCommitter: string,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    "setDefaultMessagePredicate(bytes32)"(
-      newMessagePredicate: BytesLike,
+    setIncomingMessageTimelock(
+      messageTimelock: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    "setIncomingMessageTimelock(uint64)"(
+      messageTimelock: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -571,13 +836,6 @@ export class FuelMessageOutbox extends Contract {
     unpause(overrides?: CallOverrides): Promise<void>;
 
     "unpause()"(overrides?: CallOverrides): Promise<void>;
-
-    withdrawETH(amount: BigNumberish, overrides?: CallOverrides): Promise<void>;
-
-    "withdrawETH(uint256)"(
-      amount: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<void>;
   };
 
   filters: {
@@ -626,13 +884,33 @@ export class FuelMessageOutbox extends Contract {
 
     "MAX_MESSAGE_DATA_SIZE()"(overrides?: CallOverrides): Promise<BigNumber>;
 
-    MESSAGE_INBOX(overrides?: CallOverrides): Promise<BigNumber>;
+    c_0x2b840827(
+      c__0x2b840827: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
-    "MESSAGE_INBOX()"(overrides?: CallOverrides): Promise<BigNumber>;
+    "c_0x2b840827(bytes32)"(
+      c__0x2b840827: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    commitMessageRoot(
+      messageRoot: BytesLike,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    "commitMessageRoot(bytes32)"(
+      messageRoot: BytesLike,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
 
     getFuelBaseAssetDecimals(overrides?: CallOverrides): Promise<BigNumber>;
 
     "getFuelBaseAssetDecimals()"(overrides?: CallOverrides): Promise<BigNumber>;
+
+    getMessageSender(overrides?: CallOverrides): Promise<BigNumber>;
+
+    "getMessageSender()"(overrides?: CallOverrides): Promise<BigNumber>;
 
     owner(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -650,6 +928,36 @@ export class FuelMessageOutbox extends Contract {
 
     "paused()"(overrides?: CallOverrides): Promise<BigNumber>;
 
+    relayMessage(
+      sender: BytesLike,
+      recipient: BytesLike,
+      nonce: BytesLike,
+      amount: BigNumberish,
+      data: BytesLike,
+      merkleProof: {
+        root: BytesLike;
+        key: BigNumberish;
+        numLeaves: BigNumberish;
+        proof: BytesLike[];
+      },
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    "relayMessage(bytes32,bytes32,bytes32,uint64,bytes,(bytes32,uint256,uint256,bytes32[]))"(
+      sender: BytesLike,
+      recipient: BytesLike,
+      nonce: BytesLike,
+      amount: BigNumberish,
+      data: BytesLike,
+      merkleProof: {
+        root: BytesLike;
+        key: BigNumberish;
+        numLeaves: BigNumberish;
+        proof: BytesLike[];
+      },
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
     renounceOwnership(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
@@ -658,15 +966,43 @@ export class FuelMessageOutbox extends Contract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    s_defaultMessagePredicate(overrides?: CallOverrides): Promise<BigNumber>;
-
-    "s_defaultMessagePredicate()"(
+    s_incomingMessageRootCommitter(
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    s_messageNonce(overrides?: CallOverrides): Promise<BigNumber>;
+    "s_incomingMessageRootCommitter()"(
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
-    "s_messageNonce()"(overrides?: CallOverrides): Promise<BigNumber>;
+    s_incomingMessageRoots(
+      arg0: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    "s_incomingMessageRoots(bytes32)"(
+      arg0: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    s_incomingMessageSuccessful(
+      arg0: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    "s_incomingMessageSuccessful(bytes32)"(
+      arg0: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    s_incomingMessageTimelock(overrides?: CallOverrides): Promise<BigNumber>;
+
+    "s_incomingMessageTimelock()"(
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    s_outgoingMessageNonce(overrides?: CallOverrides): Promise<BigNumber>;
+
+    "s_outgoingMessageNonce()"(overrides?: CallOverrides): Promise<BigNumber>;
 
     sendETH(
       recipient: BytesLike,
@@ -680,37 +1016,35 @@ export class FuelMessageOutbox extends Contract {
 
     sendMessage(
       recipient: BytesLike,
+      owner: BytesLike,
       data: BytesLike,
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    "sendMessage(bytes32,bytes)"(
-      recipient: BytesLike,
-      data: BytesLike,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
-    sendMessageWithOwner(
+    "sendMessage(bytes32,bytes32,bytes)"(
       recipient: BytesLike,
       owner: BytesLike,
       data: BytesLike,
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    "sendMessageWithOwner(bytes32,bytes32,bytes)"(
-      recipient: BytesLike,
-      owner: BytesLike,
-      data: BytesLike,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
-    setDefaultMessagePredicate(
-      newMessagePredicate: BytesLike,
+    setIncomingMessageRootCommitter(
+      messageRootCommitter: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    "setDefaultMessagePredicate(bytes32)"(
-      newMessagePredicate: BytesLike,
+    "setIncomingMessageRootCommitter(address)"(
+      messageRootCommitter: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    setIncomingMessageTimelock(
+      messageTimelock: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    "setIncomingMessageTimelock(uint64)"(
+      messageTimelock: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
@@ -729,16 +1063,6 @@ export class FuelMessageOutbox extends Contract {
     ): Promise<BigNumber>;
 
     "unpause()"(
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
-    withdrawETH(
-      amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
-    "withdrawETH(uint256)"(
-      amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
   };
@@ -764,15 +1088,37 @@ export class FuelMessageOutbox extends Contract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    MESSAGE_INBOX(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+    c_0x2b840827(
+      c__0x2b840827: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
 
-    "MESSAGE_INBOX()"(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+    "c_0x2b840827(bytes32)"(
+      c__0x2b840827: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    commitMessageRoot(
+      messageRoot: BytesLike,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    "commitMessageRoot(bytes32)"(
+      messageRoot: BytesLike,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
 
     getFuelBaseAssetDecimals(
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     "getFuelBaseAssetDecimals()"(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getMessageSender(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    "getMessageSender()"(
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
@@ -792,6 +1138,36 @@ export class FuelMessageOutbox extends Contract {
 
     "paused()"(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    relayMessage(
+      sender: BytesLike,
+      recipient: BytesLike,
+      nonce: BytesLike,
+      amount: BigNumberish,
+      data: BytesLike,
+      merkleProof: {
+        root: BytesLike;
+        key: BigNumberish;
+        numLeaves: BigNumberish;
+        proof: BytesLike[];
+      },
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    "relayMessage(bytes32,bytes32,bytes32,uint64,bytes,(bytes32,uint256,uint256,bytes32[]))"(
+      sender: BytesLike,
+      recipient: BytesLike,
+      nonce: BytesLike,
+      amount: BigNumberish,
+      data: BytesLike,
+      merkleProof: {
+        root: BytesLike;
+        key: BigNumberish;
+        numLeaves: BigNumberish;
+        proof: BytesLike[];
+      },
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
     renounceOwnership(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
@@ -800,17 +1176,47 @@ export class FuelMessageOutbox extends Contract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    s_defaultMessagePredicate(
+    s_incomingMessageRootCommitter(
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    "s_defaultMessagePredicate()"(
+    "s_incomingMessageRootCommitter()"(
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    s_messageNonce(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+    s_incomingMessageRoots(
+      arg0: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
 
-    "s_messageNonce()"(
+    "s_incomingMessageRoots(bytes32)"(
+      arg0: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    s_incomingMessageSuccessful(
+      arg0: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    "s_incomingMessageSuccessful(bytes32)"(
+      arg0: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    s_incomingMessageTimelock(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    "s_incomingMessageTimelock()"(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    s_outgoingMessageNonce(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    "s_outgoingMessageNonce()"(
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
@@ -826,37 +1232,35 @@ export class FuelMessageOutbox extends Contract {
 
     sendMessage(
       recipient: BytesLike,
+      owner: BytesLike,
       data: BytesLike,
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    "sendMessage(bytes32,bytes)"(
-      recipient: BytesLike,
-      data: BytesLike,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
-    sendMessageWithOwner(
+    "sendMessage(bytes32,bytes32,bytes)"(
       recipient: BytesLike,
       owner: BytesLike,
       data: BytesLike,
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    "sendMessageWithOwner(bytes32,bytes32,bytes)"(
-      recipient: BytesLike,
-      owner: BytesLike,
-      data: BytesLike,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
-    setDefaultMessagePredicate(
-      newMessagePredicate: BytesLike,
+    setIncomingMessageRootCommitter(
+      messageRootCommitter: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    "setDefaultMessagePredicate(bytes32)"(
-      newMessagePredicate: BytesLike,
+    "setIncomingMessageRootCommitter(address)"(
+      messageRootCommitter: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setIncomingMessageTimelock(
+      messageTimelock: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    "setIncomingMessageTimelock(uint64)"(
+      messageTimelock: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
@@ -875,16 +1279,6 @@ export class FuelMessageOutbox extends Contract {
     ): Promise<PopulatedTransaction>;
 
     "unpause()"(
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
-    withdrawETH(
-      amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
-    "withdrawETH(uint256)"(
-      amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
   };

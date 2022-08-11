@@ -15,13 +15,13 @@ describe('Transferring ETH', async () => {
 	});
 
 	describe('Send ETH to Fuel', async () => {
-		it('Send ETH via MessageOutbox', async () => {
+		it('Send ETH via MessagePortal', async () => {
 			//TODO: this recevier should come from the environment setup so we can then try to send the ETH back
 			const fuelETHReceiver = "0xd4630940afb6f40f190c6204a44f94f9bb1eb104df4cf488cb6645a62f249186";
 
-			// use the FuelMessageOutbox to directly send ETH which should be immediately spendable
+			// use the FuelMessagePortal to directly send ETH which should be immediately spendable
 			await expect(
-				env.eth.fuelMessageOutbox.sendETH(fuelETHReceiver, {
+				env.eth.fuelMessagePortal.sendETH(fuelETHReceiver, {
 					value: ethers.utils.parseEther("0.1")
 				})
 			).to.not.be.reverted;
