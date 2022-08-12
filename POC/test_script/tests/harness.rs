@@ -4,8 +4,8 @@ use fuels::prelude::*;
 use fuels::test_helpers::Config;
 use fuels::tx::{AssetId, Contract, Input, Output, Transaction, UtxoId};
 
-async fn get_balance(provider: &Provider, address: Address, asset: AssetId) -> u64 {
-    let balance = provider.get_asset_balance(&address, asset).await.unwrap();
+async fn get_balance(provider: &Provider, address: &Bech32Address, asset: AssetId) -> u64 {
+    let balance = provider.get_asset_balance(address, asset).await.unwrap();
     balance
 }
 
@@ -16,14 +16,13 @@ async fn spend_predicate_with_script_constraint() {
     let mut provider_config = Config::local_node();
     provider_config.predicates = true; // predicates are currently disabled by default
     let wallet = &launch_custom_provider_and_get_wallets(
-        WalletsConfig::new_single(None, None),
+        WalletsConfig::new(None, None, None),
         Some(provider_config),
     )
     .await[0];
 
-    // Get provider and client
+    // Get provider
     let provider = wallet.get_provider().unwrap();
-    let client = &provider.client;
 
     // Get padded bytecode root that must be hardcoded into the predicate to constrain the spending transaction
     let mut script_bytecode = std::fs::read("../test_script/out/debug/test-script.bin")
@@ -42,13 +41,14 @@ async fn spend_predicate_with_script_constraint() {
         std::fs::read("../test_predicate/out/debug/test-predicate.bin").unwrap();
     let predicate_root: [u8; 32] = (*Contract::root_from_code(&predicate_bytecode)).into();
     let predicate_root = Address::from(predicate_root);
+    let predicate_root_bech32 = Bech32Address::from(predicate_root);
 
     // Transfer some coins to the predicate root
     let transfer_amount: u64 = 1000;
 
     let _receipt = wallet
         .transfer(
-            &predicate_root,
+            &predicate_root_bech32,
             transfer_amount,
             native_asset,
             TxParameters::default(),
@@ -57,14 +57,18 @@ async fn spend_predicate_with_script_constraint() {
         .unwrap();
 
     // Check set up completed correctly
-    let mut predicate_balance = get_balance(&provider, predicate_root, native_asset).await;
+    let mut predicate_balance = get_balance(&provider, &predicate_root_bech32, native_asset).await;
     assert_eq!(predicate_balance, transfer_amount);
 
     // Get the predicate coin to spend
-    let predicate_coin = &provider.get_coins(&predicate_root).await.unwrap()[0];
+    let predicate_coin = &provider
+        .get_coins(&predicate_root_bech32, native_asset)
+        .await
+        .unwrap()[0];
 
     // Specify the address receiving the coin output
     let receiver_address = Address::new([1u8; 32]);
+    let receiver_address_bech32 = Bech32Address::from(receiver_address);
 
     // Configure inputs and outputs to send coins from predicate to receiver
 
@@ -109,10 +113,10 @@ async fn spend_predicate_with_script_constraint() {
 
     let script = Script::new(tx);
 
-    let _receipts = script.call(&client).await.unwrap();
+    let _receipts = script.call(&provider).await.unwrap();
 
-    predicate_balance = get_balance(&provider, predicate_root, native_asset).await;
-    let receiver_balance = get_balance(&provider, receiver_address, native_asset).await;
+    predicate_balance = get_balance(&provider, &predicate_root_bech32, native_asset).await;
+    let receiver_balance = get_balance(&provider, &receiver_address_bech32, native_asset).await;
 
     assert_eq!(predicate_balance, 0);
     assert_eq!(receiver_balance, 1000);
