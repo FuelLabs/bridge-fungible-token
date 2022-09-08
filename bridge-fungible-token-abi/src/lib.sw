@@ -4,14 +4,26 @@ use std::address::Address;
 use std::contract_id::ContractId;
 
 abi BridgeFungibleToken {
-    #[storage(read)]
-    fn get_test_counter() -> u64;
-    #[storage(read)]
-    fn get_test_data1() -> ContractId;
-    #[storage(read)]
-    fn get_test_data2() -> u64;
-    #[storage(read)]
-    fn get_test_data3() -> b256;
-    #[storage(read)]
-    fn get_test_data4() -> Address;
+    // @review do we still need a constructor?
+    #[storage(read, write)]fn constructor(owner: Identity);
+    #[storage(read, write)]fn claim_refund(originator: Identity, asset: ContractId);
+
+    /// Withdraw coins back to L1 and burn the corresponding amount of coins
+    /// on L2.
+    ///
+    /// # Arguments
+    ///
+    /// * `to` - the destination of the transfer (an Address or a ContractId)
+    ///
+    /// # Reverts
+    ///
+    /// * When no coins were sent with call
+    fn withdraw_to(to: Identity);
+    // @review is this now handled by process_message()?
+    #[storage(read, write)]fn finalize_deposit();
+    fn name() -> str[11];
+    fn symbol() -> str[11];
+    fn decimals() -> u8;
+    fn layer1_token() -> EvmAddress;
+    fn layer1_decimals() -> u8;
 }
