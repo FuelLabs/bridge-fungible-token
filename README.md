@@ -12,7 +12,7 @@ This project uses the general contract message relaying script/predicate from th
 
 | dep     | version                                                  |
 | ------- | -------------------------------------------------------- |
-| Forc    | [>=v0.19.1](https://fuellabs.github.io/sway/v0.19.1/introduction/installation.html) |
+| Forc    | [>=v0.24.0](https://fuellabs.github.io/sway/v0.24.0/introduction/installation.html) |
 
 ### Building
 
@@ -35,8 +35,8 @@ cd bridge-fungible-token && forc test && cd ..
 Code must be formatted.
 
 ```sh
-forc-fmt -p bridge-fungible-token-abi
 forc-fmt -p bridge-fungible-token
+forc-fmt -p bridge-fungible-token-abi
 cd bridge-fungible-token && cargo fmt && cd ..
 ```
 

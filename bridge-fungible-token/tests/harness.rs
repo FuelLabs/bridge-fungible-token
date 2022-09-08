@@ -5,21 +5,12 @@ mod utils {
 }
 use std::str::FromStr;
 
-use fuels::prelude::Contract;
-use fuels::prelude::Salt;
-use fuels::prelude::StorageConfiguration;
-use fuels::prelude::TxParameters;
-use fuels::tx::Input;
-use fuels::tx::Output;
-use fuels::tx::Transaction;
-use fuels::tx::TxPointer;
-use fuels::tx::UtxoId;
 use utils::environment as env;
 use utils::ext_fuel_core;
 use utils::ext_sdk_provider;
 
 use fuels::test_helpers::DEFAULT_COIN_AMOUNT;
-use fuels::tx::{Address, AssetId, Bytes32, ContractId, Word};
+use fuels::tx::{Address, AssetId, Bytes32, ContractId};
 
 pub const RANDOM_SALT: &str = "0x1a896ebd5f55c10bc830755278e6d2b9278b4177b8bca400d3e7710eee293786";
 pub const RANDOM_SALT2: &str = "0xd5f55c10bc830755278e6d2b9278b4177b8bca401a896eb0d3e7710eee293786";

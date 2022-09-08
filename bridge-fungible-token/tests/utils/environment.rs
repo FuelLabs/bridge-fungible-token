@@ -16,7 +16,7 @@ use fuels::tx::{Address, AssetId, Bytes32, Input, TxPointer, UtxoId, Word};
 
 abigen!(
     BridgeFungibleTokenContract,
-    "../bridge-fungible-token/out/debug/bridge_fungible_token-flat-abi.json"
+    "../bridge-fungible-token/out/debug/bridge_fungible_token-abi.json"
 );
 
 pub const MESSAGE_SENDER_ADDRESS: &str =
@@ -28,7 +28,13 @@ pub const TEST_RECEIVER_CONTRACT_BINARY: &str =
 pub async fn setup_environment(
     coins: Vec<(Word, AssetId)>,
     messages: Vec<(Word, Vec<u8>)>,
-) -> (WalletUnlocked, BridgeFungibleTokenContract, Input, Vec<Input>, Vec<Input>) {
+) -> (
+    WalletUnlocked,
+    BridgeFungibleTokenContract,
+    Input,
+    Vec<Input>,
+    Vec<Input>,
+) {
     // Create secret for wallet
     const SIZE_SECRET_KEY: usize = size_of::<SecretKey>();
     const PADDING_BYTES: usize = SIZE_SECRET_KEY - size_of::<u64>();
@@ -96,7 +102,8 @@ pub async fn setup_environment(
     .await
     .unwrap();
     let test_contract =
-        BridgeFungibleTokenContractBuilder::new(test_contract_id.to_string(), wallet.clone()).build();
+        BridgeFungibleTokenContractBuilder::new(test_contract_id.to_string(), wallet.clone())
+            .build();
 
     // Build inputs for provided coins
     let coin_inputs: Vec<Input> = all_coins

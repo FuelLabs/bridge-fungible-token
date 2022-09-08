@@ -12,7 +12,7 @@ const CONTRACT_MESSAGE_MIN_GAS: u64 = 1_200_000;
 const CONTRACT_MESSAGE_SCRIPT_BINARY: &str =
     "../bridge-message-predicates/contract_message_script.bin";
 const CONTRACT_MESSAGE_PREDICATE_BINARY: &str =
-"../bridge-message-predicates/contract_message_predicate.bin";
+    "../bridge-message-predicates/contract_message_predicate.bin";
 
 /// Gets the message to contract script
 pub async fn get_contract_message_script() -> (Vec<u8>, Bytes32) {
