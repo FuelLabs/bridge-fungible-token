@@ -1,26 +1,95 @@
 contract;
 
 dep utils;
+dep errors;
+dep events;
 
-use contract_message_receiver::MessageReceiver;
 use bridge_fungible_token_abi::BridgeFungibleToken;
-use std::address::Address;
-use std::contract_id::ContractId;
-use std::constants::ZERO_B256;
+use contract_message_receiver::MessageReceiver;
+use core::num::*;
+use errors::BridgeFungibleTokenError;
+use events::{BurnEvent, MintEvent, TransferEvent, WithdrawalEvent};
+use std::{
+    address::Address,
+    assert::{assert, require},
+    chain::auth::{AuthError, msg_sender},
+    constants::ZERO_B256,
+    context::{call_frames::{contract_id, msg_asset_id}, msg_amount},
+    contract_id::ContractId,
+    identity::Identity,
+    logging::log,
+    option::Option,
+    result::Result,
+    revert::revert,
+    storage::StorageMap,
+    token::{burn, mint, transfer_to_output},
+    tx::{tx_input_pointer, tx_input_type, INPUT_MESSAGE},
+    u256::U256,
+    vm::evm::evm_address::EvmAddress,
+};
 use utils::{input_message_data, input_message_data_length};
 
+////////////////////////////////////////
+// Constants
+////////////////////////////////////////
+
+// @todo update with actual predicate root
+const PREDICATE_ROOT = 0x0000000000000000000000000000000000000000000000000000000000000000;
+const NAME = "PLACEHOLDER";
+const SYMBOL = "PLACEHOLDER";
+const DECIMALS = 9u8;
+// @todo update with actual L1 token address
+const LAYER_1_TOKEN = ~EvmAddress::from(0x0000000000000000000000000000000000000000000000000000000000000000);
+const LAYER_1_DECIMALS = 18u8;
+
+////////////////////////////////////////
+// Data
+////////////////////////////////////////
+
+struct MessageData {
+    asset: b256,
+    fuel_token: ContractId,
+    to: Identity,
+    amount: u64,
+}
+
+////////////////////////////////////////
+// Storage declarations
+////////////////////////////////////////
+
 storage {
+    // @review what is needed !
     counter: u64 = 0,
     data1: ContractId = ~ContractId::from(ZERO_B256),
     data2: u64 = 0,
     data3: b256 = ZERO_B256,
     data4: Address = ~Address::from(ZERO_B256),
+    ///
+    initialized: bool,
+    owner: Identity,
+    refund_amounts: StorageMap<(b256, b256), U256>,
 }
 
 // Implement the process_message function required to be a message receiver
 impl MessageReceiver for Contract {
+    /**
+    // @review old impl...
+    fn parse_message_data(input_ptr: u32) -> MessageData {
+        // @todo replace placeholder with stdlib getter using `gtf`
+        let raw_data = GTF_INPUT_MESSAGE_DATA;
+
+        // @todo replace dummy data with the real values
+        MessageData {
+            asset: 0x0000000000000000000000000000000000000000000000000000000000000000,
+            fuel_token: contract_id(),
+            to: Identity::Address(~Address::from(0x0000000000000000000000000000000000000000000000000000000000000000)),
+            amount: 42
+        }
+    }
+    */
     #[storage(read, write)]
     fn process_message(msg_idx: u8) {
+
         storage.counter = storage.counter + 1;
 
         // Parse the message data
@@ -44,26 +113,6 @@ impl MessageReceiver for Contract {
     }
 }
 
-// Implement simple getters for testing purposes
 impl BridgeFungibleToken for Contract {
-    #[storage(read)]
-    fn get_test_counter() -> u64 {
-        storage.counter
-    }
-    #[storage(read)]
-    fn get_test_data1() -> ContractId {
-        storage.data1
-    }
-    #[storage(read)]
-    fn get_test_data2() -> u64 {
-        storage.data2
-    }
-    #[storage(read)]
-    fn get_test_data3() -> b256 {
-        storage.data3
-    }
-    #[storage(read)]
-    fn get_test_data4() -> Address {
-        storage.data4
-    }
+
 }
