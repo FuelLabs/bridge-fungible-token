@@ -1,7 +1,6 @@
 library bridge_fungible_token_abi;
 
-use std::address::Address;
-use std::contract_id::ContractId;
+use std::{vm::evm::evm_address::EvmAddress, contract_id::ContractId, identity::Identity};
 
 abi BridgeFungibleToken {
     // @review do we still need a constructor?
