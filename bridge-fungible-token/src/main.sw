@@ -17,7 +17,7 @@ use std::{
     context::{call_frames::{contract_id, msg_asset_id}, msg_amount},
     contract_id::ContractId,
     identity::Identity,
-    inputs::{input_message_sender, input_message_recipient, input_pointer, input_type, Input},
+    inputs::{input_pointer, input_type, Input},
     logging::log,
     option::Option,
     result::Result,
@@ -27,7 +27,7 @@ use std::{
     u256::U256,
     vm::evm::evm_address::EvmAddress,
 };
-use utils::{input_message_data, input_message_data_length};
+use utils::{input_message_data, input_message_data_length, input_message_sender, input_message_recipient};
 
 ////////////////////////////////////////
 // Constants
@@ -39,17 +39,30 @@ const NAME = "PLACEHOLDER";
 const SYMBOL = "PLACEHOLDER";
 const DECIMALS = 9u8;
 // @todo update with actual L1 token address
-const LAYER_1_TOKEN = ~EvmAddress::from(0x0000000000000000000000000000000000000000000000000000000000000000);
+const LAYER_1_TOKEN = ~EvmAddress::from(ZERO_B256);
+const LAYER_1_ERC20_GATEWAY = ~EvmAddress::from(ZERO_B256);
 const LAYER_1_DECIMALS = 18u8;
 
 ////////////////////////////////////////
 // Data
 ////////////////////////////////////////
 
+/**
+bytes memory data =
+            abi.encodePacked(
+                fuelTokenId,
+                bytes32(uint256(uint160(tokenId))),
+                bytes32(uint256(uint160(msg.sender))), //from
+                to,
+                bytes32(amount)
+            );
+*/
+
 struct MessageData {
-    asset: b256,
     fuel_token: ContractId,
-    to: Identity,
+    asset: b256,
+    from: b256,
+    to: Address,
     amount: U256,
 }
 
@@ -95,12 +108,12 @@ fn parse_message_data(msg_idx: u8) -> MessageData {
             storage.data4 = ~Address::from(address);
         }
         // @todo populate and return MessageData
-        // MessageData {
-        //     asset: 0x0000000000000000000000000000000000000000000000000000000000000000,
-        //     fuel_token: contract_id(),
-        //     to: Identity::Address(~Address::from(0x0000000000000000000000000000000000000000000000000000000000000000)),
-        //     amount: 42
-        // }
+        MessageData {
+            asset: 0x0000000000000000000000000000000000000000000000000000000000000000,
+            fuel_token: contract_id(),
+            to: ~Address::from(0x0000000000000000000000000000000000000000000000000000000000000000),
+            amount: ~U256::from(0, 0, 0, 42)
+        }
 }
 
 // ref: https://github.com/FuelLabs/fuel-specs/blob/bd6ec935e3d1797a192f731dadced3f121744d54/specs/vm/instruction_set.md#smo-send-message-to-output
@@ -108,7 +121,7 @@ fn send_message(recipient: Address, coins: u64) {
     // @todo implement me!
 }
 
-fn transfer_tokens(amount: u64, asset: ContractId, to: Identity) {
+fn transfer_tokens(amount: u64, asset: ContractId, to: Address) {
     transfer_to_output(amount, asset, to)
 }
 
@@ -145,46 +158,47 @@ impl MessageReceiver for Contract {
     #[storage(read, write)]
     fn process_message(msg_idx: u8) {
         // @review access control
-        assert(input_type(1) == Input::Message);
+        // @review can't directly compare type to Input::Message in an assert or require
+        // assert(input_type(1) == Input::Message);
+        let type = input_type(1);
+        match type {
+            Input::Message => {
+                ();
+            },
+            _ => {
+                revert(0);
+            }
+        }
 
-        // @todo replace placeholders with stdlib getter using `gtf`
-        let sender = input_message_sender();
-        // @review this was formerly using input_message_owner() ?
-        let owner = input_message_owner();
 
-        // verify MessageInput.sender is the L1ERC20Gateway contract
-        require(sender == L1ERC20Gateway, BridgeFungibleTokenError::UnauthorizedUser);
+        let message_sender = input_message_sender(1);
 
-        // verify that MessageInput.owner == predicate root
-        // @review this now that `owner` is no longer a field.
-        require(recipient.into() == PREDICATE_ROOT, BridgeFungibleTokenError::IncorrectMessageOwner);
+        // verify message_sender is the L1ERC20Gateway contract
+        require(~EvmAddress::from(message_sender.value) == LAYER_1_ERC20_GATEWAY, BridgeFungibleTokenError::UnauthorizedUser);
 
         // Parse message data
         let message_data = parse_message_data(msg_idx);
 
         // @review requirement
         // verify asset matches hardcoded L1 token
-        require(message_data.asset == LAYER_1_TOKEN, BridgeFungibleTokenError::IncorrectAssetDeposited);
+        require(message_data.asset == LAYER_1_TOKEN.value, BridgeFungibleTokenError::IncorrectAssetDeposited);
 
         // verify value sent as uint256 can fit inside a u64
         // if not, register a refund.
         let l1_amount = message_data.amount.as_u64();
         match l1_amount {
+            // @review is message_data.to the corrrect value to use here?
             Result::Err(e) => {
-                storage.refund_amounts.insert((message_data.from, message_data.asset), message_data.amount);
-                Result::Err(e)
+                storage.refund_amounts.insert((message_data.to.value, message_data.asset), message_data.amount);
+                // @review should we propogate an error here ?
             },
             Result::Ok(v) => {
                 mint_tokens(v);
-                transfer_tokens(v, contract_id(), message_data.from);
-
-                // @review should this emit a DepositEvent instead to balance the WithdrawalEvent ?
+                transfer_tokens(v, contract_id(), message_sender);
                 log(MintEvent {
+                    from: Identity::Address(message_sender),
                     amount: v,
-                    to: message_data.to,
                 });
-
-                Result::Ok(())
             },
         }
     }
@@ -213,7 +227,7 @@ impl BridgeFungibleToken for Contract {
         };
 
         let amount = storage.refund_amounts.get((inner_value, asset.into()));
-        transfer_tokens(amount.as_u64().unwrap(), asset, originator);
+        transfer_tokens(amount.as_u64().unwrap(), asset, ~Address::from(inner_value));
     }
 
     #[storage(read)]
@@ -222,11 +236,20 @@ impl BridgeFungibleToken for Contract {
         // @todo review requirement
         require(withdrawal_amount != 0, BridgeFungibleTokenError::NoCoinsForwarded);
 
+        let addr = match to {
+            Identity::Address(a) => {
+                a
+            },
+            Identity::ContractId => {
+                revert(0);
+            },
+        };
+
         let origin_contract_id = msg_asset_id();
         burn_tokens(withdrawal_amount);
 
         // Output a message to release tokens locked on L1
-        send_message(to, withdrawal_amount);
+        send_message(addr, withdrawal_amount);
 
         log(WithdrawalEvent {
             to: to,
