@@ -39,8 +39,8 @@ const NAME = "PLACEHOLDER";
 const SYMBOL = "PLACEHOLDER";
 const DECIMALS = 9u8;
 // @todo update with actual L1 token address
-const LAYER_1_TOKEN = ~EvmAddress::from(ZERO_B256);
-const LAYER_1_ERC20_GATEWAY = ~EvmAddress::from(ZERO_B256);
+const LAYER_1_TOKEN = 0x0000000000000000000000000000000000000000000000000000000000000000;
+const LAYER_1_ERC20_GATEWAY = 0x0000000000000000000000000000000000000000000000000000000000000000;
 const LAYER_1_DECIMALS = 18u8;
 
 ////////////////////////////////////////
@@ -71,12 +71,11 @@ struct MessageData {
 ////////////////////////////////////////
 
 storage {
-    // @review what is needed !
-    counter: u64 = 0,
-    data1: ContractId = ~ContractId::from(ZERO_B256),
-    data2: u64 = 0,
-    data3: b256 = ZERO_B256,
-    data4: Address = ~Address::from(ZERO_B256),
+    // counter: u64 = 0,
+    // data1: ContractId = ~ContractId::from(ZERO_B256),
+    // data2: u64 = 0,
+    // data3: b256 = ZERO_B256,
+    // data4: Address = ~Address::from(ZERO_B256),
     ///
     initialized: bool = false,
     owner: Option<Identity> = Option::None,
@@ -93,25 +92,26 @@ fn parse_message_data(msg_idx: u8) -> MessageData {
         let data_length = input_message_data_length(msg_idx);
         if (data_length >= 32) {
             let id: b256 = input_message_data(msg_idx, 0);
-            storage.data1 = ~ContractId::from(id);
+            // storage.data1 = ~ContractId::from(id);
         }
         if (data_length >= 32 + 8) {
             let num: u64 = input_message_data(msg_idx, 32);
-            storage.data2 = num;
+            // storage.data2 = num;
         }
         if (data_length >= 32 + 8 + 32) {
             let big_num: b256 = input_message_data(msg_idx, 32 + 8);
-            storage.data3 = big_num;
+            // storage.data3 = big_num;
         }
         if (data_length >= 32 + 8 + 32 + 32) {
             let address: b256 = input_message_data(msg_idx, 32 + 8 + 32);
-            storage.data4 = ~Address::from(address);
+            // storage.data4 = ~Address::from(address);
         }
         // @todo populate and return MessageData
         MessageData {
-            asset: 0x0000000000000000000000000000000000000000000000000000000000000000,
             fuel_token: contract_id(),
-            to: ~Address::from(0x0000000000000000000000000000000000000000000000000000000000000000),
+            asset: ZERO_B256,
+            from: ZERO_B256,
+            to: ~Address::from(ZERO_B256),
             amount: ~U256::from(0, 0, 0, 42)
         }
 }
@@ -174,14 +174,14 @@ impl MessageReceiver for Contract {
         let message_sender = input_message_sender(1);
 
         // verify message_sender is the L1ERC20Gateway contract
-        require(~EvmAddress::from(message_sender.value) == LAYER_1_ERC20_GATEWAY, BridgeFungibleTokenError::UnauthorizedUser);
+        require(message_sender.value == LAYER_1_ERC20_GATEWAY, BridgeFungibleTokenError::UnauthorizedUser);
 
         // Parse message data
         let message_data = parse_message_data(msg_idx);
 
         // @review requirement
         // verify asset matches hardcoded L1 token
-        require(message_data.asset == LAYER_1_TOKEN.value, BridgeFungibleTokenError::IncorrectAssetDeposited);
+        require(message_data.asset == LAYER_1_TOKEN, BridgeFungibleTokenError::IncorrectAssetDeposited);
 
         // verify value sent as uint256 can fit inside a u64
         // if not, register a refund.
@@ -271,7 +271,7 @@ impl BridgeFungibleToken for Contract {
     }
 
     fn layer1_token() -> EvmAddress {
-        LAYER_1_TOKEN
+        ~EvmAddress::from(LAYER_1_TOKEN)
     }
 
     fn layer1_decimals() -> u8 {
