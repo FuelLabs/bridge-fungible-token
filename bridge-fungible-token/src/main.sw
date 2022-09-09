@@ -90,6 +90,18 @@ storage {
 ////////////////////////////////////////
 // Private functions
 ////////////////////////////////////////
+
+fn is_address(val: Identity) -> bool {
+    match val {
+        Identity::Address(a) => {
+            true
+        },
+        Identity::ContractId => {
+            false
+        },
+    }
+}
+
 fn correct_input_type(index: u64) -> bool {
     let type = input_type(1);
     match type {
@@ -141,30 +153,19 @@ fn transfer_tokens(amount: u64, asset: ContractId, to: Address) {
 }
 
 #[storage(read)]
-fn mint_tokens(amount: u64) -> bool {
-    let sender = msg_sender().unwrap();
-    let owner = storage.owner.unwrap();
-    require(sender == owner, BridgeFungibleTokenError::UnauthorizedUser);
+fn mint_tokens(amount: u64, from: Identity) -> bool {
     mint(amount);
     log(MintEvent {
-        from: msg_sender().unwrap(),
+        from: from,
         amount,
     });
     true
 }
 
-#[storage(read)]
-fn burn_tokens(amount: u64) {
-    let sender = msg_sender().unwrap();
-    let owner = storage.owner.unwrap();
-    require(sender == owner, BridgeFungibleTokenError::UnauthorizedUser);
-
-    require(contract_id() == msg_asset_id(), BridgeFungibleTokenError::IncorrectAssetDeposited);
-    require(amount == msg_amount(), BridgeFungibleTokenError::IncorrectAssetAmount);
-
+fn burn_tokens(amount: u64, from: Identity) {
     burn(amount);
     log(BurnEvent {
-        from: msg_sender().unwrap(),
+        from: from,
         amount,
     })
 }
@@ -178,10 +179,10 @@ impl MessageReceiver for Contract {
     fn process_message(msg_idx: u8) {
         require(correct_input_type(msg_idx), BridgeFungibleTokenError::IncorrectInputType);
 
-        let message_sender = input_message_sender(1);
+        let input_sender = input_message_sender(1);
 
-        // verify message_sender is the L1ERC20Gateway contract
-        require(message_sender.value == LAYER_1_ERC20_GATEWAY, BridgeFungibleTokenError::UnauthorizedUser);
+        // verify message_sender is the L1ERC20Gateway burn
+        require(input_sender.value == LAYER_1_ERC20_GATEWAY, BridgeFungibleTokenError::UnauthorizedUser);
 
         let message_data = parse_message_data(msg_idx);
 
@@ -200,12 +201,12 @@ impl MessageReceiver for Contract {
                 // @review emit event (i.e: `DepositFailedEvent`) here to allow the refund process to be initiated?
             },
             Result::Ok(v) => {
-                mint_tokens(v);
-                transfer_tokens(v, contract_id(), message_sender);
-                log(MintEvent {
-                    from: Identity::Address(message_sender),
-                    amount: v,
-                });
+                let sender = msg_sender().unwrap();
+                let owner = storage.owner.unwrap();
+                // @review requirement !
+                require(sender == owner, BridgeFungibleTokenError::UnauthorizedUser);
+                mint_tokens(v, Identity::Address(input_sender));
+                transfer_tokens(v, contract_id(), input_sender);
             },
         }
     }
@@ -245,6 +246,17 @@ impl BridgeFungibleToken for Contract {
         let withdrawal_amount = msg_amount();
         require(withdrawal_amount != 0, BridgeFungibleTokenError::NoCoinsForwarded);
 
+        require(is_address(to), BridgeFungibleTokenError::NotAnAddress);
+
+        let origin_contract_id = msg_asset_id();
+
+
+        let sender = msg_sender().unwrap();
+        let owner = storage.owner.unwrap();
+        require(sender == owner, BridgeFungibleTokenError::UnauthorizedUser);
+        require(contract_id() == msg_asset_id(), BridgeFungibleTokenError::IncorrectAssetDeposited);
+        burn_tokens(withdrawal_amount, sender);
+
         let addr = match to {
             Identity::Address(a) => {
                 a
@@ -253,10 +265,6 @@ impl BridgeFungibleToken for Contract {
                 revert(0);
             },
         };
-
-        let origin_contract_id = msg_asset_id();
-        burn_tokens(withdrawal_amount);
-
         // Output a message to release tokens locked on L1
         send_message(addr, withdrawal_amount);
 
