@@ -17,9 +17,8 @@ abi BridgeFungibleToken {
     /// # Reverts
     ///
     /// * When no coins were sent with call
+    #[storage(read)]
     fn withdraw_to(to: Identity);
-    // @review is this now handled by process_message()?
-    #[storage(read, write)]fn finalize_deposit();
     fn name() -> str[11];
     fn symbol() -> str[11];
     fn decimals() -> u8;
