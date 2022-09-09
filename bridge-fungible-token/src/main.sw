@@ -122,24 +122,14 @@ fn parse_message_data(msg_idx: u8) -> MessageData {
         to: ~Address::from(ZERO_B256),
         amount: ZERO_B256,
     };
+
     // Parse the message data
-    // @review do we strictly need all the `if`s?
-    let data_length = input_message_data_length(msg_idx);
-    if (data_length >= 32) {
-        msg_data.fuel_token = ~ContractId::from(input_message_data::<b256>(msg_idx, 0));
-    }
-    if (data_length >= 32 + 32) {
-        msg_data.l1_asset = ~EvmAddress::from(input_message_data::<b256>(msg_idx, 32));
-    }
-    if (data_length >= 32 + 32 + 32) {
-        msg_data.from = ~Address::from(input_message_data::<b256>(msg_idx, 32 + 32));
-    }
-    if (data_length >= 32 + 32 + 32 + 32) {
-        msg_data.to = ~Address::from(input_message_data::<b256>(msg_idx, 32 + 32 + 32));
-    }
-    if (data_length >= 32 + 32 + 32 + 32 + 32) {
-        msg_data.amount = input_message_data::<b256>(msg_idx, 32 + 32 + 32 + 32);
-    }
+    // @review can we trust that message.data is long enough/has all required data (does predicate enforce this) ?
+    msg_data.fuel_token = ~ContractId::from(input_message_data::<b256>(msg_idx, 0));
+    msg_data.l1_asset = ~EvmAddress::from(input_message_data::<b256>(msg_idx, 32));
+    msg_data.from = ~Address::from(input_message_data::<b256>(msg_idx, 32 + 32));
+    msg_data.to = ~Address::from(input_message_data::<b256>(msg_idx, 32 + 32 + 32));
+    msg_data.amount = input_message_data::<b256>(msg_idx, 32 + 32 + 32 + 32);
 
     msg_data
 }
