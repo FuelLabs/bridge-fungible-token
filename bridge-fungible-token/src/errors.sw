@@ -9,4 +9,5 @@ pub enum BridgeFungibleTokenError {
     NoCoinsForwarded: (),
     IncorrectMessageOwner: (),
     IncorrectInputType: (),
+    NotAnAddress: (),
 }
