@@ -12,33 +12,57 @@ use events::{BurnEvent, MintEvent, TransferEvent, WithdrawalEvent};
 use std::{
     address::Address,
     assert::assert,
-    chain::auth::{AuthError, msg_sender},
+    chain::auth::{
+        AuthError,
+        msg_sender,
+    },
     constants::ZERO_B256,
-    context::{call_frames::{contract_id, msg_asset_id}, msg_amount},
+    context::{
+        call_frames::{
+            contract_id,
+            msg_asset_id,
+        },
+        msg_amount,
+    },
     contract_id::ContractId,
     identity::Identity,
-    inputs::{input_pointer, input_type, Input},
+    inputs::{
+        Input,
+        input_pointer,
+        input_type,
+    },
     logging::log,
     option::Option,
     result::Result,
-    revert::{revert, require},
+    revert::{
+        require,
+        revert,
+    },
     storage::StorageMap,
-    token::{burn, mint, transfer_to_output},
+    token::{
+        burn,
+        mint,
+        transfer_to_output,
+    },
     u256::U256,
     vm::evm::evm_address::EvmAddress,
 };
-use utils::{input_message_data, input_message_data_length, input_message_sender, input_message_recipient};
+use utils::{
+    decompose,
+    input_message_data,
+    input_message_data_length,
+    input_message_recipient,
+    input_message_sender,
+};
 
 ////////////////////////////////////////
 // Constants
 ////////////////////////////////////////
-
-// @todo update with actual predicate root
+// @todo update with actual cosntant values
 const PREDICATE_ROOT = 0x0000000000000000000000000000000000000000000000000000000000000000;
 const NAME = "PLACEHOLDER";
 const SYMBOL = "PLACEHOLDER";
 const DECIMALS = 9u8;
-// @todo update with actual L1 token address
 const LAYER_1_TOKEN = 0x0000000000000000000000000000000000000000000000000000000000000000;
 const LAYER_1_ERC20_GATEWAY = 0x0000000000000000000000000000000000000000000000000000000000000000;
 const LAYER_1_DECIMALS = 18u8;
@@ -46,81 +70,72 @@ const LAYER_1_DECIMALS = 18u8;
 ////////////////////////////////////////
 // Data
 ////////////////////////////////////////
-
-/**
-bytes memory data =
-            abi.encodePacked(
-                fuelTokenId,
-                bytes32(uint256(uint160(tokenId))),
-                bytes32(uint256(uint160(msg.sender))), //from
-                to,
-                bytes32(amount)
-            );
-*/
-
 struct MessageData {
     fuel_token: ContractId,
-    asset: b256,
-    from: b256,
+    l1_asset: EvmAddress,
+    from: Address,
     to: Address,
-    amount: U256,
+    amount: b256,
 }
 
 ////////////////////////////////////////
 // Storage declarations
 ////////////////////////////////////////
-
 storage {
-    // counter: u64 = 0,
-    // data1: ContractId = ~ContractId::from(ZERO_B256),
-    // data2: u64 = 0,
-    // data3: b256 = ZERO_B256,
-    // data4: Address = ~Address::from(ZERO_B256),
-    ///
     initialized: bool = false,
     owner: Option<Identity> = Option::None,
-    refund_amounts: StorageMap<(b256, b256), U256> = StorageMap {
-    },
+    refund_amounts: StorageMap<(b256, EvmAddress), u64> = StorageMap {},
 }
 
 ////////////////////////////////////////
 // Private functions
 ////////////////////////////////////////
+fn correct_input_type(index: u64) -> bool {
+    let type = input_type(1);
+    match type {
+        Input::Message => {
+            true
+        },
+        _ => {
+            false
+        }
+    }
+}
 
 fn parse_message_data(msg_idx: u8) -> MessageData {
-        // Parse the message data
-        let data_length = input_message_data_length(msg_idx);
-        if (data_length >= 32) {
-            let id: b256 = input_message_data(msg_idx, 0);
-            // storage.data1 = ~ContractId::from(id);
-        }
-        if (data_length >= 32 + 8) {
-            let num: u64 = input_message_data(msg_idx, 32);
-            // storage.data2 = num;
-        }
-        if (data_length >= 32 + 8 + 32) {
-            let big_num: b256 = input_message_data(msg_idx, 32 + 8);
-            // storage.data3 = big_num;
-        }
-        if (data_length >= 32 + 8 + 32 + 32) {
-            let address: b256 = input_message_data(msg_idx, 32 + 8 + 32);
-            // storage.data4 = ~Address::from(address);
-        }
-        // @todo populate and return MessageData
-        MessageData {
-            fuel_token: contract_id(),
-            asset: ZERO_B256,
-            from: ZERO_B256,
-            to: ~Address::from(ZERO_B256),
-            amount: ~U256::from(0, 0, 0, 42)
-        }
+    let mut msg_data = MessageData {
+        fuel_token: ~ContractId::from(ZERO_B256),
+        l1_asset: ~EvmAddress::from(ZERO_B256),
+        from: ~Address::from(ZERO_B256),
+        to: ~Address::from(ZERO_B256),
+        amount: ZERO_B256,
+    };
+    // Parse the message data
+    // @review do we strictly need all the `if`s?
+    let data_length = input_message_data_length(msg_idx);
+    if (data_length >= 32) {
+        msg_data.fuel_token = ~ContractId::from(input_message_data::<b256>(msg_idx, 0));
+    }
+    if (data_length >= 32 + 32) {
+        msg_data.l1_asset = ~EvmAddress::from(input_message_data::<b256>(msg_idx, 32));
+    }
+    if (data_length >= 32 + 32 + 32) {
+        msg_data.from = ~Address::from(input_message_data::<b256>(msg_idx, 32 + 32));
+    }
+    if (data_length >= 32 + 32 + 32 + 32) {
+        msg_data.to = ~Address::from(input_message_data::<b256>(msg_idx, 32 + 32 + 32));
+    }
+    if (data_length >= 32 + 32 + 32 + 32 + 32) {
+        msg_data.amount = input_message_data::<b256>(msg_idx, 32 + 32 + 32 + 32);
+    }
+
+    msg_data
 }
 
 // ref: https://github.com/FuelLabs/fuel-specs/blob/bd6ec935e3d1797a192f731dadced3f121744d54/specs/vm/instruction_set.md#smo-send-message-to-output
-fn send_message(recipient: Address, coins: u64) {
-    // @todo implement me!
-}
+fn send_message(recipient: Address, coins: u64) {}
 
+    // @todo implement me!
 fn transfer_tokens(amount: u64, asset: ContractId, to: Address) {
     transfer_to_output(amount, asset, to)
 }
@@ -131,7 +146,10 @@ fn mint_tokens(amount: u64) -> bool {
     let owner = storage.owner.unwrap();
     require(sender == owner, BridgeFungibleTokenError::UnauthorizedUser);
     mint(amount);
-    log(MintEvent {from: msg_sender().unwrap(), amount});
+    log(MintEvent {
+        from: msg_sender().unwrap(),
+        amount,
+    });
     true
 }
 
@@ -145,52 +163,41 @@ fn burn_tokens(amount: u64) {
     require(amount == msg_amount(), BridgeFungibleTokenError::IncorrectAssetAmount);
 
     burn(amount);
-    log(BurnEvent {from: msg_sender().unwrap(), amount})
+    log(BurnEvent {
+        from: msg_sender().unwrap(),
+        amount,
+    })
 }
 
 ////////////////////////////////////////
 // ABI Implementations
 ////////////////////////////////////////
-
 // Implement the process_message function required to be a message receiver
 impl MessageReceiver for Contract {
-
     #[storage(read, write)]
     fn process_message(msg_idx: u8) {
-        // @review access control
-        // @review can't directly compare type to Input::Message in an assert or require
-        // assert(input_type(1) == Input::Message);
-        let type = input_type(1);
-        match type {
-            Input::Message => {
-                ();
-            },
-            _ => {
-                revert(0);
-            }
-        }
-
+        require(correct_input_type(msg_idx), BridgeFungibleTokenError::IncorrectInputType);
 
         let message_sender = input_message_sender(1);
 
         // verify message_sender is the L1ERC20Gateway contract
         require(message_sender.value == LAYER_1_ERC20_GATEWAY, BridgeFungibleTokenError::UnauthorizedUser);
 
-        // Parse message data
         let message_data = parse_message_data(msg_idx);
 
-        // @review requirement
         // verify asset matches hardcoded L1 token
-        require(message_data.asset == LAYER_1_TOKEN, BridgeFungibleTokenError::IncorrectAssetDeposited);
+        require(message_data.l1_asset == ~EvmAddress::from(LAYER_1_TOKEN), BridgeFungibleTokenError::IncorrectAssetDeposited);
 
-        // verify value sent as uint256 can fit inside a u64
-        // if not, register a refund.
-        let l1_amount = message_data.amount.as_u64();
+        // check that value sent as uint256 can fit inside a u64, else register a refund.
+        let decomposed = decompose(message_data.amount);
+        let l1_amount = ~U256::from(decomposed.0, decomposed.1, decomposed.2, decomposed.3).as_u64();
         match l1_amount {
-            // @review is message_data.to the corrrect value to use here?
             Result::Err(e) => {
-                storage.refund_amounts.insert((message_data.to.value, message_data.asset), message_data.amount);
-                // @review should we propogate an error here ?
+                storage.refund_amounts.insert((
+                    message_data.to.value,
+                    message_data.l1_asset,
+                ), l1_amount.unwrap());
+                // @review emit event (i.e: `DepositFailedEvent`) here to allow the refund process to be initiated?
             },
             Result::Ok(v) => {
                 mint_tokens(v);
@@ -214,7 +221,7 @@ impl BridgeFungibleToken for Contract {
 
     #[storage(read, write)]
     // @review can anyone can call this, or only the originator themselves?
-    fn claim_refund(originator: Identity, asset: ContractId) {
+    fn claim_refund(originator: Identity, asset: EvmAddress) {
         // check storage mapping refund_amounts first
         // if valid, transfer to originator
         let inner_value = match originator {
@@ -226,14 +233,16 @@ impl BridgeFungibleToken for Contract {
             },
         };
 
-        let amount = storage.refund_amounts.get((inner_value, asset.into()));
-        transfer_tokens(amount.as_u64().unwrap(), asset, ~Address::from(inner_value));
+        let amount = storage.refund_amounts.get((
+            inner_value,
+            asset,
+        ));
+        transfer_tokens(amount, ~ContractId::from(asset.value), ~Address::from(inner_value));
     }
 
     #[storage(read)]
     fn withdraw_to(to: Identity) {
         let withdrawal_amount = msg_amount();
-        // @todo review requirement
         require(withdrawal_amount != 0, BridgeFungibleTokenError::NoCoinsForwarded);
 
         let addr = match to {
@@ -277,5 +286,4 @@ impl BridgeFungibleToken for Contract {
     fn layer1_decimals() -> u8 {
         LAYER_1_DECIMALS
     }
-
 }
