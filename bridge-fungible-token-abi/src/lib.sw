@@ -5,7 +5,7 @@ use std::{vm::evm::evm_address::EvmAddress, contract_id::ContractId, identity::I
 abi BridgeFungibleToken {
     // @review do we still need a constructor?
     #[storage(read, write)]fn constructor(owner: Identity);
-    #[storage(read, write)]fn claim_refund(originator: Identity, asset: ContractId);
+    #[storage(read, write)]fn claim_refund(originator: Identity, asset: EvmAddress);
 
     /// Withdraw coins back to L1 and burn the corresponding amount of coins
     /// on L2.
