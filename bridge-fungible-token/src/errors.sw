@@ -8,4 +8,5 @@ pub enum BridgeFungibleTokenError {
     UnauthorizedUser: (),
     NoCoinsForwarded: (),
     IncorrectMessageOwner: (),
+    IncorrectInputType: (),
 }
