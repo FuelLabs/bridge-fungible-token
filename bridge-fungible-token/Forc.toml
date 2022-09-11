@@ -7,3 +7,8 @@ name = "bridge_fungible_token"
 [dependencies]
 bridge_fungible_token_abi = { path = "../bridge-fungible-token-abi" }
 contract_message_receiver = { path = "../bridge-message-predicates/contract-message-receiver" }
+
+[constants]
+LAYER_1_ERC20_GATEWAY = { type = "b256", value = "0x0000000000000000000000000000000000000000000000000000000000000000" }
+LAYER_1_TOKEN = { type = "b256", value = "0x0000000000000000000000000000000000000000000000000000000000000000" }
+PREDICATE_ROOT = { type = "b256", value = "0x0000000000000000000000000000000000000000000000000000000000000000" }

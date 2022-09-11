@@ -58,18 +58,16 @@ use utils::{
 ////////////////////////////////////////
 // Constants
 ////////////////////////////////////////
-// @todo update with actual cosntant values
-const PREDICATE_ROOT = 0x0000000000000000000000000000000000000000000000000000000000000000;
+
 const NAME = "PLACEHOLDER";
 const SYMBOL = "PLACEHOLDER";
 const DECIMALS = 9u8;
-const LAYER_1_TOKEN = 0x0000000000000000000000000000000000000000000000000000000000000000;
-const LAYER_1_ERC20_GATEWAY = 0x0000000000000000000000000000000000000000000000000000000000000000;
 const LAYER_1_DECIMALS = 18u8;
 
 ////////////////////////////////////////
 // Data
 ////////////////////////////////////////
+
 struct MessageData {
     fuel_token: ContractId,
     l1_asset: EvmAddress,
@@ -81,6 +79,7 @@ struct MessageData {
 ////////////////////////////////////////
 // Storage declarations
 ////////////////////////////////////////
+
 storage {
     initialized: bool = false,
     owner: Option<Identity> = Option::None,
@@ -90,7 +89,6 @@ storage {
 ////////////////////////////////////////
 // Private functions
 ////////////////////////////////////////
-
 fn is_address(val: Identity) -> bool {
     match val {
         Identity::Address(a) => {
@@ -239,7 +237,6 @@ impl BridgeFungibleToken for Contract {
         require(is_address(to), BridgeFungibleTokenError::NotAnAddress);
 
         let origin_contract_id = msg_asset_id();
-
 
         let sender = msg_sender().unwrap();
         let owner = storage.owner.unwrap();
