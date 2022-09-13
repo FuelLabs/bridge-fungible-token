@@ -133,9 +133,10 @@ fn parse_message_data(msg_idx: u8) -> MessageData {
 }
 
 // ref: https://github.com/FuelLabs/fuel-specs/blob/bd6ec935e3d1797a192f731dadced3f121744d54/specs/vm/instruction_set.md#smo-send-message-to-output
-fn send_message(recipient: Address, coins: u64) {}
-
+fn send_message(recipient: Address, coins: u64) {
     // @todo implement me!
+}
+
 fn transfer_tokens(amount: u64, asset: ContractId, to: Address) {
     transfer_to_output(amount, asset, to)
 }
@@ -169,8 +170,8 @@ impl MessageReceiver for Contract {
 
         let input_sender = input_message_sender(1);
 
-        // verify message_sender is the L1ERC20Gateway burn
-        require(input_sender.value == LAYER_1_ERC20_GATEWAY, BridgeFungibleTokenError::UnauthorizedUser);
+        // @todo should this be the predicate address instead of the root?
+        require(input_sender.value == PREDICATE_ROOT, BridgeFungibleTokenError::UnauthorizedUser);
 
         let message_data = parse_message_data(msg_idx);
 
@@ -202,6 +203,7 @@ impl MessageReceiver for Contract {
 
 impl BridgeFungibleToken for Contract {
     #[storage(read, write)]
+    // @review decide how to handle `owner`. If made a config-time const, we don't need this constructor, and can remove the `owner` and `initialized` fields from `storage`.
     fn constructor(owner: Identity) {
         require(storage.initialized == false, BridgeFungibleTokenError::CannotReinitialize);
         storage.owner = Option::Some(owner);
