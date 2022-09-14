@@ -81,8 +81,6 @@ struct MessageData {
 ////////////////////////////////////////
 
 storage {
-    initialized: bool = false,
-    owner: Option<Identity> = Option::None,
     refund_amounts: StorageMap<(b256, EvmAddress), u64> = StorageMap {},
 }
 
@@ -166,16 +164,14 @@ fn burn_tokens(amount: u64, from: Identity) {
 impl MessageReceiver for Contract {
     #[storage(read, write)]
     fn process_message(msg_idx: u8) {
-        require(correct_input_type(msg_idx), BridgeFungibleTokenError::IncorrectInputType);
 
         let input_sender = input_message_sender(1);
 
-        // @todo should this be the predicate address instead of the root?
-        require(input_sender.value == PREDICATE_ROOT, BridgeFungibleTokenError::UnauthorizedUser);
+        require(input_sender.value == LAYER_1_ERC20_GATEWAY, BridgeFungibleTokenError::UnauthorizedUser);
 
         let message_data = parse_message_data(msg_idx);
 
-        // verify asset matches hardcoded L1 token
+        // @review verify asset matches hardcoded L1 token
         require(message_data.l1_asset == ~EvmAddress::from(LAYER_1_TOKEN), BridgeFungibleTokenError::IncorrectAssetDeposited);
 
         // check that value sent as uint256 can fit inside a u64, else register a refund.
@@ -190,10 +186,6 @@ impl MessageReceiver for Contract {
                 // @review emit event (i.e: `DepositFailedEvent`) here to allow the refund process to be initiated?
             },
             Result::Ok(v) => {
-                let sender = msg_sender().unwrap();
-                let owner = storage.owner.unwrap();
-                // @review requirement !
-                require(sender == owner, BridgeFungibleTokenError::UnauthorizedUser);
                 mint_tokens(v, Identity::Address(input_sender));
                 transfer_tokens(v, contract_id(), input_sender);
             },
@@ -202,14 +194,6 @@ impl MessageReceiver for Contract {
 }
 
 impl BridgeFungibleToken for Contract {
-    #[storage(read, write)]
-    // @review decide how to handle `owner`. If made a config-time const, we don't need this constructor, and can remove the `owner` and `initialized` fields from `storage`.
-    fn constructor(owner: Identity) {
-        require(storage.initialized == false, BridgeFungibleTokenError::CannotReinitialize);
-        storage.owner = Option::Some(owner);
-        storage.initialized = true;
-    }
-
     #[storage(read, write)]
     // @review can anyone can call this, or only the originator themselves?
     fn claim_refund(originator: Identity, asset: EvmAddress) {
@@ -239,10 +223,8 @@ impl BridgeFungibleToken for Contract {
         require(is_address(to), BridgeFungibleTokenError::NotAnAddress);
 
         let origin_contract_id = msg_asset_id();
-
         let sender = msg_sender().unwrap();
-        let owner = storage.owner.unwrap();
-        require(sender == owner, BridgeFungibleTokenError::UnauthorizedUser);
+
         require(contract_id() == msg_asset_id(), BridgeFungibleTokenError::IncorrectAssetDeposited);
         burn_tokens(withdrawal_amount, sender);
 
