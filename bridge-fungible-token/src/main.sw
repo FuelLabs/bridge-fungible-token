@@ -128,9 +128,7 @@ fn parse_message_data(msg_idx: u8) -> MessageData {
 }
 
 // ref: https://github.com/FuelLabs/fuel-specs/blob/bd6ec935e3d1797a192f731dadced3f121744d54/specs/vm/instruction_set.md#smo-send-message-to-output
-fn send_message(recipient: Address, coins: u64) {
-    // @todo implement me!
-}
+fn send_message(recipient: Address, coins: u64) {}
 
 fn transfer_tokens(amount: u64, asset: ContractId, to: Address) {
     transfer_to_output(amount, asset, to);
