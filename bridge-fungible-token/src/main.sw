@@ -58,7 +58,6 @@ use utils::{
 ////////////////////////////////////////
 // Constants
 ////////////////////////////////////////
-
 const NAME = "PLACEHOLDER";
 const SYMBOL = "PLACEHOLDER";
 const DECIMALS = 9u8;
@@ -67,7 +66,6 @@ const LAYER_1_DECIMALS = 18u8;
 ////////////////////////////////////////
 // Data
 ////////////////////////////////////////
-
 struct MessageData {
     fuel_token: ContractId,
     l1_asset: EvmAddress,
@@ -79,9 +77,8 @@ struct MessageData {
 ////////////////////////////////////////
 // Storage declarations
 ////////////////////////////////////////
-
 storage {
-    refund_amounts: StorageMap<(b256, EvmAddress), u64> = StorageMap {},
+    refund_amounts: StorageMap<(b256, EvmAddress), U256> = StorageMap {},
 }
 
 ////////////////////////////////////////
@@ -136,7 +133,7 @@ fn send_message(recipient: Address, coins: u64) {
 }
 
 fn transfer_tokens(amount: u64, asset: ContractId, to: Address) {
-    transfer_to_output(amount, asset, to)
+    transfer_to_output(amount, asset, to);
 }
 
 #[storage(read)]
@@ -164,7 +161,6 @@ fn burn_tokens(amount: u64, from: Identity) {
 impl MessageReceiver for Contract {
     #[storage(read, write)]
     fn process_message(msg_idx: u8) {
-
         let input_sender = input_message_sender(1);
 
         require(input_sender.value == LAYER_1_ERC20_GATEWAY, BridgeFungibleTokenError::UnauthorizedUser);
@@ -176,17 +172,19 @@ impl MessageReceiver for Contract {
 
         // check that value sent as uint256 can fit inside a u64, else register a refund.
         let decomposed = decompose(message_data.amount);
-        let l1_amount = ~U256::from(decomposed.0, decomposed.1, decomposed.2, decomposed.3).as_u64();
-        match l1_amount {
+        let amount = ~U256::from(decomposed.0, decomposed.1, decomposed.2, decomposed.3);
+        let l1_amount_opt = amount.as_u64();
+        match l1_amount_opt {
             Result::Err(e) => {
                 storage.refund_amounts.insert((
                     message_data.to.value,
                     message_data.l1_asset,
-                ), l1_amount.unwrap());
+                ), amount);
                 // @review emit event (i.e: `DepositFailedEvent`) here to allow the refund process to be initiated?
             },
             Result::Ok(v) => {
                 mint_tokens(v, Identity::Address(input_sender));
+                log(555);
                 transfer_tokens(v, contract_id(), input_sender);
             },
         }
@@ -212,7 +210,7 @@ impl BridgeFungibleToken for Contract {
             inner_value,
             asset,
         ));
-        transfer_tokens(amount, ~ContractId::from(asset.value), ~Address::from(inner_value));
+        transfer_tokens(amount.as_u64().unwrap(), ~ContractId::from(asset.value), ~Address::from(inner_value));
     }
 
     #[storage(read)]
