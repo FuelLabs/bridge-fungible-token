@@ -3,7 +3,6 @@ mod utils {
     pub mod ext_fuel_core;
     pub mod ext_sdk_provider;
 }
-use std::str::FromStr;
 
 use utils::environment as env;
 use utils::ext_fuel_core;

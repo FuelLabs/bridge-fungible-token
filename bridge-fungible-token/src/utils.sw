@@ -1,6 +1,28 @@
 library utils;
 
-use std::{address::Address, mem::read};
+dep events;
+dep data;
+
+use events::{BurnEvent, MintEvent, TransferEvent};
+use data::MessageData;
+use std::{
+    address::Address,
+    constants::ZERO_B256,
+    inputs::{
+        Input,
+        input_pointer,
+        input_type,
+    },
+    logging::log,
+    mem::read,
+    token::{
+        burn,
+        mint,
+        transfer_to_output,
+    },
+    vm::evm::evm_address::EvmAddress,
+};
+
 
 // TODO: [std-lib] remove once standard library functions have been added
 const GTF_INPUT_MESSAGE_DATA_LENGTH = 0x11B;
@@ -49,4 +71,72 @@ fn get_word_from_b256(val: b256, offset: u64) -> u64 {
         lw res r2 i0;
         res: u64
     }
+}
+
+pub fn is_address(val: Identity) -> bool {
+    match val {
+        Identity::Address(a) => {
+            true
+        },
+        Identity::ContractId => {
+            false
+        },
+    }
+}
+
+pub fn correct_input_type(index: u64) -> bool {
+    let type = input_type(1);
+    match type {
+        Input::Message => {
+            true
+        },
+        _ => {
+            false
+        }
+    }
+}
+
+pub fn parse_message_data(msg_idx: u8) -> MessageData {
+    let mut msg_data = MessageData {
+        fuel_token: ~ContractId::from(ZERO_B256),
+        l1_asset: ~EvmAddress::from(ZERO_B256),
+        from: ~Address::from(ZERO_B256),
+        to: ~Address::from(ZERO_B256),
+        amount: ZERO_B256,
+    };
+
+    // Parse the message data
+    // @review can we trust that message.data is long enough/has all required data (does predicate enforce this) ?
+    msg_data.fuel_token = ~ContractId::from(input_message_data::<b256>(msg_idx, 0));
+    msg_data.l1_asset = ~EvmAddress::from(input_message_data::<b256>(msg_idx, 32));
+    msg_data.from = ~Address::from(input_message_data::<b256>(msg_idx, 32 + 32));
+    msg_data.to = ~Address::from(input_message_data::<b256>(msg_idx, 32 + 32 + 32));
+    msg_data.amount = input_message_data::<b256>(msg_idx, 32 + 32 + 32 + 32);
+
+    msg_data
+}
+
+// ref: https://github.com/FuelLabs/fuel-specs/blob/bd6ec935e3d1797a192f731dadced3f121744d54/specs/vm/instruction_set.md#smo-send-message-to-output
+pub fn send_message(recipient: Address, coins: u64) {}
+
+pub fn transfer_tokens(amount: u64, asset: ContractId, to: Address) {
+    transfer_to_output(amount, asset, to);
+}
+
+#[storage(read)]
+pub fn mint_tokens(amount: u64, from: Identity) -> bool {
+    mint(amount);
+    log(MintEvent {
+        from: from,
+        amount,
+    });
+    true
+}
+
+pub fn burn_tokens(amount: u64, from: Identity) {
+    burn(amount);
+    log(BurnEvent {
+        from: from,
+        amount,
+    })
 }

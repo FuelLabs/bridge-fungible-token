@@ -1,14 +1,16 @@
 contract;
 
-dep utils;
+dep data;
 dep errors;
 dep events;
+dep utils;
 
 use bridge_fungible_token_abi::BridgeFungibleToken;
 use contract_message_receiver::MessageReceiver;
 use core::num::*;
+// use data::MessageData;
 use errors::BridgeFungibleTokenError;
-use events::{BurnEvent, MintEvent, TransferEvent, WithdrawalEvent};
+use events::WithdrawalEvent;
 use std::{
     address::Address,
     assert::assert,
@@ -16,7 +18,6 @@ use std::{
         AuthError,
         msg_sender,
     },
-    constants::ZERO_B256,
     context::{
         call_frames::{
             contract_id,
@@ -26,11 +27,6 @@ use std::{
     },
     contract_id::ContractId,
     identity::Identity,
-    inputs::{
-        Input,
-        input_pointer,
-        input_type,
-    },
     logging::log,
     option::Option,
     result::Result,
@@ -39,11 +35,6 @@ use std::{
         revert,
     },
     storage::StorageMap,
-    token::{
-        burn,
-        mint,
-        transfer_to_output,
-    },
     u256::U256,
     vm::evm::evm_address::EvmAddress,
 };
@@ -53,108 +44,36 @@ use utils::{
     input_message_data_length,
     input_message_recipient,
     input_message_sender,
+    mint_tokens,
+    burn_tokens,
+    transfer_tokens,
+    send_message,
+    parse_message_data,
+    correct_input_type,
+    is_address,
 };
 
 ////////////////////////////////////////
 // Constants
 ////////////////////////////////////////
+
 const NAME = "PLACEHOLDER";
 const SYMBOL = "PLACEHOLDER";
 const DECIMALS = 9u8;
 const LAYER_1_DECIMALS = 18u8;
 
 ////////////////////////////////////////
-// Data
-////////////////////////////////////////
-struct MessageData {
-    fuel_token: ContractId,
-    l1_asset: EvmAddress,
-    from: Address,
-    to: Address,
-    amount: b256,
-}
-
-////////////////////////////////////////
 // Storage declarations
 ////////////////////////////////////////
+
 storage {
     refund_amounts: StorageMap<(b256, EvmAddress), U256> = StorageMap {},
 }
 
 ////////////////////////////////////////
-// Private functions
-////////////////////////////////////////
-fn is_address(val: Identity) -> bool {
-    match val {
-        Identity::Address(a) => {
-            true
-        },
-        Identity::ContractId => {
-            false
-        },
-    }
-}
-
-fn correct_input_type(index: u64) -> bool {
-    let type = input_type(1);
-    match type {
-        Input::Message => {
-            true
-        },
-        _ => {
-            false
-        }
-    }
-}
-
-fn parse_message_data(msg_idx: u8) -> MessageData {
-    let mut msg_data = MessageData {
-        fuel_token: ~ContractId::from(ZERO_B256),
-        l1_asset: ~EvmAddress::from(ZERO_B256),
-        from: ~Address::from(ZERO_B256),
-        to: ~Address::from(ZERO_B256),
-        amount: ZERO_B256,
-    };
-
-    // Parse the message data
-    // @review can we trust that message.data is long enough/has all required data (does predicate enforce this) ?
-    msg_data.fuel_token = ~ContractId::from(input_message_data::<b256>(msg_idx, 0));
-    msg_data.l1_asset = ~EvmAddress::from(input_message_data::<b256>(msg_idx, 32));
-    msg_data.from = ~Address::from(input_message_data::<b256>(msg_idx, 32 + 32));
-    msg_data.to = ~Address::from(input_message_data::<b256>(msg_idx, 32 + 32 + 32));
-    msg_data.amount = input_message_data::<b256>(msg_idx, 32 + 32 + 32 + 32);
-
-    msg_data
-}
-
-// ref: https://github.com/FuelLabs/fuel-specs/blob/bd6ec935e3d1797a192f731dadced3f121744d54/specs/vm/instruction_set.md#smo-send-message-to-output
-fn send_message(recipient: Address, coins: u64) {}
-
-fn transfer_tokens(amount: u64, asset: ContractId, to: Address) {
-    transfer_to_output(amount, asset, to);
-}
-
-#[storage(read)]
-fn mint_tokens(amount: u64, from: Identity) -> bool {
-    mint(amount);
-    log(MintEvent {
-        from: from,
-        amount,
-    });
-    true
-}
-
-fn burn_tokens(amount: u64, from: Identity) {
-    burn(amount);
-    log(BurnEvent {
-        from: from,
-        amount,
-    })
-}
-
-////////////////////////////////////////
 // ABI Implementations
 ////////////////////////////////////////
+
 // Implement the process_message function required to be a message receiver
 impl MessageReceiver for Contract {
     #[storage(read, write)]
