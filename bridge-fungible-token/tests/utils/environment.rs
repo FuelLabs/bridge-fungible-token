@@ -62,7 +62,7 @@ pub async fn setup_environment(
     // Generate messages
     let message_nonce: Word = Word::default();
     let message_sender = Address::from_str(MESSAGE_SENDER_ADDRESS).unwrap();
-    let (predicate_bytecode, predicate_root) =
+    let (predicate_bytecode, predicate_root, _) =
         ext_sdk_provider::get_contract_message_predicate().await;
     let all_messages = messages
         .iter()
