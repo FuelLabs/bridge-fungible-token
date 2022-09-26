@@ -1,10 +1,6 @@
 library data;
 
-use std::{
-    address::Address,
-    contract_id::ContractId,
-    vm::evm::evm_address::EvmAddress
-};
+use std::{address::Address, contract_id::ContractId, vm::evm::evm_address::EvmAddress};
 
 pub struct MessageData {
     fuel_token: ContractId,

@@ -23,7 +23,6 @@ use std::{
     vm::evm::evm_address::EvmAddress,
 };
 
-
 // TODO: [std-lib] remove once standard library functions have been added
 const GTF_INPUT_MESSAGE_DATA_LENGTH = 0x11B;
 const GTF_INPUT_MESSAGE_DATA = 0x11E;

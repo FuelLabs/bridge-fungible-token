@@ -39,24 +39,23 @@ use std::{
     vm::evm::evm_address::EvmAddress,
 };
 use utils::{
+    burn_tokens,
+    correct_input_type,
     decompose,
     input_message_data,
     input_message_data_length,
     input_message_recipient,
     input_message_sender,
-    mint_tokens,
-    burn_tokens,
-    transfer_tokens,
-    send_message,
-    parse_message_data,
-    correct_input_type,
     is_address,
+    mint_tokens,
+    parse_message_data,
+    send_message,
+    transfer_tokens,
 };
 
 ////////////////////////////////////////
 // Constants
 ////////////////////////////////////////
-
 const NAME = "PLACEHOLDER";
 const SYMBOL = "PLACEHOLDER";
 const DECIMALS = 9u8;
@@ -65,7 +64,6 @@ const LAYER_1_DECIMALS = 18u8;
 ////////////////////////////////////////
 // Storage declarations
 ////////////////////////////////////////
-
 storage {
     refund_amounts: StorageMap<(b256, EvmAddress), U256> = StorageMap {},
 }
@@ -73,7 +71,6 @@ storage {
 ////////////////////////////////////////
 // ABI Implementations
 ////////////////////////////////////////
-
 // Implement the process_message function required to be a message receiver
 impl MessageReceiver for Contract {
     #[storage(read, write)]
@@ -84,8 +81,14 @@ impl MessageReceiver for Contract {
 
         let message_data = parse_message_data(msg_idx);
 
-        // @review verify asset matches hardcoded L1 token
+        // @review verify `l1_asset` matches hardcoded LAYER_1_TOKEN value
         require(message_data.l1_asset == ~EvmAddress::from(LAYER_1_TOKEN), BridgeFungibleTokenError::IncorrectAssetDeposited);
+
+        // @review verify `from` matches hardcoded PREDICATE_ROOT value
+        require(message_data.from == ~Address::from(PREDICATE_ROOT), BridgeFungibleTokenError::UnauthorizedUser);
+
+        // @review verify `to` matches hardcoded value TO value
+        require(message_data.to == ~Address::from(TO), BridgeFungibleTokenError::UnauthorizedUser);
 
         // check that value sent as uint256 can fit inside a u64, else register a refund.
         let decomposed = decompose(message_data.amount);

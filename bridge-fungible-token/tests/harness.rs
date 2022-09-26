@@ -9,10 +9,10 @@ use utils::ext_fuel_core;
 use utils::ext_sdk_provider;
 
 use fuels::test_helpers::DEFAULT_COIN_AMOUNT;
-use fuels::tx::{Address, AssetId, Bytes32, ContractId, Output};
+use fuels::tx::{Address, AssetId, Output};
 
 pub const L1_TOKEN: &str = "0xabcdef0000000000000000000000000000000000000000000000000000abcdef";
-pub const TO: &str = "0x0000000000000000000000000000000000000000000000000000000000000000";
+pub const TO: &str = "0x0000000000000000000000000000000000000000000000000000000000000777";
 pub const AMOUNT: &str = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 mod success {
