@@ -48,6 +48,7 @@ use utils::{
     is_address,
     mint_tokens,
     parse_message_data,
+    register_refund,
     send_message,
     transfer_tokens,
 };
@@ -72,25 +73,35 @@ impl MessageReceiver for Contract {
 
         let message_data = parse_message_data(msg_idx);
 
-        // @todo issue a refund if tokens don't match
         require(message_data.l1_asset == ~EvmAddress::from(LAYER_1_TOKEN), BridgeFungibleTokenError::IncorrectAssetDeposited);
 
-        // check that value sent as uint256 can fit inside a u64, else register a refund.
-        let decomposed = decompose(message_data.amount);
-        let amount = ~U256::from(decomposed.0, decomposed.1, decomposed.2, decomposed.3);
-        let l1_amount_opt = amount.as_u64();
-        match l1_amount_opt {
-            Result::Err(e) => {
-                storage.refund_amounts.insert((
-                    message_data.from,
-                    message_data.l1_asset,
-                ), amount);
-                // @review emit event (i.e: `DepositFailedEvent`) here to allow the refund process to be initiated?
-            },
-            Result::Ok(amount) => {
-                mint_tokens(amount, Identity::Address(message_data.to));
-                transfer_tokens(amount, contract_id(), Identity::Address(message_data.to));
-            },
+        if message_data.l1_asset != ~EvmAddress::from(LAYER_1_TOKEN) {
+            // issue a refund if tokens don't match
+            register_refund(message_data.from, message_data.l1_asset, amount);
+            log(DepositFailedEvent {
+                from: message_data.from,
+                asset: message_data.l1_asset,
+                amount
+            });
+        } else {
+            // check that value sent as uint256 can fit inside a u64, else register a refund.
+            let decomposed = decompose(message_data.amount);
+            let amount = ~U256::from(decomposed.0, decomposed.1, decomposed.2, decomposed.3);
+            let l1_amount_opt = amount.as_u64();
+            match l1_amount_opt {
+                Result::Err(e) => {
+                    register_refund(message_data.from, message_data.l1_asset, amount);
+                    log(DepositFailedEvent {
+                        from: message_data.from,
+                        asset: message_data.l1_asset,
+                        amount
+                    });
+                },
+                Result::Ok(amount) => {
+                    mint_tokens(amount, Identity::Address(message_data.to));
+                    transfer_tokens(amount, contract_id(), Identity::Address(message_data.to));
+                },
+            }
         }
     }
 }

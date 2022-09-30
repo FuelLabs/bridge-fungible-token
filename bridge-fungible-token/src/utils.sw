@@ -109,6 +109,14 @@ pub fn send_message(recipient: EvmAddress, coins: u64) {
     // TODO: Implement me!
 }
 
+#[storage(write)]
+pub fn register_refund(from: EvmAddress, asset: EvmAddress, amount: u256) {
+    storage.refund_amounts.insert((
+        from,
+        asset,
+    ), amount)
+}
+
 pub fn transfer_tokens(amount: u64, asset: ContractId, to: Address) {
     transfer_to_output(amount, asset, to);
 }
