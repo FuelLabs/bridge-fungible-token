@@ -75,13 +75,14 @@ impl MessageReceiver for Contract {
 
         require(message_data.l1_asset == ~EvmAddress::from(LAYER_1_TOKEN), BridgeFungibleTokenError::IncorrectAssetDeposited);
 
-        if message_data.l1_asset != ~EvmAddress::from(LAYER_1_TOKEN) {
+        if message_data.l1_asset != ~EvmAddress::from(LAYER_1_TOKEN)
+        {
             // issue a refund if tokens don't match
             register_refund(message_data.from, message_data.l1_asset, amount);
             log(DepositFailedEvent {
                 from: message_data.from,
                 asset: message_data.l1_asset,
-                amount
+                amount,
             });
         } else {
             // check that value sent as uint256 can fit inside a u64, else register a refund.
@@ -94,7 +95,7 @@ impl MessageReceiver for Contract {
                     log(DepositFailedEvent {
                         from: message_data.from,
                         asset: message_data.l1_asset,
-                        amount
+                        amount,
                     });
                 },
                 Result::Ok(amount) => {

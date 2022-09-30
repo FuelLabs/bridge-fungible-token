@@ -105,16 +105,12 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
 }
 
 // ref: https://github.com/FuelLabs/fuel-specs/blob/bd6ec935e3d1797a192f731dadced3f121744d54/specs/vm/instruction_set.md#smo-send-message-to-output
-pub fn send_message(recipient: EvmAddress, coins: u64) {
-    // TODO: Implement me!
-}
+pub fn send_message(recipient: EvmAddress, coins: u64) {}
 
+    // TODO: Implement me!
 #[storage(write)]
 pub fn register_refund(from: EvmAddress, asset: EvmAddress, amount: u256) {
-    storage.refund_amounts.insert((
-        from,
-        asset,
-    ), amount)
+    storage.refund_amounts.insert((from, asset, ), amount)
 }
 
 pub fn transfer_tokens(amount: u64, asset: ContractId, to: Address) {
@@ -124,10 +120,7 @@ pub fn transfer_tokens(amount: u64, asset: ContractId, to: Address) {
 #[storage(read)]
 pub fn mint_tokens(amount: u64, to: Identity) -> bool {
     mint(amount);
-    log(MintEvent {
-        to,
-        amount,
-    });
+    log(MintEvent { to, amount });
     true
 }
 

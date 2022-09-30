@@ -15,7 +15,7 @@ LAYER_1_TOKEN = { type = "b256", value = "0xabcdef000000000000000000000000000000
 PREDICATE_ROOT = { type = "b256", value = "0xbc5869a28f97b24944a0aa9724d8001427f7a594fe9fd739a1d6b27c02c47f7f" }
 # TODO: need varaible-length strings to allow flexibility in name and symbol !
 # For now, could use the hash of any string (i:e: a b256)
-NAME = { type = "str[8]", value = "\"MY_TOKEN\""}
-SYMBOL = { type = "str[5]", value = "\"MYTKN\""}
-DECIMALS = { type = "u8", value = "9u8"}
-LAYER_1_DECIMALS = { type = "u8", value = "18u8"}
+DECIMALS = { type = "u8", value = "9u8" }
+LAYER_1_DECIMALS = { type = "u8", value = "18u8" }
+NAME = { type = "str[8]", value = "\"MY_TOKEN\"" }
+SYMBOL = { type = "str[5]", value = "\"MYTKN\"" }
