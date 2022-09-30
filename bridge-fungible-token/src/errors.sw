@@ -1,13 +1,7 @@
 library errors;
 
 pub enum BridgeFungibleTokenError {
-    CannotReinitialize: (),
-    ContractNotInitialized: (),
-    IncorrectAssetAmount: (),
-    IncorrectAssetDeposited: (),
     UnauthorizedUser: (),
+    IncorrectAssetDeposited: (),
     NoCoinsForwarded: (),
-    IncorrectMessageOwner: (),
-    IncorrectInputType: (),
-    NotAnAddress: (),
 }

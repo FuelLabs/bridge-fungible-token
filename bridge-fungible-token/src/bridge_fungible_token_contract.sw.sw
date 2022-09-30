@@ -8,7 +8,6 @@ dep utils;
 use bridge_fungible_token_abi::BridgeFungibleToken;
 use contract_message_receiver::MessageReceiver;
 use core::num::*;
-// use data::MessageData;
 use errors::BridgeFungibleTokenError;
 use events::WithdrawalEvent;
 use std::{
@@ -54,18 +53,10 @@ use utils::{
 };
 
 ////////////////////////////////////////
-// Constants
-////////////////////////////////////////
-const NAME = "PLACEHOLDER";
-const SYMBOL = "PLACEHOLDER";
-const DECIMALS = 9u8;
-const LAYER_1_DECIMALS = 18u8;
-
-////////////////////////////////////////
 // Storage declarations
 ////////////////////////////////////////
 storage {
-    refund_amounts: StorageMap<(b256, EvmAddress), U256> = StorageMap {},
+    refund_amounts: StorageMap<(EvmAddress, EvmAddress), U256> = StorageMap {},
 }
 
 ////////////////////////////////////////
@@ -81,14 +72,8 @@ impl MessageReceiver for Contract {
 
         let message_data = parse_message_data(msg_idx);
 
-        // @review verify `l1_asset` matches hardcoded LAYER_1_TOKEN value
+        // @todo issue a refund if tokens don't match
         require(message_data.l1_asset == ~EvmAddress::from(LAYER_1_TOKEN), BridgeFungibleTokenError::IncorrectAssetDeposited);
-
-        // @review verify `from` matches hardcoded PREDICATE_ROOT value
-        require(message_data.from == ~Address::from(PREDICATE_ROOT), BridgeFungibleTokenError::UnauthorizedUser);
-
-        // @review verify `to` matches hardcoded value TO value
-        require(message_data.to == ~Address::from(TO), BridgeFungibleTokenError::UnauthorizedUser);
 
         // check that value sent as uint256 can fit inside a u64, else register a refund.
         let decomposed = decompose(message_data.amount);
@@ -97,15 +82,14 @@ impl MessageReceiver for Contract {
         match l1_amount_opt {
             Result::Err(e) => {
                 storage.refund_amounts.insert((
-                    message_data.to.value,
+                    message_data.from,
                     message_data.l1_asset,
                 ), amount);
                 // @review emit event (i.e: `DepositFailedEvent`) here to allow the refund process to be initiated?
             },
-            Result::Ok(v) => {
-                mint_tokens(v, Identity::Address(input_sender));
-                log(555);
-                transfer_tokens(v, contract_id(), input_sender);
+            Result::Ok(amount) => {
+                mint_tokens(amount, Identity::Address(message_data.to));
+                transfer_tokens(amount, contract_id(), Identity::Address(message_data.to));
             },
         }
     }
@@ -113,50 +97,28 @@ impl MessageReceiver for Contract {
 
 impl BridgeFungibleToken for Contract {
     #[storage(read, write)]
-    // @review can anyone can call this, or only the originator themselves?
-    fn claim_refund(originator: Identity, asset: EvmAddress) {
-        // check storage mapping refund_amounts first
-        // if valid, transfer to originator
-        let inner_value = match originator {
-            Identity::Address(a) => {
-                a.value
-            },
-            Identity::ContractId(c) => {
-                c.value
-            },
-        };
-
+    // @review can anyone can call this on behalf of the originator, or only the originator themselves?
+    fn claim_refund(originator: EvmAddress, asset: EvmAddress) {
         let amount = storage.refund_amounts.get((
-            inner_value,
+            originator,
             asset,
         ));
-        transfer_tokens(amount.as_u64().unwrap(), ~ContractId::from(asset.value), ~Address::from(inner_value));
+        send_message(originator, amount);
     }
 
     #[storage(read)]
-    fn withdraw_to(to: Identity) {
+    fn withdraw_to(to: EvmAddress) {
         let withdrawal_amount = msg_amount();
         require(withdrawal_amount != 0, BridgeFungibleTokenError::NoCoinsForwarded);
-
-        require(is_address(to), BridgeFungibleTokenError::NotAnAddress);
 
         let origin_contract_id = msg_asset_id();
         let sender = msg_sender().unwrap();
 
-        require(contract_id() == msg_asset_id(), BridgeFungibleTokenError::IncorrectAssetDeposited);
+        // check that the correct asset was sent with call
+        require(contract_id() == origin_contract_id, BridgeFungibleTokenError::IncorrectAssetDeposited);
+
         burn_tokens(withdrawal_amount, sender);
-
-        let addr = match to {
-            Identity::Address(a) => {
-                a
-            },
-            Identity::ContractId => {
-                revert(0);
-            },
-        };
-        // Output a message to release tokens locked on L1
-        send_message(addr, withdrawal_amount);
-
+        send_message(to, withdrawal_amount);
         log(WithdrawalEvent {
             to: to,
             amount: withdrawal_amount,
@@ -164,11 +126,11 @@ impl BridgeFungibleToken for Contract {
         });
     }
 
-    fn name() -> str[11] {
+    fn name() -> str[8] {
         NAME
     }
 
-    fn symbol() -> str[11] {
+    fn symbol() -> str[5] {
         SYMBOL
     }
 

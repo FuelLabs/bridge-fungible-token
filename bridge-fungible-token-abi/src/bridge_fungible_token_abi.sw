@@ -4,17 +4,17 @@ use std::{contract_id::ContractId, identity::Identity, vm::evm::evm_address::Evm
 
 abi BridgeFungibleToken {
     #[storage(read, write)]
-    fn claim_refund(originator: Identity, asset: EvmAddress);
+    fn claim_refund(originator: EvmAddress, asset: EvmAddress);
 
     /// Withdraw coins back to L1 and burn the corresponding amount of coins
     /// on L2.
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `to` - the destination of the transfer (an Address or a ContractId)
-    /// 
+    ///
     /// # Reverts
-    /// 
+    ///
     /// * When no coins were sent with call
     #[storage(read)]
     fn withdraw_to(to: Identity);

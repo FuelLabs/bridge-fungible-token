@@ -2,13 +2,18 @@ library events;
 
 use std::{contract_id::ContractId, identity::Identity};
 
-pub struct MintEvent {
+pub struct BurnEvent {
     from: Identity,
     amount: u64,
 }
 
-pub struct BurnEvent {
-    from: Identity,
+pub struct DepositFailedEvent {
+    from: EvmAddress,
+    amount: b256,
+}
+
+pub struct MintEvent {
+    to: Identity,
     amount: u64,
 }
 

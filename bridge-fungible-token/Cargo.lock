@@ -674,7 +674,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "008b57b368e638ed60664350ea4f2f3647a0192173478df2736cc255a025a796"
 
 [[package]]
-name = "bridge-fungible-token"
+name = "bridge-fungible-token-contract"
 version = "0.1.0"
 dependencies = [
  "fuel-core",

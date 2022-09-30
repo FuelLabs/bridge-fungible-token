@@ -3,7 +3,7 @@ library utils;
 dep events;
 dep data;
 
-use events::{BurnEvent, MintEvent, TransferEvent};
+use events::{BurnEvent, DepositFailedEvent, MintEvent, TransferEvent};
 use data::MessageData;
 use std::{
     address::Address,
@@ -72,17 +72,6 @@ fn get_word_from_b256(val: b256, offset: u64) -> u64 {
     }
 }
 
-pub fn is_address(val: Identity) -> bool {
-    match val {
-        Identity::Address(a) => {
-            true
-        },
-        Identity::ContractId => {
-            false
-        },
-    }
-}
-
 pub fn correct_input_type(index: u64) -> bool {
     let type = input_type(1);
     match type {
@@ -108,7 +97,7 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
     // @review can we trust that message.data is long enough/has all required data (does predicate enforce this) ?
     msg_data.fuel_token = ~ContractId::from(input_message_data::<b256>(msg_idx, 0));
     msg_data.l1_asset = ~EvmAddress::from(input_message_data::<b256>(msg_idx, 32));
-    msg_data.from = ~Address::from(input_message_data::<b256>(msg_idx, 32 + 32));
+    msg_data.from = ~EvmAddress::from(input_message_data::<b256>(msg_idx, 32 + 32));
     msg_data.to = ~Address::from(input_message_data::<b256>(msg_idx, 32 + 32 + 32));
     msg_data.amount = input_message_data::<b256>(msg_idx, 32 + 32 + 32 + 32);
 
@@ -116,17 +105,19 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
 }
 
 // ref: https://github.com/FuelLabs/fuel-specs/blob/bd6ec935e3d1797a192f731dadced3f121744d54/specs/vm/instruction_set.md#smo-send-message-to-output
-pub fn send_message(recipient: Address, coins: u64) {}
+pub fn send_message(recipient: EvmAddress, coins: u64) {
+    // TODO: Implement me!
+}
 
 pub fn transfer_tokens(amount: u64, asset: ContractId, to: Address) {
     transfer_to_output(amount, asset, to);
 }
 
 #[storage(read)]
-pub fn mint_tokens(amount: u64, from: Identity) -> bool {
+pub fn mint_tokens(amount: u64, to: Identity) -> bool {
     mint(amount);
     log(MintEvent {
-        from: from,
+        to,
         amount,
     });
     true

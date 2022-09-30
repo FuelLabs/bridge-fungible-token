@@ -5,7 +5,7 @@ use std::{address::Address, contract_id::ContractId, vm::evm::evm_address::EvmAd
 pub struct MessageData {
     fuel_token: ContractId,
     l1_asset: EvmAddress,
-    from: Address,
+    from: EvmAddress,
     to: Address,
     amount: b256,
 }

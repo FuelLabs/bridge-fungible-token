@@ -1,5 +1,10 @@
 [[package]]
-name = 'bridge_fungible_token'
+name = 'bridge_fungible_token_abi'
+source = 'path+from-root-DD18C0F7548B314B'
+dependencies = ['std']
+
+[[package]]
+name = 'bridge_fungible_token_contract'
 source = 'root'
 dependencies = [
     'bridge_fungible_token_abi',
@@ -8,13 +13,8 @@ dependencies = [
 ]
 
 [[package]]
-name = 'bridge_fungible_token_abi'
-source = 'path+from-root-0CFC8A61C9CDDC6E'
-dependencies = ['std']
-
-[[package]]
 name = 'contract_message_receiver'
-source = 'path+from-root-0CFC8A61C9CDDC6E'
+source = 'path+from-root-DD18C0F7548B314B'
 dependencies = ['std']
 
 [[package]]
