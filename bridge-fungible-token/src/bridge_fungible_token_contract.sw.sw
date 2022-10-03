@@ -111,7 +111,6 @@ impl MessageReceiver for Contract {
 
 impl BridgeFungibleToken for Contract {
     #[storage(read, write)]
-    // @review can anyone can call this on behalf of the originator, or only the originator themselves?
     fn claim_refund(originator: EvmAddress, asset: EvmAddress) {
         let stored_amount = storage.refund_amounts.get((
             originator,

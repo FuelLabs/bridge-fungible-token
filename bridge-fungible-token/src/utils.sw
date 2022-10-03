@@ -29,6 +29,22 @@ const GTF_INPUT_MESSAGE_DATA = 0x11E;
 const GTF_INPUT_MESSAGE_SENDER = 0x115;
 const GTF_INPUT_MESSAGE_RECIPIENT = 0x116;
 
+#[storage(write)]
+pub fn register_refund(from: EvmAddress, asset: EvmAddress, amount: u256) {
+    storage.refund_amounts.insert((from, asset), amount);
+    log(RefundRegisteredEvent {
+        from: message_data.from,
+        asset: message_data.l1_asset,
+        amount,
+    });
+}
+
+#[storage(read)]
+pub fn mint_tokens(amount: u64, to: Identity) {
+    mint(amount);
+    log(MintEvent { to, amount });
+}
+
 pub fn burn_tokens(amount: u64, from: Identity) {
     burn(amount);
     log(BurnEvent {
@@ -38,7 +54,7 @@ pub fn burn_tokens(amount: u64, from: Identity) {
 }
 
 pub fn correct_input_type(index: u64) -> bool {
-    let type = input_type(1);
+    let type = input_type(index);
     match type {
         Input::Message => {
             true
@@ -68,13 +84,6 @@ fn get_word_from_b256(val: b256, offset: u64) -> u64 {
     }
 }
 
-#[storage(read)]
-pub fn mint_tokens(amount: u64, to: Identity) -> bool {
-    mint(amount);
-    log(MintEvent { to, amount });
-    true
-}
-
 pub fn parse_message_data(msg_idx: u8) -> MessageData {
     let mut msg_data = MessageData {
         fuel_token: ~ContractId::from(ZERO_B256),
@@ -93,17 +102,6 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
     msg_data.amount = input_message_data::<b256>(msg_idx, 32 + 32 + 32 + 32);
 
     msg_data
-}
-
-    // TODO: Implement me!
-#[storage(write)]
-pub fn register_refund(from: EvmAddress, asset: EvmAddress, amount: u256) {
-    storage.refund_amounts.insert((from, asset), amount);
-    log(RefundRegisteredEvent {
-                        from: message_data.from,
-                        asset: message_data.l1_asset,
-                        amount,
-                    });
 }
 
 // ref: https://github.com/FuelLabs/fuel-specs/blob/bd6ec935e3d1797a192f731dadced3f121744d54/specs/vm/instruction_set.md#smo-send-message-to-output
