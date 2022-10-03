@@ -3,7 +3,7 @@ library utils;
 dep events;
 dep data;
 
-use events::{BurnEvent, DepositFailedEvent, MintEvent, TransferEvent};
+use events::{BurnEvent, RefundRegisteredEvent, MintEvent, TransferEvent};
 use data::MessageData;
 use std::{
     address::Address,
@@ -29,28 +29,24 @@ const GTF_INPUT_MESSAGE_DATA = 0x11E;
 const GTF_INPUT_MESSAGE_SENDER = 0x115;
 const GTF_INPUT_MESSAGE_RECIPIENT = 0x116;
 
-/// Get the length of a message input data
-// TODO: [std-lib] replace with 'input_message_data_length'
-pub fn input_message_data_length(index: u64) -> u64 {
-    __gtf::<u64>(index, GTF_INPUT_MESSAGE_DATA_LENGTH)
+pub fn burn_tokens(amount: u64, from: Identity) {
+    burn(amount);
+    log(BurnEvent {
+        from: from,
+        amount,
+    })
 }
 
-/// Get the data of a message input
-// TODO: [std-lib] replace with 'input_message_data'
-pub fn input_message_data<T>(index: u64, offset: u64) -> T {
-    read::<T>(__gtf::<u64>(index, GTF_INPUT_MESSAGE_DATA) + offset)
-}
-
-/// Get the sender of the input message at `index`.
-// TODO: [std-lib] replace with 'input_message_sender'
-pub fn input_message_sender(index: u64) -> Address {
-    ~Address::from(__gtf::<b256>(index, GTF_INPUT_MESSAGE_SENDER))
-}
-
-/// Get the recipient of the input message at `index`.
-// TODO: [std-lib] replace with 'input_message_recipient'
-pub fn input_message_recipient(index: u64) -> Address {
-    ~Address::from(__gtf::<b256>(index, GTF_INPUT_MESSAGE_RECIPIENT))
+pub fn correct_input_type(index: u64) -> bool {
+    let type = input_type(1);
+    match type {
+        Input::Message => {
+            true
+        },
+        _ => {
+            false
+        }
+    }
 }
 
 /// Get 4 64 bit words from a single b256 value.
@@ -72,16 +68,11 @@ fn get_word_from_b256(val: b256, offset: u64) -> u64 {
     }
 }
 
-pub fn correct_input_type(index: u64) -> bool {
-    let type = input_type(1);
-    match type {
-        Input::Message => {
-            true
-        },
-        _ => {
-            false
-        }
-    }
+#[storage(read)]
+pub fn mint_tokens(amount: u64, to: Identity) -> bool {
+    mint(amount);
+    log(MintEvent { to, amount });
+    true
 }
 
 pub fn parse_message_data(msg_idx: u8) -> MessageData {
@@ -104,30 +95,48 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
     msg_data
 }
 
-// ref: https://github.com/FuelLabs/fuel-specs/blob/bd6ec935e3d1797a192f731dadced3f121744d54/specs/vm/instruction_set.md#smo-send-message-to-output
-pub fn send_message(recipient: EvmAddress, coins: u64) {}
-
     // TODO: Implement me!
 #[storage(write)]
 pub fn register_refund(from: EvmAddress, asset: EvmAddress, amount: u256) {
-    storage.refund_amounts.insert((from, asset, ), amount)
+    storage.refund_amounts.insert((from, asset), amount);
+    log(RefundRegisteredEvent {
+                        from: message_data.from,
+                        asset: message_data.l1_asset,
+                        amount,
+                    });
 }
+
+// ref: https://github.com/FuelLabs/fuel-specs/blob/bd6ec935e3d1797a192f731dadced3f121744d54/specs/vm/instruction_set.md#smo-send-message-to-output
+pub fn send_message(recipient: EvmAddress, asset: EvmAddress, coins: b256) {}
 
 pub fn transfer_tokens(amount: u64, asset: ContractId, to: Address) {
     transfer_to_output(amount, asset, to);
 }
 
-#[storage(read)]
-pub fn mint_tokens(amount: u64, to: Identity) -> bool {
-    mint(amount);
-    log(MintEvent { to, amount });
-    true
+///////////////////////////////////////
+// TODO: Replace with stdlib functions
+///////////////////////////////////////
+
+/// Get the length of a message input data
+// TODO: [std-lib] replace with 'input_message_data_length'
+pub fn input_message_data_length(index: u64) -> u64 {
+    __gtf::<u64>(index, GTF_INPUT_MESSAGE_DATA_LENGTH)
 }
 
-pub fn burn_tokens(amount: u64, from: Identity) {
-    burn(amount);
-    log(BurnEvent {
-        from: from,
-        amount,
-    })
+/// Get the data of a message input
+// TODO: [std-lib] replace with 'input_message_data'
+pub fn input_message_data<T>(index: u64, offset: u64) -> T {
+    read::<T>(__gtf::<u64>(index, GTF_INPUT_MESSAGE_DATA) + offset)
+}
+
+/// Get the sender of the input message at `index`.
+// TODO: [std-lib] replace with 'input_message_sender'
+pub fn input_message_sender(index: u64) -> Address {
+    ~Address::from(__gtf::<b256>(index, GTF_INPUT_MESSAGE_SENDER))
+}
+
+/// Get the recipient of the input message at `index`.
+// TODO: [std-lib] replace with 'input_message_recipient'
+pub fn input_message_recipient(index: u64) -> Address {
+    ~Address::from(__gtf::<b256>(index, GTF_INPUT_MESSAGE_RECIPIENT))
 }

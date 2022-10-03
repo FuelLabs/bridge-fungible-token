@@ -7,7 +7,7 @@ pub struct BurnEvent {
     amount: u64,
 }
 
-pub struct DepositFailedEvent {
+pub struct RefundRegisteredEvent {
     from: EvmAddress,
     asset: EvmAddress,
     amount: b256,

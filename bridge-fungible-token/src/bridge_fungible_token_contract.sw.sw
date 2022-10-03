@@ -77,26 +77,28 @@ impl MessageReceiver for Contract {
 
         if message_data.l1_asset != ~EvmAddress::from(LAYER_1_TOKEN)
         {
-            // issue a refund if tokens don't match
+            // Register a refund if tokens don't match. The L1 tokens are now locked in the contract on Ethereum, so reverting here is not the correct action as it would prevent the registration of a claimable refund on the Fuel side of the bridge.
             register_refund(message_data.from, message_data.l1_asset, amount);
-            log(DepositFailedEvent {
-                from: message_data.from,
-                asset: message_data.l1_asset,
-                amount,
-            });
         } else {
-            // check that value sent as uint256 can fit inside a u64, else register a refund.
+            // The value needs to be converted from the Ethereum side decimals (18) into the Fuel side decimals (9).
+            // This could result in a refund (value too large to fit in u64 under new decimals or too small to fit in new decimals)
+            /**
+                So, "1" erc20 token is represented internally (in ethereum contract) as 1 * 10^18 or 1_000_000_000_000_000_000
+                Dividing this number by 10^9 (because of 9 decimals in fuel contract) results in 1_000_000_000 internally, which is "1" token in the fuel contract
+                Internal Representations:
+                Ethereum: 1 = 0.000_000_000_000_000_001 ether (1 wei)
+                Fuel:     1 = 0.000_000_001 Base Asset
+                so: 999_999_999 wei sent from ethereum to fuel would result in a refund because it's too small to fit in the 9 decimals observed in the L2 BridgeFungibleToken contract, because this would be
+                              `0.000_000_000_999_999_999`, when
+                              `0.000_000_001` is the smallest value we can work with at 9 decimals.
+            */
+
             let decomposed = decompose(message_data.amount);
             let amount = ~U256::from(decomposed.0, decomposed.1, decomposed.2, decomposed.3);
             let l1_amount_opt = amount.as_u64();
             match l1_amount_opt {
                 Result::Err(e) => {
                     register_refund(message_data.from, message_data.l1_asset, amount);
-                    log(DepositFailedEvent {
-                        from: message_data.from,
-                        asset: message_data.l1_asset,
-                        amount,
-                    });
                 },
                 Result::Ok(amount) => {
                     mint_tokens(amount, Identity::Address(message_data.to));
@@ -111,11 +113,14 @@ impl BridgeFungibleToken for Contract {
     #[storage(read, write)]
     // @review can anyone can call this on behalf of the originator, or only the originator themselves?
     fn claim_refund(originator: EvmAddress, asset: EvmAddress) {
-        let amount = storage.refund_amounts.get((
+        let stored_amount = storage.refund_amounts.get((
             originator,
             asset,
         ));
-        send_message(originator, amount);
+        // reset the refund amount to 0
+        storage.refund_amounts.insert((originator, asset), ZERO_B256);
+        // send a message to unlock this amount on the ethereum (L1) bridge contract contract
+        send_message(originator, asset, stored_amount);
     }
 
     #[storage(read)]
