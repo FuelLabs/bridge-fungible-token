@@ -4,6 +4,18 @@ dep errors;
 dep events;
 dep data;
 
+use std::{
+    alloc::alloc,
+    mem::copy,
+    outputs::{
+        Output,
+        output_count,
+        output_type,
+    },
+    revert::revert,
+    vec::Vec,
+};
+
 use errors::BridgeFungibleTokenError;
 use events::{BurnEvent, MintEvent, TransferEvent};
 use data::MessageData;
@@ -63,14 +75,16 @@ pub fn safe_b256_to_u64(val: b256) -> Result<u64, BridgeFungibleTokenError> {
     // first, decompose into u64 values
     let u64s = decompose(val);
 
-    // verify amount will require no partial refund of dust by using bitwise OR and a mask of the lowest bits representing the first 9 decimal palces in the passed-in value
-    require(u64s.3 | 0b000000000000000000000000000 == 0b000000000000000000000000000, BridgeFungibleTokenError::BridgedValueIncompatability);
-
-    // verify amount is not too small
-    require(u64s.3 >= 1_000_000_000, BridgeFungibleTokenError::BridgedValueIncompatability);
-
-    // verify amount is not too big
-    if u64s.0 == 0 && u64s.1 == 0 && u64s.2 == 0 {
+    // verify amount will require no partial refund of dust by ensuring that
+    // the first 9 decimal places in the passed-in value are empty,
+    // then verify amount is not too small or too large
+    if (u64s.3
+        | 0b000000000000000000000000000 == 0b000000000000000000000000000)
+        && u64s.3 >= 1_000_000_000
+        && u64s.0 == 0
+        && u64s.1 == 0
+        && u64s.2 == 0
+    {
         Result::Ok(u64s.3)
     } else {
         Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability)
@@ -160,7 +174,7 @@ pub fn format_data(to: EvmAddress, amount: u64) -> Vec<u64> {
 pub fn send_message_output(to: EvmAddress, amount: u64, ) {
     // convert to eth decimals
     let l1_amount = amount * (LAYER_1_DECIMALS - DECIMALS);
-    send_message(LAYER_1_ERC20_GATEWAY.value, format_data(to, l1_amount), 0);
+    send_message(LAYER_1_ERC20_GATEWAY, format_data(to, l1_amount), 0);
 }
 
 pub fn transfer_tokens(amount: u64, asset: ContractId, to: Address) {
@@ -193,3 +207,46 @@ pub fn input_message_sender(index: u64) -> Address {
 pub fn input_message_recipient(index: u64) -> Address {
     ~Address::from(__gtf::<b256>(index, GTF_INPUT_MESSAGE_RECIPIENT))
 }
+
+/// Sends a message to `recipient` of length `msg_len` through `output` with amount of `coins`
+///
+/// # Arguments
+///
+/// * `recipient` - The address of the message recipient
+/// * `msg_data` - arbitrary length message data
+/// * `coins` - Amount of base asset sent
+pub fn send_message(recipient: b256, msg_data: Vec<u64>, coins: u64) {
+    let mut recipient_heap_buffer = 0;
+    let mut data_heap_buffer = 0;
+    let mut size = 0;
+
+    // If msg_data is empty, we just ignore it and pass `smo` a pointer to the inner value of recipient.
+    // Otherwise, we allocate adjacent space on the heap for the data and the recipient and copy the
+    // data and recipient values there
+    if msg_data.is_empty() {
+        recipient_heap_buffer = addr_of(recipient);
+    } else {
+        size = msg_data.len() * 8;
+        data_heap_buffer = alloc(size);
+        recipient_heap_buffer = alloc(32);
+        copy(msg_data.buf.ptr, data_heap_buffer, size);
+        copy(addr_of(recipient), recipient_heap_buffer, 32);
+    };
+
+    let mut index = 0;
+    let outputs = output_count();
+
+    while index < outputs {
+        let type_of_output = output_type(index);
+        if let Output::Message = type_of_output {
+            asm(r1: recipient_heap_buffer, r2: size, r3: index, r4: coins) {
+                smo r1 r2 r3 r4;
+            };
+            return;
+        }
+        index += 1;
+    }
+    revert(FAILED_SEND_MESSAGE_SIGNAL);
+}
+
+const FAILED_SEND_MESSAGE_SIGNAL = 0xffff_ffff_ffff_0002;
