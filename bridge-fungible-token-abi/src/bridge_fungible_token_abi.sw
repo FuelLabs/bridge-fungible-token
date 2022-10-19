@@ -32,7 +32,7 @@ abi BridgeFungibleToken {
     /// get the decimals of this token contract
     fn decimals() -> u8;
     /// get the L1 token that this contract bridges
-    fn layer1_token() -> EvmAddress;
+    fn layer1_token() -> b256;
     /// get the L1_decimals of this token contract
     fn layer1_decimals() -> u8;
 }
