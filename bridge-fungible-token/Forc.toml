@@ -1,8 +1,8 @@
 [project]
 authors = ["Fuel Labs <contact@fuel.sh>"]
-entry = "bridge_fungible_token_contract.sw"
+entry = "bridge_fungible_token.sw"
 license = "Apache-2.0"
-name = "bridge_fungible_token_contract"
+name = "bridge_fungible_token"
 
 [dependencies]
 bridge_fungible_token_abi = { path = "../bridge-fungible-token-abi" }
