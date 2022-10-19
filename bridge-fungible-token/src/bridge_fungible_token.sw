@@ -9,7 +9,7 @@ use bridge_fungible_token_abi::BridgeFungibleToken;
 use contract_message_receiver::MessageReceiver;
 use core::num::*;
 use errors::BridgeFungibleTokenError;
-use events::WithdrawalEvent;
+use events::{RefundRegisteredEvent, WithdrawalEvent};
 use std::{
     address::Address,
     assert::assert,
@@ -17,6 +17,7 @@ use std::{
         AuthError,
         msg_sender,
     },
+    constants::ZERO_B256,
     context::{
         call_frames::{
             contract_id,
@@ -35,20 +36,19 @@ use std::{
     },
     storage::StorageMap,
     u256::U256,
+    vec::Vec,
     vm::evm::evm_address::EvmAddress,
 };
 use utils::{
+    b256_to_u64_words,
     burn_tokens,
     correct_input_type,
-    decompose,
     input_message_data,
     input_message_data_length,
     input_message_recipient,
     input_message_sender,
-    is_address,
     mint_tokens,
     parse_message_data,
-    register_refund,
     send_message,
     transfer_tokens,
 };
@@ -58,6 +58,19 @@ use utils::{
 ////////////////////////////////////////
 storage {
     refund_amounts: StorageMap<(EvmAddress, EvmAddress), U256> = StorageMap {},
+}
+
+////////////////////////////////////////
+// Storage-dependant private functions
+////////////////////////////////////////
+#[storage(write)]
+pub fn register_refund(from: EvmAddress, asset: EvmAddress, amount: U256) {
+    storage.refund_amounts.insert((from, asset), amount);
+    log(RefundRegisteredEvent {
+        from,
+        asset,
+        amount,
+    });
 }
 
 ////////////////////////////////////////
@@ -77,32 +90,19 @@ impl MessageReceiver for Contract {
 
         if message_data.l1_asset != ~EvmAddress::from(LAYER_1_TOKEN)
         {
-            // Register a refund if tokens don't match. The L1 tokens are now locked in the contract on Ethereum, so reverting here is not the correct action as it would prevent the registration of a claimable refund on the Fuel side of the bridge.
-            register_refund(message_data.from, message_data.l1_asset, amount);
+            // Register a refund if tokens don't match
+            register_refund(message_data.from, message_data.l1_asset, message_data.amount);
         } else {
-            // The value needs to be converted from the Ethereum side decimals (18) into the Fuel side decimals (9).
-            // This could result in a refund (value too large to fit in u64 under new decimals or too small to fit in new decimals)
-            /**
-                So, "1" erc20 token is represented internally (in ethereum contract) as 1 * 10^18 or 1_000_000_000_000_000_000
-                Dividing this number by 10^9 (because of 9 decimals in fuel contract) results in 1_000_000_000 internally, which is "1" token in the fuel contract
-                Internal Representations:
-                Ethereum: 1 = 0.000_000_000_000_000_001 ether (1 wei)
-                Fuel:     1 = 0.000_000_001 Base Asset
-                so: 999_999_999 wei sent from ethereum to fuel would result in a refund because it's too small to fit in the 9 decimals observed in the L2 BridgeFungibleToken contract, because this would be
-                              `0.000_000_000_999_999_999`, when
-                              `0.000_000_001` is the smallest value we can work with at 9 decimals.
-            */
-
-            let decomposed = decompose(message_data.amount);
-            let amount = ~U256::from(decomposed.0, decomposed.1, decomposed.2, decomposed.3);
-            let l1_amount_opt = amount.as_u64();
-            match l1_amount_opt {
+            let mut b256_amount = message_data.amount;
+            let u64_words = b256_to_u64_words(b256_amount);
+            let amount = ~U256::from(u64_words.0, u64_words.1, u64_words.2, u64_words.3).as_u64();
+            match amount {
                 Result::Err(e) => {
                     register_refund(message_data.from, message_data.l1_asset, amount);
                 },
                 Result::Ok(amount) => {
-                    mint_tokens(amount, Identity::Address(message_data.to));
-                    transfer_tokens(amount, contract_id(), Identity::Address(message_data.to));
+                    mint_tokens(amount, message_data.to);
+                    transfer_tokens(amount, contract_id(), message_data.to);
                 },
             }
         }
@@ -112,14 +112,15 @@ impl MessageReceiver for Contract {
 impl BridgeFungibleToken for Contract {
     #[storage(read, write)]
     fn claim_refund(originator: EvmAddress, asset: EvmAddress) {
-        let stored_amount = storage.refund_amounts.get((
-            originator,
-            asset,
-        ));
+        let stored_amount = storage.refund_amounts.get((originator, asset, ));
         // reset the refund amount to 0
-        storage.refund_amounts.insert((originator, asset), ZERO_B256);
+        storage.refund_amounts.insert((originator, asset), ~U256::new());
         // send a message to unlock this amount on the ethereum (L1) bridge contract contract
-        send_message(originator, asset, stored_amount);
+        let mut data: Vec<u64> = ~Vec::new();
+        data.push(11);
+        data.push(33);
+        data.push(55);
+        send_message(originator, data, stored_amount, LAYER_1_TOKEN);
     }
 
     #[storage(read)]
