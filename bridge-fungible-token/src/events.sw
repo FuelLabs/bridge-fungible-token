@@ -1,6 +1,11 @@
 library events;
 
-use std::{contract_id::ContractId, identity::Identity};
+use std::{
+    contract_id::ContractId,
+    identity::Identity,
+    u256::U256,
+    vm::evm::evm_address::EvmAddress,
+};
 
 pub struct BurnEvent {
     from: Identity,
@@ -10,12 +15,12 @@ pub struct BurnEvent {
 pub struct RefundRegisteredEvent {
     from: EvmAddress,
     asset: EvmAddress,
-    amount: b256,
+    amount: U256,
 }
 
 pub struct MintEvent {
-    to: Identity,
     amount: u64,
+    to: Address,
 }
 
 pub struct TransferEvent {
@@ -25,7 +30,7 @@ pub struct TransferEvent {
 }
 
 pub struct WithdrawalEvent {
-    to: Identity,
+    to: EvmAddress,
     amount: u64,
     asset: ContractId,
 }
