@@ -102,8 +102,7 @@ pub async fn setup_environment(
     .await
     .unwrap();
     let test_contract =
-        BridgeFungibleTokenContractBuilder::new(test_contract_id.to_string(), wallet.clone())
-            .build();
+        BridgeFungibleTokenContract::new(test_contract_id.to_string(), wallet.clone());
 
     // Build inputs for provided coins
     let coin_inputs: Vec<Input> = all_coins
@@ -192,7 +191,7 @@ pub async fn sign_and_call_tx(wallet: &WalletUnlocked, tx: &mut Transaction) -> 
 pub async fn prefix_contract_id(data: Vec<u8>) -> Vec<u8> {
     // Compute the test contract ID
     let storage_configuration = StorageConfiguration::default();
-    let compiled_contract = Contract::load_sway_contract(
+    let compiled_contract = Contract::load_contract(
         TEST_RECEIVER_CONTRACT_BINARY,
         &storage_configuration.storage_path,
     )
@@ -213,4 +212,23 @@ pub fn decode_hex(s: &str) -> Vec<u8> {
         .map(|i| u8::from_str_radix(&s[i..i + 2], 16))
         .collect();
     data.unwrap()
+}
+
+pub async fn get_fungible_token_instance(
+    wallet: WalletUnlocked,
+) -> (BridgeFungibleTokenContract, ContractId) {
+    // Deploy the target contract used for testing processing messages
+    let fungible_token_contract_id = Contract::deploy(
+        TEST_RECEIVER_CONTRACT_BINARY,
+        &wallet,
+        TxParameters::default(),
+        StorageConfiguration::default(),
+    )
+    .await
+    .unwrap();
+
+    let fungible_token_instance =
+        BridgeFungibleTokenContract::new(fungible_token_contract_id.to_string(), wallet);
+
+    (fungible_token_instance, fungible_token_contract_id.into())
 }
