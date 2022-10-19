@@ -142,8 +142,8 @@ impl BridgeFungibleToken for Contract {
         DECIMALS
     }
 
-    fn layer1_token() -> EvmAddress {
-        ~EvmAddress::from(LAYER_1_TOKEN)
+    fn layer1_token() -> b256 {
+        LAYER_1_TOKEN
     }
 
     fn layer1_decimals() -> u8 {
