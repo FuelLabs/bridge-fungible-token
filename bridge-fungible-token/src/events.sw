@@ -15,7 +15,7 @@ pub struct BurnEvent {
 pub struct RefundRegisteredEvent {
     from: EvmAddress,
     asset: EvmAddress,
-    amount: U256,
+    amount: b256,
 }
 
 pub struct MintEvent {

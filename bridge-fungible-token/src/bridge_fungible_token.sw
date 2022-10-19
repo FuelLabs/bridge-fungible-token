@@ -11,8 +11,6 @@ use core::num::*;
 use errors::BridgeFungibleTokenError;
 use events::{RefundRegisteredEvent, WithdrawalEvent};
 use std::{
-    address::Address,
-    assert::assert,
     chain::auth::{
         AuthError,
         msg_sender,
@@ -25,47 +23,39 @@ use std::{
         },
         msg_amount,
     },
-    contract_id::ContractId,
-    identity::Identity,
     logging::log,
-    option::Option,
-    result::Result,
-    revert::{
-        require,
-        revert,
-    },
     storage::StorageMap,
-    u256::U256,
-    vec::Vec,
     vm::evm::evm_address::EvmAddress,
 };
 use utils::{
-    b256_to_u64_words,
     burn_tokens,
     correct_input_type,
+    decompose,
     input_message_data,
     input_message_data_length,
     input_message_recipient,
     input_message_sender,
     mint_tokens,
     parse_message_data,
-    send_message,
+    safe_b256_to_u64,
+    send_message_output,
     transfer_tokens,
+    u64_to_b256,
 };
 
 ////////////////////////////////////////
 // Storage declarations
 ////////////////////////////////////////
 storage {
-    refund_amounts: StorageMap<(EvmAddress, EvmAddress), U256> = StorageMap {},
+    refund_amounts: StorageMap<(EvmAddress, EvmAddress), Option<b256>> = StorageMap {},
 }
 
 ////////////////////////////////////////
 // Storage-dependant private functions
 ////////////////////////////////////////
 #[storage(write)]
-pub fn register_refund(from: EvmAddress, asset: EvmAddress, amount: U256) {
-    storage.refund_amounts.insert((from, asset), amount);
+pub fn register_refund(from: EvmAddress, asset: EvmAddress, amount: b256) {
+    storage.refund_amounts.insert((from, asset), Option::Some(amount));
     log(RefundRegisteredEvent {
         from,
         asset,
@@ -93,16 +83,14 @@ impl MessageReceiver for Contract {
             // Register a refund if tokens don't match
             register_refund(message_data.from, message_data.l1_asset, message_data.amount);
         } else {
-            let mut b256_amount = message_data.amount;
-            let u64_words = b256_to_u64_words(b256_amount);
-            let amount = ~U256::from(u64_words.0, u64_words.1, u64_words.2, u64_words.3).as_u64();
+            let amount = safe_b256_to_u64(message_data.amount);
             match amount {
                 Result::Err(e) => {
-                    register_refund(message_data.from, message_data.l1_asset, amount);
+                    register_refund(message_data.from, message_data.l1_asset, message_data.amount);
                 },
-                Result::Ok(amount) => {
-                    mint_tokens(amount, message_data.to);
-                    transfer_tokens(amount, contract_id(), message_data.to);
+                Result::Ok(a) => {
+                    mint_tokens(a, message_data.to);
+                    transfer_tokens(a, contract_id(), message_data.to);
                 },
             }
         }
@@ -112,15 +100,14 @@ impl MessageReceiver for Contract {
 impl BridgeFungibleToken for Contract {
     #[storage(read, write)]
     fn claim_refund(originator: EvmAddress, asset: EvmAddress) {
-        let stored_amount = storage.refund_amounts.get((originator, asset, ));
+        let stored_amount = storage.refund_amounts.get((originator, asset));
+        require(stored_amount.is_some(), BridgeFungibleTokenError::NoRefundAvailable);
         // reset the refund amount to 0
-        storage.refund_amounts.insert((originator, asset), ~U256::new());
-        // send a message to unlock this amount on the ethereum (L1) bridge contract contract
-        let mut data: Vec<u64> = ~Vec::new();
-        data.push(11);
-        data.push(33);
-        data.push(55);
-        send_message(originator, data, stored_amount, LAYER_1_TOKEN);
+        storage.refund_amounts.insert((originator, asset), Option::None());
+
+        let values = decompose(stored_amount.unwrap());
+        // send a message to unlock this amount on the ethereum (L1) bridge contract
+        send_message_output(originator, values.3);
     }
 
     #[storage(read)]
@@ -135,7 +122,7 @@ impl BridgeFungibleToken for Contract {
         require(contract_id() == origin_contract_id, BridgeFungibleTokenError::IncorrectAssetDeposited);
 
         burn_tokens(withdrawal_amount, sender);
-        send_message(to, withdrawal_amount);
+        send_message_output(to, withdrawal_amount);
         log(WithdrawalEvent {
             to: to,
             amount: withdrawal_amount,

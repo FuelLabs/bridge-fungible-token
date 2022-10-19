@@ -1,12 +1,13 @@
 library utils;
 
+dep errors;
 dep events;
 dep data;
 
+use errors::BridgeFungibleTokenError;
 use events::{BurnEvent, MintEvent, TransferEvent};
 use data::MessageData;
 use std::{
-    address::Address,
     constants::ZERO_B256,
     inputs::{
         Input,
@@ -14,14 +15,16 @@ use std::{
         input_type,
     },
     logging::log,
-    mem::read,
+    mem::{
+        addr_of,
+        read,
+        write,
+    },
     token::{
         burn,
         mint_to_address,
-        transfer_to_output,
+        transfer_to_address,
     },
-    u256::U256,
-    vec::Vec,
     vm::evm::evm_address::EvmAddress,
 };
 
@@ -56,8 +59,37 @@ pub fn correct_input_type(index: u64) -> bool {
     }
 }
 
+pub fn safe_b256_to_u64(val: b256) -> Result<u64, BridgeFungibleTokenError> {
+    // first, decompose into u64 values
+    let u64s = decompose(val);
+
+    // verify amount will require no partial refund of dust by using bitwise OR and a mask of the lowest bits representing the first 9 decimal palces in the passed-in value
+    require(u64s.3 | 0b000000000000000000000000000 == 0b000000000000000000000000000, BridgeFungibleTokenError::BridgedValueIncompatability);
+
+    // verify amount is not too small
+    require(u64s.3 >= 1_000_000_000, BridgeFungibleTokenError::BridgedValueIncompatability);
+
+    // verify amount is not too big
+    if u64s.0 == 0 && u64s.1 == 0 && u64s.2 == 0 {
+        Result::Ok(u64s.3)
+    } else {
+        Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability)
+    }
+}
+
+/// Build a single b256 value from a u64 left-padded with 3 0u64's
+pub fn u64_to_b256(val: u64) -> b256 {
+    let res: b256 = 0x0000000000000000000000000000000000000000000000000000000000000000;
+    let ptr = addr_of(res);
+    write(ptr, 0);
+    write(ptr + 8, 0);
+    write(ptr + 16, 0);
+    write(ptr + 24, val);
+    res
+}
+
 /// Get 4 64 bit words from a single b256 value.
-pub fn b256_to_u64_words(val: b256) -> (u64, u64, u64, u64) {
+pub fn decompose(val: b256) -> (u64, u64, u64, u64) {
     let w1 = single_word_from_b256(val, 0);
     let w2 = single_word_from_b256(val, 8);
     let w3 = single_word_from_b256(val, 16);
@@ -85,7 +117,6 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
     };
 
     // Parse the message data
-    // @review can we trust that message.data is long enough/has all required data (does predicate enforce this) ?
     msg_data.fuel_token = ~ContractId::from(input_message_data::<b256>(msg_idx, 0));
     msg_data.l1_asset = ~EvmAddress::from(input_message_data::<b256>(msg_idx, 32));
     msg_data.from = ~EvmAddress::from(input_message_data::<b256>(msg_idx, 32 + 32));
@@ -94,7 +125,6 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
 
     msg_data
 }
-
 pub fn format_data(to: EvmAddress, amount: u64) -> Vec<u64> {
     // construct a Vec<u64> from:
     // func selector (0x53ef1461) + recipient.value + LAYER_1_TOKEN + amount (as b256)
@@ -104,14 +134,14 @@ pub fn format_data(to: EvmAddress, amount: u64) -> Vec<u64> {
     data.push(0x53ef1461);
 
     // add the address to recieve coins
-    let (recip_1, recip_2, recip_3, recip_4) = b256_to_u64_words(to.value);
+    let (recip_1, recip_2, recip_3, recip_4) = decompose(to.value);
     data.push(recip_1);
     data.push(recip_2);
     data.push(recip_3);
     data.push(recip_4);
 
     // add the address of the L1 token contract
-    let (token_1, token_2, token_3, token_4) = b256_to_u64_words(LAYER_1_TOKEN);
+    let (token_1, token_2, token_3, token_4) = decompose(LAYER_1_TOKEN);
     data.push(token_1);
     data.push(token_2);
     data.push(token_3);
@@ -127,19 +157,14 @@ pub fn format_data(to: EvmAddress, amount: u64) -> Vec<u64> {
 }
 
 // ref: https://github.com/FuelLabs/fuel-specs/blob/bd6ec935e3d1797a192f731dadced3f121744d54/specs/vm/instruction_set.md#smo-send-message-to-output
-pub fn send_message(
-    recipient: EvmAddress,
-    data: Vec<u64>,
-    coins: u64,
-    asset: b256,
-) {
+pub fn send_message_output(to: EvmAddress, amount: u64, ) {
     // convert to eth decimals
-    let l1_amount = coins * (LAYER_1_DECIMALS - DECIMALS);
-    // send_message(LAYER_1_ERC20_GATEWAY.value, data, l1_amount);
+    let l1_amount = amount * (LAYER_1_DECIMALS - DECIMALS);
+    send_message(LAYER_1_ERC20_GATEWAY.value, format_data(to, l1_amount), 0);
 }
 
 pub fn transfer_tokens(amount: u64, asset: ContractId, to: Address) {
-    transfer_to_output(amount, asset, to);
+    transfer_to_address(amount, asset, to);
 }
 
 ///////////////////////////////////////

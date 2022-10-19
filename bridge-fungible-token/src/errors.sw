@@ -4,4 +4,6 @@ pub enum BridgeFungibleTokenError {
     UnauthorizedUser: (),
     IncorrectAssetDeposited: (),
     NoCoinsForwarded: (),
+    NoRefundAvailable: (),
+    BridgedValueIncompatability: (),
 }
