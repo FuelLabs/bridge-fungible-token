@@ -24,11 +24,11 @@ abi BridgeFungibleToken {
     /// * When no coins were sent with call
     /// * When the wrong asset was sent with the call
     #[storage(read)]
-    fn withdraw_to(to: Identity);
+    fn withdraw_to(to: EvmAddress);
     /// Get the name of this token contract
-    fn name() -> str[11];
+    fn name() -> str[8];
     /// Get the symbol of this token contract
-    fn symbol() -> str[11];
+    fn symbol() -> str[5];
     /// get the decimals of this token contract
     fn decimals() -> u8;
     /// get the L1 token that this contract bridges
