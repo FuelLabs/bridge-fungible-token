@@ -3,9 +3,11 @@ mod utils {
     pub mod ext_sdk_provider;
 }
 
+use std::str::FromStr;
 use utils::environment as env;
 use utils::ext_sdk_provider;
 
+use fuels::prelude::*;
 use fuels::test_helpers::DEFAULT_COIN_AMOUNT;
 use fuels::tx::{Address, AssetId, Output};
 
@@ -53,10 +55,81 @@ mod success {
         // Verify the message value was received by the test contract
         let provider = wallet.get_provider().unwrap();
         let test_contract_balance = provider
-            .get_contract_asset_balance(test_contract._get_contract_id(), AssetId::default())
+            .get_contract_asset_balance(test_contract.get_contract_id(), AssetId::default())
             .await
             .unwrap();
         assert_eq!(test_contract_balance, 100);
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn withdraw_from_bridge() {}
+
+    #[tokio::test]
+    #[ignore]
+    async fn claim_refund() {}
+
+    #[tokio::test]
+    #[ignore]
+    async fn dust_registers_refund() {}
+
+    #[tokio::test]
+    #[ignore]
+    async fn amount_too_small_registers_refund() {}
+
+    #[tokio::test]
+    #[ignore]
+    async fn amount_too_large_registers_refund() {}
+
+    #[tokio::test]
+    async fn can_get_name() {
+        let wallet = launch_provider_and_get_wallet().await;
+        // Set up the environment
+        let (contract, _id) = env::get_fungible_token_instance(wallet.clone()).await;
+
+        let call_response = contract.methods().name().call().await.unwrap();
+        assert_eq!(call_response.value, "MY_TOKEN")
+    }
+
+    #[tokio::test]
+    async fn can_get_symbol() {
+        let wallet = launch_provider_and_get_wallet().await;
+        // Set up the environment
+        let (contract, _id) = env::get_fungible_token_instance(wallet.clone()).await;
+
+        let call_response = contract.methods().symbol().call().await.unwrap();
+        assert_eq!(call_response.value, "MYTKN")
+    }
+
+    #[tokio::test]
+    async fn can_get_decimals() {
+        let wallet = launch_provider_and_get_wallet().await;
+        // Set up the environment
+        let (contract, _id) = env::get_fungible_token_instance(wallet.clone()).await;
+
+        let call_response = contract.methods().decimals().call().await.unwrap();
+        assert_eq!(call_response.value, 9)
+    }
+
+    #[tokio::test]
+    async fn can_get_layer1_token() {
+        let wallet = launch_provider_and_get_wallet().await;
+        // Set up the environment
+        let (contract, _id) = env::get_fungible_token_instance(wallet.clone()).await;
+        let l1_token = Address::from_str(&L1_TOKEN).unwrap();
+
+        let call_response = contract.methods().layer1_token().call().await.unwrap();
+        assert_eq!(call_response.value, Bits256(*l1_token))
+    }
+
+    #[tokio::test]
+    async fn can_get_layer1_decimals() {
+        let wallet = launch_provider_and_get_wallet().await;
+        // Set up the environment
+        let (contract, _id) = env::get_fungible_token_instance(wallet.clone()).await;
+
+        let call_response = contract.methods().layer1_decimals().call().await.unwrap();
+        assert_eq!(call_response.value, 18)
     }
 }
 
@@ -103,7 +176,7 @@ mod revert {
         // Verify the message value was received by the test contract
         let provider = wallet.get_provider().unwrap();
         let test_contract_balance = provider
-            .get_contract_asset_balance(test_contract._get_contract_id(), AssetId::default())
+            .get_contract_asset_balance(test_contract.get_contract_id(), AssetId::default())
             .await
             .unwrap();
         assert_eq!(test_contract_balance, 100);
@@ -148,7 +221,7 @@ mod revert {
         // Verify the message value was received by the test contract
         let provider = wallet.get_provider().unwrap();
         let test_contract_balance = provider
-            .get_contract_asset_balance(test_contract._get_contract_id(), AssetId::default())
+            .get_contract_asset_balance(test_contract.get_contract_id(), AssetId::default())
             .await
             .unwrap();
         assert_eq!(test_contract_balance, 100);
@@ -193,7 +266,7 @@ mod revert {
         // Verify the message value was received by the test contract
         let provider = wallet.get_provider().unwrap();
         let test_contract_balance = provider
-            .get_contract_asset_balance(test_contract._get_contract_id(), AssetId::default())
+            .get_contract_asset_balance(test_contract.get_contract_id(), AssetId::default())
             .await
             .unwrap();
         assert_eq!(test_contract_balance, 100);
