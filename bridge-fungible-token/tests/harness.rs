@@ -1,11 +1,9 @@
 mod utils {
     pub mod environment;
-    pub mod ext_fuel_core;
     pub mod ext_sdk_provider;
 }
 
 use utils::environment as env;
-use utils::ext_fuel_core;
 use utils::ext_sdk_provider;
 
 use fuels::test_helpers::DEFAULT_COIN_AMOUNT;

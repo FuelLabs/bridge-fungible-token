@@ -1,14 +1,14 @@
-use crate::ext_fuel_core;
 use crate::ext_sdk_provider;
 
 use std::mem::size_of;
 use std::num::ParseIntError;
 use std::str::FromStr;
 
+use fuel_core_interfaces::model::Message;
 use fuels::contract::script::Script;
 use fuels::prelude::*;
 use fuels::signers::fuel_crypto::SecretKey;
-use fuels::test_helpers::Config;
+use fuels::test_helpers::{setup_single_message, setup_test_client, Config};
 use fuels::tx::Output;
 use fuels::tx::Receipt;
 use fuels::tx::Transaction;
@@ -64,12 +64,12 @@ pub async fn setup_environment(
     let message_sender = Address::from_str(MESSAGE_SENDER_ADDRESS).unwrap();
     let (predicate_bytecode, predicate_root, _) =
         ext_sdk_provider::get_contract_message_predicate().await;
-    let all_messages = messages
+    let all_messages: Vec<Message> = messages
         .iter()
-        .map(|message| {
-            ext_fuel_core::setup_single_message(
-                message_sender,
-                predicate_root,
+        .flat_map(|message| {
+            setup_single_message(
+                &message_sender.into(),
+                &predicate_root.into(),
                 message.0,
                 message_nonce,
                 message.1.clone(),
@@ -80,9 +80,9 @@ pub async fn setup_environment(
     // Create the client and provider
     let mut provider_config = Config::local_node();
     provider_config.predicates = true;
-    let (client, _) = ext_fuel_core::setup_test_client_with_messages(
-        &all_coins,
-        &all_messages,
+    let (client, _) = setup_test_client(
+        all_coins.clone(),
+        all_messages.clone(),
         Some(provider_config),
         None,
     )
