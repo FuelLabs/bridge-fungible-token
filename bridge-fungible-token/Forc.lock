@@ -1,10 +1,5 @@
 [[package]]
-name = 'bridge_fungible_token_abi'
-source = 'path+from-root-DD18C0F7548B314B'
-dependencies = ['std']
-
-[[package]]
-name = 'bridge_fungible_token_contract'
+name = 'bridge_fungible_token'
 source = 'root'
 dependencies = [
     'bridge_fungible_token_abi',
@@ -13,16 +8,21 @@ dependencies = [
 ]
 
 [[package]]
+name = 'bridge_fungible_token_abi'
+source = 'path+from-root-0CFC8A61C9CDDC6E'
+dependencies = ['std']
+
+[[package]]
 name = 'contract_message_receiver'
-source = 'path+from-root-DD18C0F7548B314B'
+source = 'path+from-root-0CFC8A61C9CDDC6E'
 dependencies = ['std']
 
 [[package]]
 name = 'core'
-source = 'path+from-root-54F92B42A645EA2B'
+source = 'path+from-root-2F6DBEF6F2B7B5D1'
 dependencies = []
 
 [[package]]
 name = 'std'
-source = 'git+https://github.com/fuellabs/sway?tag=v0.24.5#e695606d8884a18664f6231681333a784e623bc9'
+source = 'git+https://github.com/fuellabs/sway?tag=v0.26.0#e7674f704f2706e22f77c0ed32df9c89302e5e7e'
 dependencies = ['core']
