@@ -35,7 +35,7 @@ use utils::{
     input_message_data_length,
     input_message_recipient,
     input_message_sender,
-    mint_tokens,
+    mint_and_transfer_tokens,
     parse_message_data,
     safe_b256_to_u64,
     send_message_output,
@@ -81,6 +81,7 @@ impl MessageReceiver for Contract {
         if message_data.l1_asset != ~EvmAddress::from(LAYER_1_TOKEN)
         {
             // Register a refund if tokens don't match
+            // @review this. seems like it should be a revert ?
             register_refund(message_data.from, message_data.l1_asset, message_data.amount);
         } else {
             let amount = safe_b256_to_u64(message_data.amount);
@@ -89,8 +90,7 @@ impl MessageReceiver for Contract {
                     register_refund(message_data.from, message_data.l1_asset, message_data.amount);
                 },
                 Result::Ok(a) => {
-                    mint_tokens(a, message_data.to);
-                    transfer_tokens(a, contract_id(), message_data.to);
+                    mint_and_transfer_tokens(a, message_data.to);
                 },
             }
         }

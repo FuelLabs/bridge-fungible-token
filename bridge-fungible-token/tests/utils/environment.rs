@@ -28,12 +28,15 @@ pub const TEST_RECEIVER_CONTRACT_BINARY: &str =
 pub async fn setup_environment(
     coins: Vec<(Word, AssetId)>,
     messages: Vec<(Word, Vec<u8>)>,
+    sender: Option<&str>,
 ) -> (
     WalletUnlocked,
     BridgeFungibleTokenContract,
     Input,
     Vec<Input>,
     Vec<Input>,
+    Bech32ContractId,
+    Provider,
 ) {
     // Create secret for wallet
     const SIZE_SECRET_KEY: usize = size_of::<SecretKey>();
@@ -61,7 +64,10 @@ pub async fn setup_environment(
 
     // Generate messages
     let message_nonce: Word = Word::default();
-    let message_sender = Address::from_str(MESSAGE_SENDER_ADDRESS).unwrap();
+    let message_sender = match sender {
+        Some(v) => Address::from_str(v).unwrap(),
+        None => Address::from_str(MESSAGE_SENDER_ADDRESS).unwrap(),
+    };
     let (predicate_bytecode, predicate_root, _) =
         ext_sdk_provider::get_contract_message_predicate().await;
     let all_messages: Vec<Message> = messages
@@ -140,7 +146,7 @@ pub async fn setup_environment(
         balance_root: Bytes32::zeroed(),
         state_root: Bytes32::zeroed(),
         tx_pointer: TxPointer::default(),
-        contract_id: test_contract_id.into(),
+        contract_id: test_contract_id.clone().into(),
     };
 
     (
@@ -149,6 +155,8 @@ pub async fn setup_environment(
         contract_input,
         coin_inputs,
         message_inputs,
+        test_contract_id.clone(),
+        provider,
     )
 }
 

@@ -680,6 +680,7 @@ dependencies = [
  "fuel-core",
  "fuel-core-interfaces",
  "fuel-crypto 0.5.0",
+ "fuel-types",
  "fuels",
  "tokio",
 ]

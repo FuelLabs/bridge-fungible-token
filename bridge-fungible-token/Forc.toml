@@ -11,8 +11,8 @@ contract_message_receiver = { path = "../bridge-message-predicates/contract-mess
 [constants]
 LAYER_1_ERC20_GATEWAY = { type = "b256", value = "0xca400d3e7710eee293786830755278e6d2b9278b4177b8b1a896ebd5f55c10bc" }
 # TODO: Set actual value here instead of placeholder
-LAYER_1_TOKEN = { type = "b256", value = "0xabcdef0000000000000000000000000000000000000000000000000000abcdef" }
-PREDICATE_ROOT = { type = "b256", value = "0xbc5869a28f97b24944a0aa9724d8001427f7a594fe9fd739a1d6b27c02c47f7f" }
+LAYER_1_TOKEN = { type = "b256", value = "0x00000000000000000000000000000000000000000000000000000000deadbeef" }
+PREDICATE_ROOT = { type = "b256", value = "0x1b68c76eb5a9674b776daab8e2ded519fc152cf1e4f78b08559d4106e36d2176" }
 # TODO: need varaible-length strings to allow flexibility in name and symbol !
 # For now, could use the hash of any string (i:e: a b256)
 DECIMALS = { type = "u8", value = "9u8" }

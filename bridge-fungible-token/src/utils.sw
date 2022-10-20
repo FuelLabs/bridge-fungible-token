@@ -46,7 +46,7 @@ const GTF_INPUT_MESSAGE_DATA = 0x11E;
 const GTF_INPUT_MESSAGE_SENDER = 0x115;
 const GTF_INPUT_MESSAGE_RECIPIENT = 0x116;
 
-pub fn mint_tokens(amount: u64, to: Address) {
+pub fn mint_and_transfer_tokens(amount: u64, to: Address) {
     mint_to_address(amount, to);
     log(MintEvent { amount, to });
 }
@@ -78,14 +78,14 @@ pub fn safe_b256_to_u64(val: b256) -> Result<u64, BridgeFungibleTokenError> {
     // verify amount will require no partial refund of dust by ensuring that
     // the first 9 decimal places in the passed-in value are empty,
     // then verify amount is not too small or too large
-    if (u64s.3
-        | 0b000000000000000000000000000 == 0b000000000000000000000000000)
+    if (u64s.3 / 1_000_000_000) * 1_000_000_000 == u64s.3
         && u64s.3 >= 1_000_000_000
         && u64s.0 == 0
         && u64s.1 == 0
         && u64s.2 == 0
     {
-        Result::Ok(u64s.3)
+        // reduce decimals by 9 places
+        Result::Ok(u64s.3 / 1_000_000_000)
     } else {
         Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability)
     }
@@ -139,7 +139,7 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
 
     msg_data
 }
-pub fn format_data(to: EvmAddress, amount: u64) -> Vec<u64> {
+pub fn encode_data(to: EvmAddress, amount: u64) -> Vec<u64> {
     // construct a Vec<u64> from:
     // func selector (0x53ef1461) + recipient.value + LAYER_1_TOKEN + amount (as b256)
     let mut data = ~Vec::with_capacity(13);
@@ -174,7 +174,7 @@ pub fn format_data(to: EvmAddress, amount: u64) -> Vec<u64> {
 pub fn send_message_output(to: EvmAddress, amount: u64, ) {
     // convert to eth decimals
     let l1_amount = amount * (LAYER_1_DECIMALS - DECIMALS);
-    send_message(LAYER_1_ERC20_GATEWAY, format_data(to, l1_amount), 0);
+    send_message(LAYER_1_ERC20_GATEWAY, encode_data(to, l1_amount), 0);
 }
 
 pub fn transfer_tokens(amount: u64, asset: ContractId, to: Address) {
