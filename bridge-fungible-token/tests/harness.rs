@@ -16,12 +16,14 @@ pub const TO: &str = "0x00000000000000000000000000000000000000000000000000000000
 pub const FROM: &str = "0x0000000000000000000000008888888888888888888888888888888888888888";
 pub const MINIMUM_BRIDGABLE_AMOUNT: &str =
     "0x000000000000000000000000000000000000000000000000000000003B9ACA00";
-pub const DUST: &str = "0x0000000000000000000000000000000000000000000000000000000000000011";
+pub const DUST: &str = "0x000000000000000000000000000000000000000000000000000000003B9AC9FF";
 pub const MAXIMUM_BRIDGABLE_AMOUNT: &str =
     "0x000000000000000000000000000000000000000000000000FFFFFFFFFFFFFFFF";
 pub const OVERFLOWING_AMOUNT: &str =
     "0x000000000000000000000000000000000000000000000001FFFFFFFFFFFFFFFF";
 
+// @todo Add test for max amount
+// @todo Add test for max amount + 1 triggering refund
 mod success {
     use super::*;
 
@@ -31,17 +33,25 @@ mod success {
 
         let mut recipient_wallet = WalletUnlocked::new_random(None);
 
-        let mut message_data = Vec::with_capacity(5);
-        message_data.append(&mut env::decode_hex(L1_TOKEN));
+        let (message, coin) = env::encode_message_data(
+            L1_TOKEN,
+            FROM,
+            recipient_wallet.address().hash().to_vec(),
+            MINIMUM_BRIDGABLE_AMOUNT,
+        )
+        .await;
+
+        // let mut message_data = Vec::with_capacity(5);
+        // message_data.append(&mut env::decode_hex(L1_TOKEN));
         // @review from used to be the predicate root
         // message_data.append(&mut root_array.to_vec());
-        message_data.append(&mut env::decode_hex(FROM));
-        message_data.append(&mut recipient_wallet.address().hash().to_vec());
-        message_data.append(&mut env::decode_hex(MINIMUM_BRIDGABLE_AMOUNT));
+        // message_data.append(&mut env::decode_hex(FROM));
+        // message_data.append(&mut recipient_wallet.address().hash().to_vec());
+        // message_data.append(&mut env::decode_hex(MINIMUM_BRIDGABLE_AMOUNT));
 
-        let message_data = env::prefix_contract_id(message_data).await;
-        let message = (100, message_data);
-        let coin = (DEFAULT_COIN_AMOUNT, AssetId::default());
+        // let message_data = env::prefix_contract_id(message_data).await;
+        // let message = (100, message_data);
+        // let coin = (DEFAULT_COIN_AMOUNT, AssetId::default());
 
         // Set up the environment
         let (
@@ -93,6 +103,14 @@ mod success {
         assert_eq!(balance, 1);
         Ok(())
     }
+
+    #[tokio::test]
+    #[ignore]
+    async fn depositing_max_amount_ok() {}
+
+    #[tokio::test]
+    #[ignore]
+    async fn depositing_amount_more_than_max_registers_refund() {}
 
     #[tokio::test]
     #[ignore]
@@ -338,72 +356,18 @@ mod revert {
 
     #[tokio::test]
     #[should_panic(expected = "Revert(42)")]
-    async fn verification_fails_with_wrong_token() {
+    async fn verification_fails_with_wrong_l1_token() {
         let (_, _, root_array) = utils::ext_sdk_provider::get_contract_message_predicate().await;
         let wrong_token_value: &str =
             "0x1111110000000000000000000000000000000000000000000000000000111111";
-        let mut message_data = Vec::with_capacity(5);
-        // append incorrect L1 token to data:
-        message_data.append(&mut env::decode_hex(wrong_token_value));
-        message_data.append(&mut root_array.to_vec());
-        message_data.append(&mut env::decode_hex(TO));
-        message_data.append(&mut env::decode_hex(MINIMUM_BRIDGABLE_AMOUNT));
-        let message_data = env::prefix_contract_id(message_data).await;
-        let message = (100, message_data);
-        let coin = (DEFAULT_COIN_AMOUNT, AssetId::default());
 
-        // Set up the environment
-        let (
-            wallet,
-            test_contract,
-            contract_input,
-            coin_inputs,
-            message_inputs,
-            _test_contract_id,
-            _provider,
-        ) = env::setup_environment(vec![coin], vec![message], None).await;
-
-        let new_output = Output::Variable {
-            amount: 0,
-            to: Address::zeroed(),
-            asset_id: AssetId::default(),
-        };
-
-        // Relay the test message to the test contract
-        let _receipts = env::relay_message_to_contract(
-            &wallet,
-            message_inputs[0].clone(),
-            contract_input,
-            &coin_inputs[..],
-            &vec![],
-            &vec![new_output],
+        let (message, coin) = env::encode_message_data(
+            wrong_token_value,
+            FROM,
+            env::decode_hex(TO),
+            MINIMUM_BRIDGABLE_AMOUNT,
         )
         .await;
-
-        // Verify the message value was received by the test contract
-        let provider = wallet.get_provider().unwrap();
-        let test_contract_balance = provider
-            .get_contract_asset_balance(test_contract.get_contract_id(), AssetId::default())
-            .await
-            .unwrap();
-        assert_eq!(test_contract_balance, 100);
-    }
-
-    #[tokio::test]
-    #[should_panic(expected = "Revert(42)")]
-    #[ignore]
-    async fn verification_fails_with_wrong_predicate_root() {
-        let mut message_data = Vec::with_capacity(5);
-        message_data.append(&mut env::decode_hex(L1_TOKEN));
-        let wrong_predicate_root =
-            "0x1111110000000000000000000000000000000000000000000000000000111111";
-        // append incorrect predicate root to data:
-        message_data.append(&mut env::decode_hex(wrong_predicate_root));
-        message_data.append(&mut env::decode_hex(TO));
-        message_data.append(&mut env::decode_hex(MINIMUM_BRIDGABLE_AMOUNT));
-        let message_data = env::prefix_contract_id(message_data).await;
-        let message = (100, message_data);
-        let coin = (DEFAULT_COIN_AMOUNT, AssetId::default());
 
         // Set up the environment
         let (
@@ -445,16 +409,15 @@ mod revert {
     #[tokio::test]
     #[should_panic(expected = "Revert(42)")]
     async fn verification_fails_with_wrong_sender() {
-        let (_, _, root_array) = utils::ext_sdk_provider::get_contract_message_predicate().await;
-        let mut message_data = Vec::with_capacity(5);
-        // append incorrect L1 token to data:
-        message_data.append(&mut env::decode_hex(L1_TOKEN));
-        message_data.append(&mut root_array.to_vec());
-        message_data.append(&mut env::decode_hex(TO));
-        message_data.append(&mut env::decode_hex(MINIMUM_BRIDGABLE_AMOUNT));
-        let message_data = env::prefix_contract_id(message_data).await;
-        let message = (100, message_data);
-        let coin = (DEFAULT_COIN_AMOUNT, AssetId::default());
+        // let (_, _, root_array) = utils::ext_sdk_provider::get_contract_message_predicate().await;
+
+        let (message, coin) = env::encode_message_data(
+            L1_TOKEN,
+            FROM,
+            env::decode_hex(TO),
+            MINIMUM_BRIDGABLE_AMOUNT,
+        )
+        .await;
 
         let bad_sender: &str =
             "0x55555500000000000000000000000000000000000000000000000000005555555";
@@ -489,7 +452,7 @@ mod revert {
 
         // Verify the message value was received by the test contract
         let provider = wallet.get_provider().unwrap();
-        let test_contract_balance = provider
+        let _test_contract_balance = provider
             .get_contract_asset_balance(test_contract.get_contract_id(), AssetId::default())
             .await
             .unwrap();

@@ -76,23 +76,19 @@ impl MessageReceiver for Contract {
 
         let message_data = parse_message_data(msg_idx);
 
+        // @review this.
+        // Register a refund if tokens don't match
+        // register_refund(message_data.from, message_data.l1_asset, message_data.amount);
         require(message_data.l1_asset == ~EvmAddress::from(LAYER_1_TOKEN), BridgeFungibleTokenError::IncorrectAssetDeposited);
 
-        if message_data.l1_asset != ~EvmAddress::from(LAYER_1_TOKEN)
-        {
-            // Register a refund if tokens don't match
-            // @review this. seems like it should be a revert ?
-            register_refund(message_data.from, message_data.l1_asset, message_data.amount);
-        } else {
-            let amount = safe_b256_to_u64(message_data.amount);
-            match amount {
-                Result::Err(e) => {
-                    register_refund(message_data.from, message_data.l1_asset, message_data.amount);
-                },
-                Result::Ok(a) => {
-                    mint_and_transfer_tokens(a, message_data.to);
-                },
-            }
+        let amount = safe_b256_to_u64(message_data.amount);
+        match amount {
+            Result::Err(e) => {
+                register_refund(message_data.from, message_data.l1_asset, message_data.amount);
+            },
+            Result::Ok(a) => {
+                mint_and_transfer_tokens(a, message_data.to);
+            },
         }
     }
 }

@@ -240,3 +240,22 @@ pub async fn get_fungible_token_instance(
 
     (fungible_token_instance, fungible_token_contract_id.into())
 }
+
+pub async fn encode_message_data(
+    l1_token: &str,
+    from: &str,
+    mut to: Vec<u8>,
+    amount: &str,
+) -> ((u64, Vec<u8>), (u64, AssetId)) {
+    let mut message_data = Vec::with_capacity(5);
+    message_data.append(&mut decode_hex(&l1_token));
+    message_data.append(&mut decode_hex(&from));
+    message_data.append(&mut to);
+    message_data.append(&mut decode_hex(&amount));
+
+    let message_data = prefix_contract_id(message_data).await;
+    let message = (100, message_data);
+    let coin = (DEFAULT_COIN_AMOUNT, AssetId::default());
+
+    (message, coin)
+}
