@@ -26,28 +26,25 @@ mod success {
 
     #[tokio::test]
     async fn relay_message_with_predicate_and_script_constraint() -> Result<(), Error> {
-        let mut recipient_wallet = WalletUnlocked::new_random(None);
+        let mut wallet = env::setup_wallet();
 
-        let (message, coin) = env::encode_message_data(
+        let (message, coin) = env::contruct_msg_data(
             L1_TOKEN,
             FROM,
-            recipient_wallet.address().hash().to_vec(),
+            wallet.address().hash().to_vec(),
             MINIMUM_BRIDGABLE_AMOUNT,
         )
         .await;
 
         // Set up the environment
         let (
-            wallet,
             test_contract,
             contract_input,
             coin_inputs,
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(vec![coin], vec![message], None).await;
-
-        recipient_wallet.set_provider(provider);
+        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None).await;
 
         // Relay the test message to the test contract
         let _receipts = env::relay_message_to_contract(
@@ -60,13 +57,12 @@ mod success {
         )
         .await;
 
-        let provider = wallet.get_provider().unwrap();
         let test_contract_base_asset_balance = provider
             .get_contract_asset_balance(test_contract.get_contract_id(), AssetId::default())
             .await
             .unwrap();
 
-        let balance = recipient_wallet
+        let balance = wallet
             .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
             .await?;
 
@@ -79,28 +75,25 @@ mod success {
 
     #[tokio::test]
     async fn depositing_max_amount_ok() -> Result<(), Error> {
-        let mut recipient_wallet = WalletUnlocked::new_random(None);
+        let mut wallet = env::setup_wallet();
 
-        let (message, coin) = env::encode_message_data(
+        let (message, coin) = env::contruct_msg_data(
             L1_TOKEN,
             FROM,
-            recipient_wallet.address().hash().to_vec(),
+            wallet.address().hash().to_vec(),
             MAXIMUM_BRIDGABLE_AMOUNT,
         )
         .await;
 
         // Set up the environment
         let (
-            wallet,
             test_contract,
             contract_input,
             coin_inputs,
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(vec![coin], vec![message], None).await;
-
-        recipient_wallet.set_provider(provider);
+        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None).await;
 
         // Relay the test message to the test contract
         let _receipts = env::relay_message_to_contract(
@@ -113,13 +106,12 @@ mod success {
         )
         .await;
 
-        let provider = wallet.get_provider().unwrap();
         let test_contract_base_asset_balance = provider
             .get_contract_asset_balance(test_contract.get_contract_id(), AssetId::default())
             .await
             .unwrap();
 
-        let balance = recipient_wallet
+        let balance = wallet
             .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
             .await?;
 
@@ -137,9 +129,72 @@ mod success {
     }
 
     #[tokio::test]
-    #[ignore]
-    async fn withdraw_from_bridge() {
+    async fn withdraw_from_bridge() -> Result<(), Error> {
         // perform successful deposit first, verify it, then withdraw and verify balances
+        let mut wallet = env::setup_wallet();
+
+        let (message, coin) = env::contruct_msg_data(
+            L1_TOKEN,
+            FROM,
+            wallet.address().hash().to_vec(),
+            MAXIMUM_BRIDGABLE_AMOUNT,
+        )
+        .await;
+
+        // Set up the environment
+        let (
+            test_contract,
+            contract_input,
+            coin_inputs,
+            message_inputs,
+            test_contract_id,
+            provider,
+        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None).await;
+
+        // Relay the test message to the test contract
+        let _receipts = env::relay_message_to_contract(
+            &wallet,
+            message_inputs[0].clone(),
+            contract_input,
+            &coin_inputs[..],
+            &vec![],
+            &env::generate_outputs(),
+        )
+        .await;
+
+        let test_contract_base_asset_balance = provider
+            .get_contract_asset_balance(test_contract.get_contract_id(), AssetId::default())
+            .await
+            .unwrap();
+
+        let balance = wallet
+            .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
+            .await?;
+
+        // Verify the message value was received by the test contract
+        assert_eq!(test_contract_base_asset_balance, 100);
+        // Check that wallet now has bridged coins
+        assert_eq!(balance, 18446744073);
+
+        // Now try to withdraw
+        let call_params = CallParameters::new(
+            Some(3000),
+            Some(AssetId::new(*test_contract_id.hash())),
+            Some(1_000_000),
+        );
+
+        let call_response = test_contract
+            .methods()
+            .withdraw_to(Bits256(*wallet.address().hash()))
+            .call_params(call_params)
+            .append_message_outputs(1)
+            .call()
+            .await
+            .unwrap();
+
+        println!("Receipts: {:#?}", call_response.receipts);
+
+        Ok(())
     }
 
     #[tokio::test]
@@ -147,28 +202,20 @@ mod success {
         // "dust" here refers to any amount less than 1_000_000_000.
         // This is to account for conversion between the 18 decimals on most erc20 contracts, and the 9 decimals in the Fuel BridgeFungibleToken contract
 
-        let mut recipient_wallet = WalletUnlocked::new_random(None);
+        let mut wallet = env::setup_wallet();
 
-        let (message, coin) = env::encode_message_data(
-            L1_TOKEN,
-            FROM,
-            recipient_wallet.address().hash().to_vec(),
-            DUST,
-        )
-        .await;
+        let (message, coin) =
+            env::contruct_msg_data(L1_TOKEN, FROM, wallet.address().hash().to_vec(), DUST).await;
 
         // Set up the environment
         let (
-            wallet,
             test_contract,
             contract_input,
             coin_inputs,
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(vec![coin], vec![message], None).await;
-
-        recipient_wallet.set_provider(provider);
+        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None).await;
 
         // Relay the test message to the test contract
         let receipts = env::relay_message_to_contract(
@@ -187,12 +234,11 @@ mod success {
         )?;
 
         // Verify the message value was received by the test contract
-        let provider = wallet.get_provider().unwrap();
         let test_contract_balance = provider
             .get_contract_asset_balance(test_contract.get_contract_id(), AssetId::default())
             .await
             .unwrap();
-        let balance = recipient_wallet
+        let balance = wallet
             .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
             .await?;
 
@@ -217,29 +263,25 @@ mod success {
 
     #[tokio::test]
     async fn depositing_amount_too_large_registers_refund() -> Result<(), Error> {
-        let (_, _, _root_array) = utils::ext_sdk_provider::get_contract_message_predicate().await;
-        let mut recipient_wallet = WalletUnlocked::new_random(None);
+        let mut wallet = env::setup_wallet();
 
-        let (message, coin) = env::encode_message_data(
+        let (message, coin) = env::contruct_msg_data(
             L1_TOKEN,
             FROM,
-            recipient_wallet.address().hash().to_vec(),
+            wallet.address().hash().to_vec(),
             OVERFLOWING_AMOUNT,
         )
         .await;
 
         // Set up the environment
         let (
-            wallet,
             test_contract,
             contract_input,
             coin_inputs,
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(vec![coin], vec![message], None).await;
-
-        recipient_wallet.set_provider(provider);
+        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None).await;
 
         // Relay the test message to the test contract
         let receipts = env::relay_message_to_contract(
@@ -257,12 +299,11 @@ mod success {
             &receipts,
         )?;
 
-        let provider = wallet.get_provider().unwrap();
         let test_contract_balance = provider
             .get_contract_asset_balance(test_contract.get_contract_id(), AssetId::default())
             .await
             .unwrap();
-        let balance = recipient_wallet
+        let balance = wallet
             .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
             .await?;
 
@@ -290,6 +331,7 @@ mod success {
 
     #[tokio::test]
     async fn can_get_name() {
+        // @review reuse let wallet = env::setup_wallet(); ?
         let wallet = launch_provider_and_get_wallet().await;
         // Set up the environment
         let (contract, _id) = env::get_fungible_token_instance(wallet.clone()).await;
@@ -345,11 +387,17 @@ mod revert {
 
     #[tokio::test]
     #[should_panic(expected = "Revert(42)")]
+    #[ignore]
+    async fn fails_to_withdraw_too_much_from_bridge() {}
+
+    #[tokio::test]
+    #[should_panic(expected = "Revert(42)")]
     async fn verification_fails_with_wrong_l1_token() {
+        let mut wallet = env::setup_wallet();
         let wrong_token_value: &str =
             "0x1111110000000000000000000000000000000000000000000000000000111111";
 
-        let (message, coin) = env::encode_message_data(
+        let (message, coin) = env::contruct_msg_data(
             wrong_token_value,
             FROM,
             env::decode_hex(TO),
@@ -359,14 +407,13 @@ mod revert {
 
         // Set up the environment
         let (
-            wallet,
             test_contract,
             contract_input,
             coin_inputs,
             message_inputs,
             _test_contract_id,
-            _provider,
-        ) = env::setup_environment(vec![coin], vec![message], None).await;
+            provider,
+        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None).await;
 
         // Relay the test message to the test contract
         let _receipts = env::relay_message_to_contract(
@@ -380,7 +427,6 @@ mod revert {
         .await;
 
         // Verify the message value was received by the test contract
-        let provider = wallet.get_provider().unwrap();
         let test_contract_balance = provider
             .get_contract_asset_balance(test_contract.get_contract_id(), AssetId::default())
             .await
@@ -391,7 +437,8 @@ mod revert {
     #[tokio::test]
     #[should_panic(expected = "Revert(42)")]
     async fn verification_fails_with_wrong_sender() {
-        let (message, coin) = env::encode_message_data(
+        let mut wallet = env::setup_wallet();
+        let (message, coin) = env::contruct_msg_data(
             L1_TOKEN,
             FROM,
             env::decode_hex(TO),
@@ -404,14 +451,13 @@ mod revert {
 
         // Set up the environment
         let (
-            wallet,
             _test_contract,
             contract_input,
             coin_inputs,
             message_inputs,
             _test_contract_id,
             _provider,
-        ) = env::setup_environment(vec![coin], vec![message], Some(bad_sender)).await;
+        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], Some(bad_sender)).await;
 
         // Relay the test message to the test contract
         let _receipts = env::relay_message_to_contract(

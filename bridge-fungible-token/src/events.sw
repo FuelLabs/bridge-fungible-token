@@ -30,7 +30,7 @@ pub struct TransferEvent {
 }
 
 pub struct WithdrawalEvent {
-    to: EvmAddress,
+    to: b256,
     amount: u64,
     asset: ContractId,
 }

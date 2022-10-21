@@ -97,11 +97,11 @@ impl MessageReceiver for Contract {
 
 impl BridgeFungibleToken for Contract {
     #[storage(read, write)]
-    fn claim_refund(originator: EvmAddress, asset: EvmAddress) {
-        let stored_amount = storage.refund_amounts.get((originator, asset));
+    fn claim_refund(originator: b256, asset: EvmAddress) {
+        let stored_amount = storage.refund_amounts.get((~EvmAddress::from(originator), asset));
         require(stored_amount.is_some(), BridgeFungibleTokenError::NoRefundAvailable);
         // reset the refund amount to 0
-        storage.refund_amounts.insert((originator, asset), Option::None());
+        storage.refund_amounts.insert((~EvmAddress::from(originator), asset), Option::None());
 
         let values = decompose(stored_amount.unwrap());
         // send a message to unlock this amount on the ethereum (L1) bridge contract
@@ -109,8 +109,9 @@ impl BridgeFungibleToken for Contract {
     }
 
     #[storage(read)]
-    fn withdraw_to(to: EvmAddress) {
+    fn withdraw_to(to: b256) {
         let withdrawal_amount = msg_amount();
+        log(withdrawal_amount);
         require(withdrawal_amount != 0, BridgeFungibleTokenError::NoCoinsForwarded);
 
         let origin_contract_id = msg_asset_id();

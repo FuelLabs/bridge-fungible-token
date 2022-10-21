@@ -10,7 +10,7 @@ abi BridgeFungibleToken {
     /// * `originator` - the EvmAddress that is entitled to a refund
     /// * `asset` - the EvmAddress of the L1 token for the refund
     #[storage(read, write)]
-    fn claim_refund(originator: EvmAddress, asset: EvmAddress);
+    fn claim_refund(originator: b256, asset: EvmAddress);
 
     /// Withdraw coins back to L1 and burn the corresponding amount of coins
     /// on L2.
@@ -24,7 +24,7 @@ abi BridgeFungibleToken {
     /// * When no coins were sent with call
     /// * When the wrong asset was sent with the call
     #[storage(read)]
-    fn withdraw_to(to: EvmAddress);
+    fn withdraw_to(to: b256);
     /// Get the name of this token contract
     fn name() -> str[8];
     /// Get the symbol of this token contract

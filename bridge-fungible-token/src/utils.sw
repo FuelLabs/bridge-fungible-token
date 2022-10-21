@@ -140,7 +140,7 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
 
     msg_data
 }
-pub fn encode_data(to: EvmAddress, amount: u64) -> Vec<u64> {
+pub fn encode_data(to: b256, amount: u64) -> Vec<u64> {
     // construct a Vec<u64> from:
     // func selector (0x53ef1461) + recipient.value + LAYER_1_TOKEN + amount (as b256)
     let mut data = ~Vec::with_capacity(13);
@@ -149,7 +149,7 @@ pub fn encode_data(to: EvmAddress, amount: u64) -> Vec<u64> {
     data.push(0x53ef1461);
 
     // add the address to recieve coins
-    let (recip_1, recip_2, recip_3, recip_4) = decompose(to.value);
+    let (recip_1, recip_2, recip_3, recip_4) = decompose(to);
     data.push(recip_1);
     data.push(recip_2);
     data.push(recip_3);
@@ -172,7 +172,7 @@ pub fn encode_data(to: EvmAddress, amount: u64) -> Vec<u64> {
 }
 
 // ref: https://github.com/FuelLabs/fuel-specs/blob/bd6ec935e3d1797a192f731dadced3f121744d54/specs/vm/instruction_set.md#smo-send-message-to-output
-pub fn send_message_output(to: EvmAddress, amount: u64, ) {
+pub fn send_message_output(to: b256, amount: u64, ) {
     // convert to eth decimals
     let l1_amount = amount * (LAYER_1_DECIMALS - DECIMALS);
     send_message(LAYER_1_ERC20_GATEWAY, encode_data(to, l1_amount), 0);

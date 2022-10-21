@@ -24,20 +24,7 @@ pub const MESSAGE_SENDER_ADDRESS: &str =
 pub const TEST_RECEIVER_CONTRACT_BINARY: &str =
     "../bridge-fungible-token/out/debug/bridge_fungible_token.bin";
 
-/// Sets up a test fuel environment with a funded wallet
-pub async fn setup_environment(
-    coins: Vec<(Word, AssetId)>,
-    messages: Vec<(Word, Vec<u8>)>,
-    sender: Option<&str>,
-) -> (
-    WalletUnlocked,
-    BridgeFungibleTokenContract,
-    Input,
-    Vec<Input>,
-    Vec<Input>,
-    Bech32ContractId,
-    Provider,
-) {
+pub fn setup_wallet() -> WalletUnlocked {
     // Create secret for wallet
     const SIZE_SECRET_KEY: usize = size_of::<SecretKey>();
     const PADDING_BYTES: usize = SIZE_SECRET_KEY - size_of::<u64>();
@@ -45,12 +32,28 @@ pub async fn setup_environment(
     secret_key[PADDING_BYTES..].copy_from_slice(&(8320147306839812359u64).to_be_bytes());
 
     // Generate wallet
-    let mut wallet = WalletUnlocked::new_from_private_key(
+    let wallet = WalletUnlocked::new_from_private_key(
         SecretKey::try_from(secret_key.as_slice())
             .expect("This should never happen as we provide a [u8; SIZE_SECRET_KEY] array"),
         None,
     );
+    wallet
+}
 
+/// Sets up a test fuel environment with a funded wallet
+pub async fn setup_environment(
+    wallet: &mut WalletUnlocked,
+    coins: Vec<(Word, AssetId)>,
+    messages: Vec<(Word, Vec<u8>)>,
+    sender: Option<&str>,
+) -> (
+    BridgeFungibleTokenContract,
+    Input,
+    Vec<Input>,
+    Vec<Input>,
+    Bech32ContractId,
+    Provider,
+) {
     // Generate coins for wallet
     let asset_configs: Vec<AssetConfig> = coins
         .iter()
@@ -150,7 +153,6 @@ pub async fn setup_environment(
     };
 
     (
-        wallet,
         test_contract,
         contract_input,
         coin_inputs,
@@ -241,7 +243,7 @@ pub async fn get_fungible_token_instance(
     (fungible_token_instance, fungible_token_contract_id.into())
 }
 
-pub async fn encode_message_data(
+pub async fn contruct_msg_data(
     l1_token: &str,
     from: &str,
     mut to: Vec<u8>,
