@@ -124,8 +124,70 @@ mod success {
 
     #[tokio::test]
     #[ignore]
-    async fn claim_refund() {
-        // perform failing deposit first to register a refund, verify, then claim and verify L2 balances changed as expected. L1 nweeds to be checked as well in integration tests
+    async fn claim_refund() -> Result<(), Error> {
+        // perform a failing deposit first to register a refund & verify it, then claim and verify output message is created as expected
+        let mut wallet = env::setup_wallet();
+        let (message, coin) =
+            env::contruct_msg_data(L1_TOKEN, FROM, wallet.address().hash().to_vec(), DUST).await;
+
+        // Set up the environment
+        let (
+            test_contract,
+            contract_input,
+            coin_inputs,
+            message_inputs,
+            test_contract_id,
+            provider,
+        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None).await;
+
+        // Relay the test message to the test contract
+        let receipts = env::relay_message_to_contract(
+            &wallet,
+            message_inputs[0].clone(),
+            contract_input,
+            &coin_inputs[..],
+            &vec![],
+            &env::generate_outputs(),
+        )
+        .await;
+
+        let refund_registered_event = test_contract
+            .logs_with_type::<utils::environment::bridgefungibletokencontract_mod::RefundRegisteredEvent>(
+            &receipts,
+        )?;
+
+        // Verify the message value was received by the test contract
+        let test_contract_balance = provider
+            .get_contract_asset_balance(test_contract.get_contract_id(), AssetId::default())
+            .await
+            .unwrap();
+        let balance = wallet
+            .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
+            .await?;
+
+        assert_eq!(test_contract_balance, 100);
+        assert_eq!(
+            refund_registered_event[0].amount,
+            Bits256(*Address::from_str(&DUST).unwrap())
+        );
+        assert_eq!(
+            refund_registered_event[0].asset.value,
+            Bits256(*Address::from_str(&L1_TOKEN).unwrap())
+        );
+        assert_eq!(
+            refund_registered_event[0].from.value,
+            Bits256(*Address::from_str(&FROM).unwrap())
+        );
+
+        // verify that no tokens were minted for message.data.to
+        assert_eq!(balance, 0);
+        let _call_response = test_contract.methods().claim_refund(
+            Bits256(*Address::from_str(&FROM).unwrap()),
+            Bits256(*Address::from_str(&L1_TOKEN).unwrap()),
+        );
+        // verify correct message was sent
+
+        Ok(())
     }
 
     #[tokio::test]
@@ -183,7 +245,7 @@ mod success {
             Some(1_000_000),
         );
 
-        let call_response = test_contract
+        let _call_response = test_contract
             .methods()
             .withdraw_to(Bits256(*wallet.address().hash()))
             .call_params(call_params)
@@ -191,8 +253,6 @@ mod success {
             .call()
             .await
             .unwrap();
-
-        println!("Receipts: {:#?}", call_response.receipts);
 
         Ok(())
     }
@@ -384,11 +444,6 @@ mod success {
 
 mod revert {
     use super::*;
-
-    #[tokio::test]
-    #[should_panic(expected = "Revert(42)")]
-    #[ignore]
-    async fn fails_to_withdraw_too_much_from_bridge() {}
 
     #[tokio::test]
     #[should_panic(expected = "Revert(42)")]
