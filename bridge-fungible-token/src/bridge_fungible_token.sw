@@ -84,9 +84,11 @@ impl MessageReceiver for Contract {
         let amount = safe_b256_to_u64(message_data.amount);
         match amount {
             Result::Err(e) => {
+                log(66);
                 register_refund(message_data.from, message_data.l1_asset, message_data.amount);
             },
             Result::Ok(a) => {
+                log(77);
                 mint_and_transfer_tokens(a, message_data.to);
             },
         }

@@ -8,8 +8,7 @@ use utils::environment as env;
 use utils::ext_sdk_provider;
 
 use fuels::prelude::*;
-use fuels::test_helpers::DEFAULT_COIN_AMOUNT;
-use fuels::tx::{Address, AssetId, Output};
+use fuels::tx::{Address, AssetId};
 
 pub const L1_TOKEN: &str = "0x00000000000000000000000000000000000000000000000000000000deadbeef";
 pub const TO: &str = "0x0000000000000000000000000000000000000000000000000000000000000777";
@@ -18,19 +17,15 @@ pub const MINIMUM_BRIDGABLE_AMOUNT: &str =
     "0x000000000000000000000000000000000000000000000000000000003B9ACA00";
 pub const DUST: &str = "0x000000000000000000000000000000000000000000000000000000003B9AC9FF";
 pub const MAXIMUM_BRIDGABLE_AMOUNT: &str =
-    "0x000000000000000000000000000000000000000000000000FFFFFFFFFFFFFFFF";
+    "0x000000000000000000000000000000000000000000000000FFFFFFFFD5B51A00";
 pub const OVERFLOWING_AMOUNT: &str =
-    "0x000000000000000000000000000000000000000000000001FFFFFFFFFFFFFFFF";
+    "0x000000000000000000000000000000000000000000000001FFFFFFFFD5B51A00";
 
-// @todo Add test for max amount
-// @todo Add test for max amount + 1 triggering refund
 mod success {
     use super::*;
 
     #[tokio::test]
     async fn relay_message_with_predicate_and_script_constraint() -> Result<(), Error> {
-        let (_, _, _root_array) = utils::ext_sdk_provider::get_contract_message_predicate().await;
-
         let mut recipient_wallet = WalletUnlocked::new_random(None);
 
         let (message, coin) = env::encode_message_data(
@@ -40,18 +35,6 @@ mod success {
             MINIMUM_BRIDGABLE_AMOUNT,
         )
         .await;
-
-        // let mut message_data = Vec::with_capacity(5);
-        // message_data.append(&mut env::decode_hex(L1_TOKEN));
-        // @review from used to be the predicate root
-        // message_data.append(&mut root_array.to_vec());
-        // message_data.append(&mut env::decode_hex(FROM));
-        // message_data.append(&mut recipient_wallet.address().hash().to_vec());
-        // message_data.append(&mut env::decode_hex(MINIMUM_BRIDGABLE_AMOUNT));
-
-        // let message_data = env::prefix_contract_id(message_data).await;
-        // let message = (100, message_data);
-        // let coin = (DEFAULT_COIN_AMOUNT, AssetId::default());
 
         // Set up the environment
         let (
@@ -66,16 +49,6 @@ mod success {
 
         recipient_wallet.set_provider(provider);
 
-        let variable_output = Output::Variable {
-            amount: 0,
-            to: Address::zeroed(),
-            asset_id: AssetId::default(),
-        };
-        let message_output = Output::Message {
-            recipient: Address::zeroed(),
-            amount: 0,
-        };
-
         // Relay the test message to the test contract
         let _receipts = env::relay_message_to_contract(
             &wallet,
@@ -83,7 +56,7 @@ mod success {
             contract_input,
             &coin_inputs[..],
             &vec![],
-            &vec![variable_output, message_output],
+            &env::generate_outputs(),
         )
         .await;
 
@@ -105,17 +78,56 @@ mod success {
     }
 
     #[tokio::test]
-    #[ignore]
-    async fn depositing_max_amount_ok() {}
+    async fn depositing_max_amount_ok() -> Result<(), Error> {
+        let mut recipient_wallet = WalletUnlocked::new_random(None);
 
-    #[tokio::test]
-    #[ignore]
-    async fn depositing_amount_more_than_max_registers_refund() {}
+        let (message, coin) = env::encode_message_data(
+            L1_TOKEN,
+            FROM,
+            recipient_wallet.address().hash().to_vec(),
+            MAXIMUM_BRIDGABLE_AMOUNT,
+        )
+        .await;
 
-    #[tokio::test]
-    #[ignore]
-    async fn withdraw_from_bridge() {
-        // perform successful deposit first, verify it, then withdraw and verify balances
+        // Set up the environment
+        let (
+            wallet,
+            test_contract,
+            contract_input,
+            coin_inputs,
+            message_inputs,
+            test_contract_id,
+            provider,
+        ) = env::setup_environment(vec![coin], vec![message], None).await;
+
+        recipient_wallet.set_provider(provider);
+
+        // Relay the test message to the test contract
+        let _receipts = env::relay_message_to_contract(
+            &wallet,
+            message_inputs[0].clone(),
+            contract_input,
+            &coin_inputs[..],
+            &vec![],
+            &env::generate_outputs(),
+        )
+        .await;
+
+        let provider = wallet.get_provider().unwrap();
+        let test_contract_base_asset_balance = provider
+            .get_contract_asset_balance(test_contract.get_contract_id(), AssetId::default())
+            .await
+            .unwrap();
+
+        let balance = recipient_wallet
+            .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
+            .await?;
+
+        // Verify the message value was received by the test contract
+        assert_eq!(test_contract_base_asset_balance, 100);
+        // Check that wallet now has bridged coins
+        assert_eq!(balance, 18446744073);
+        Ok(())
     }
 
     #[tokio::test]
@@ -125,23 +137,25 @@ mod success {
     }
 
     #[tokio::test]
-    // #[should_panic(expected = "Revert(42)")]
+    #[ignore]
+    async fn withdraw_from_bridge() {
+        // perform successful deposit first, verify it, then withdraw and verify balances
+    }
+
+    #[tokio::test]
     async fn depositing_dust_registers_refund() -> Result<(), Error> {
         // "dust" here refers to any amount less than 1_000_000_000.
         // This is to account for conversion between the 18 decimals on most erc20 contracts, and the 9 decimals in the Fuel BridgeFungibleToken contract
-        let (_, _, _root_array) = utils::ext_sdk_provider::get_contract_message_predicate().await;
 
         let mut recipient_wallet = WalletUnlocked::new_random(None);
 
-        let mut message_data = Vec::with_capacity(5);
-        message_data.append(&mut env::decode_hex(L1_TOKEN));
-        message_data.append(&mut env::decode_hex(FROM));
-        message_data.append(&mut recipient_wallet.address().hash().to_vec());
-        message_data.append(&mut env::decode_hex(DUST));
-
-        let message_data = env::prefix_contract_id(message_data).await;
-        let message = (100, message_data);
-        let coin = (DEFAULT_COIN_AMOUNT, AssetId::default());
+        let (message, coin) = env::encode_message_data(
+            L1_TOKEN,
+            FROM,
+            recipient_wallet.address().hash().to_vec(),
+            DUST,
+        )
+        .await;
 
         // Set up the environment
         let (
@@ -156,16 +170,6 @@ mod success {
 
         recipient_wallet.set_provider(provider);
 
-        let variable_output = Output::Variable {
-            amount: 0,
-            to: Address::zeroed(),
-            asset_id: AssetId::default(),
-        };
-        let message_output = Output::Message {
-            recipient: Address::zeroed(),
-            amount: 0,
-        };
-
         // Relay the test message to the test contract
         let receipts = env::relay_message_to_contract(
             &wallet,
@@ -173,7 +177,7 @@ mod success {
             contract_input,
             &coin_inputs[..],
             &vec![],
-            &vec![variable_output, message_output],
+            &env::generate_outputs(),
         )
         .await;
 
@@ -188,27 +192,25 @@ mod success {
             .get_contract_asset_balance(test_contract.get_contract_id(), AssetId::default())
             .await
             .unwrap();
-        assert_eq!(test_contract_balance, 100);
-
-        let dust_addr: Address = Address::from_str(&DUST).unwrap();
-        let l1_token_address: Address = Address::from_str(&L1_TOKEN).unwrap();
-        let from_address: Address = Address::from_str(&FROM).unwrap();
-
-        // check that the RefundRegisteredEvent receipt is populated correctly
-        assert_eq!(refund_registered_event[0].amount, Bits256(*dust_addr));
-        assert_eq!(
-            refund_registered_event[0].asset.value,
-            Bits256(*l1_token_address)
-        );
-        assert_eq!(
-            refund_registered_event[0].from.value,
-            Bits256(*from_address)
-        );
-
-        // verify that no tokeens were minted for message.data.to
         let balance = recipient_wallet
             .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
             .await?;
+
+        assert_eq!(test_contract_balance, 100);
+        assert_eq!(
+            refund_registered_event[0].amount,
+            Bits256(*Address::from_str(&DUST).unwrap())
+        );
+        assert_eq!(
+            refund_registered_event[0].asset.value,
+            Bits256(*Address::from_str(&L1_TOKEN).unwrap())
+        );
+        assert_eq!(
+            refund_registered_event[0].from.value,
+            Bits256(*Address::from_str(&FROM).unwrap())
+        );
+
+        // verify that no tokens were minted for message.data.to
         assert_eq!(balance, 0);
         Ok(())
     }
@@ -218,15 +220,13 @@ mod success {
         let (_, _, _root_array) = utils::ext_sdk_provider::get_contract_message_predicate().await;
         let mut recipient_wallet = WalletUnlocked::new_random(None);
 
-        let mut message_data = Vec::with_capacity(5);
-        message_data.append(&mut env::decode_hex(L1_TOKEN));
-        message_data.append(&mut env::decode_hex(FROM));
-        message_data.append(&mut recipient_wallet.address().hash().to_vec());
-        message_data.append(&mut env::decode_hex(OVERFLOWING_AMOUNT));
-
-        let message_data = env::prefix_contract_id(message_data).await;
-        let message = (100, message_data);
-        let coin = (DEFAULT_COIN_AMOUNT, AssetId::default());
+        let (message, coin) = env::encode_message_data(
+            L1_TOKEN,
+            FROM,
+            recipient_wallet.address().hash().to_vec(),
+            OVERFLOWING_AMOUNT,
+        )
+        .await;
 
         // Set up the environment
         let (
@@ -241,16 +241,6 @@ mod success {
 
         recipient_wallet.set_provider(provider);
 
-        let variable_output = Output::Variable {
-            amount: 0,
-            to: Address::zeroed(),
-            asset_id: AssetId::default(),
-        };
-        let message_output = Output::Message {
-            recipient: Address::zeroed(),
-            amount: 0,
-        };
-
         // Relay the test message to the test contract
         let receipts = env::relay_message_to_contract(
             &wallet,
@@ -258,7 +248,7 @@ mod success {
             contract_input,
             &coin_inputs[..],
             &vec![],
-            &vec![variable_output, message_output],
+            &env::generate_outputs(),
         )
         .await;
 
@@ -272,29 +262,28 @@ mod success {
             .get_contract_asset_balance(test_contract.get_contract_id(), AssetId::default())
             .await
             .unwrap();
-
-        let dust_addr: Address = Address::from_str(&OVERFLOWING_AMOUNT).unwrap();
-        let l1_token_address: Address = Address::from_str(&L1_TOKEN).unwrap();
-        let from_address: Address = Address::from_str(&FROM).unwrap();
+        let balance = recipient_wallet
+            .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
+            .await?;
 
         // Verify the message value was received by the test contract
         assert_eq!(test_contract_balance, 100);
 
         // check that the RefundRegisteredEvent receipt is populated correctly
-        assert_eq!(refund_registered_event[0].amount, Bits256(*dust_addr));
+        assert_eq!(
+            refund_registered_event[0].amount,
+            Bits256(*Address::from_str(&OVERFLOWING_AMOUNT).unwrap())
+        );
         assert_eq!(
             refund_registered_event[0].asset.value,
-            Bits256(*l1_token_address)
+            Bits256(*Address::from_str(&L1_TOKEN).unwrap())
         );
         assert_eq!(
             refund_registered_event[0].from.value,
-            Bits256(*from_address)
+            Bits256(*Address::from_str(&FROM).unwrap())
         );
 
-        // verify that no tokeens were minted for message.data.to
-        let balance = recipient_wallet
-            .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
-            .await?;
+        // verify that no tokens were minted for message.data.to
         assert_eq!(balance, 0);
         Ok(())
     }
@@ -357,7 +346,6 @@ mod revert {
     #[tokio::test]
     #[should_panic(expected = "Revert(42)")]
     async fn verification_fails_with_wrong_l1_token() {
-        let (_, _, root_array) = utils::ext_sdk_provider::get_contract_message_predicate().await;
         let wrong_token_value: &str =
             "0x1111110000000000000000000000000000000000000000000000000000111111";
 
@@ -380,12 +368,6 @@ mod revert {
             _provider,
         ) = env::setup_environment(vec![coin], vec![message], None).await;
 
-        let new_output = Output::Variable {
-            amount: 0,
-            to: Address::zeroed(),
-            asset_id: AssetId::default(),
-        };
-
         // Relay the test message to the test contract
         let _receipts = env::relay_message_to_contract(
             &wallet,
@@ -393,7 +375,7 @@ mod revert {
             contract_input,
             &coin_inputs[..],
             &vec![],
-            &vec![new_output],
+            &env::generate_outputs(),
         )
         .await;
 
@@ -409,8 +391,6 @@ mod revert {
     #[tokio::test]
     #[should_panic(expected = "Revert(42)")]
     async fn verification_fails_with_wrong_sender() {
-        // let (_, _, root_array) = utils::ext_sdk_provider::get_contract_message_predicate().await;
-
         let (message, coin) = env::encode_message_data(
             L1_TOKEN,
             FROM,
@@ -425,19 +405,13 @@ mod revert {
         // Set up the environment
         let (
             wallet,
-            test_contract,
+            _test_contract,
             contract_input,
             coin_inputs,
             message_inputs,
             _test_contract_id,
             _provider,
         ) = env::setup_environment(vec![coin], vec![message], Some(bad_sender)).await;
-
-        let new_output = Output::Variable {
-            amount: 0,
-            to: Address::zeroed(),
-            asset_id: AssetId::default(),
-        };
 
         // Relay the test message to the test contract
         let _receipts = env::relay_message_to_contract(
@@ -446,16 +420,8 @@ mod revert {
             contract_input,
             &coin_inputs[..],
             &vec![],
-            &vec![new_output],
+            &env::generate_outputs(),
         )
         .await;
-
-        // Verify the message value was received by the test contract
-        let provider = wallet.get_provider().unwrap();
-        let _test_contract_balance = provider
-            .get_contract_asset_balance(test_contract.get_contract_id(), AssetId::default())
-            .await
-            .unwrap();
-        // assert_eq!(test_contract_balance, 100);
     }
 }

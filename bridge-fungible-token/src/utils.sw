@@ -74,6 +74,7 @@ pub fn correct_input_type(index: u64) -> bool {
 pub fn safe_b256_to_u64(val: b256) -> Result<u64, BridgeFungibleTokenError> {
     // first, decompose into u64 values
     let u64s = decompose(val);
+    log(u64s.3);
 
     // verify amount will require no partial refund of dust by ensuring that
     // the first 9 decimal places in the passed-in value are empty,

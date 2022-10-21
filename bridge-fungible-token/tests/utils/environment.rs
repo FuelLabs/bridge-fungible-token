@@ -8,7 +8,7 @@ use fuel_core_interfaces::model::Message;
 use fuels::contract::script::Script;
 use fuels::prelude::*;
 use fuels::signers::fuel_crypto::SecretKey;
-use fuels::test_helpers::{setup_single_message, setup_test_client, Config};
+use fuels::test_helpers::{setup_single_message, setup_test_client, Config, DEFAULT_COIN_AMOUNT};
 use fuels::tx::Output;
 use fuels::tx::Receipt;
 use fuels::tx::Transaction;
@@ -258,4 +258,10 @@ pub async fn encode_message_data(
     let coin = (DEFAULT_COIN_AMOUNT, AssetId::default());
 
     (message, coin)
+}
+
+pub fn generate_outputs() -> Vec<Output> {
+    let mut v = vec![Output::variable(Address::zeroed(), 0, AssetId::default())];
+    v.push(Output::message(Address::zeroed(), 0));
+    v
 }
