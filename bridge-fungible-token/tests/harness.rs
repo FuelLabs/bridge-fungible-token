@@ -317,6 +317,109 @@ mod success {
     }
 
     #[tokio::test]
+    async fn decimal_conversions_are_correct() -> Result<(), Error> {
+        // start with an eth amount
+        // bridge it to Fuel
+        // bridge it back to L1
+        // compare starting value with ending value, should be identical
+
+        // first make a deposit
+        let mut wallet = env::setup_wallet();
+        let (message, coin) = env::contruct_msg_data(
+            L1_TOKEN,
+            FROM,
+            wallet.address().hash().to_vec(),
+            MAXIMUM_BRIDGABLE_AMOUNT,
+        )
+        .await;
+
+        // Set up the environment
+        let (
+            test_contract,
+            contract_input,
+            coin_inputs,
+            message_inputs,
+            test_contract_id,
+            provider,
+        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None).await;
+
+        // Relay the test message to the test contract
+        let _receipts = env::relay_message_to_contract(
+            &wallet,
+            message_inputs[0].clone(),
+            contract_input,
+            &coin_inputs[..],
+            &vec![],
+            &env::generate_outputs(),
+        )
+        .await;
+
+        let test_contract_base_asset_balance = provider
+            .get_contract_asset_balance(test_contract.get_contract_id(), AssetId::default())
+            .await
+            .unwrap();
+
+        let balance = wallet
+            .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
+            .await?;
+
+        // Verify the message value was received by the test contract
+        assert_eq!(test_contract_base_asset_balance, 100);
+        // Check that wallet now has bridged coins
+        // decimal repr of 0xFFFFFFFFD5B51A00 (MAXIMUM_BRIDGABLE_AMOUNT):
+        let initial_deposit = 18446744073000000000;
+
+        let l2_token_amount = initial_deposit / DECIMAL_ADJUSTMENT_FACTOR;
+        assert_eq!(balance, l2_token_amount);
+
+        // Now try to withdraw
+        let call_params = CallParameters::new(
+            Some(l2_token_amount),
+            Some(AssetId::new(*test_contract_id.hash())),
+            Some(1_000_000),
+        );
+
+        let call_response = test_contract
+            .methods()
+            .withdraw_to(Bits256(*wallet.address().hash()))
+            .call_params(call_params)
+            .append_message_outputs(1)
+            .call()
+            .await
+            .unwrap();
+
+        let message_receipt = call_response
+            .receipts
+            .iter()
+            .find(|&r| matches!(r, Receipt::MessageOut { .. }))
+            .unwrap();
+
+        assert_eq!(
+            *test_contract_id.hash(),
+            **message_receipt.sender().unwrap()
+        );
+        assert_eq!(
+            &Address::from_str(LAYER_1_ERC20_GATEWAY).unwrap(),
+            message_receipt.recipient().unwrap()
+        );
+        assert_eq!(message_receipt.amount().unwrap(), 0);
+        assert_eq!(message_receipt.len().unwrap(), 104);
+
+        // message data
+        let (selector, to, l1_token, msg_data_amount) =
+            env::parse_output_message_data(message_receipt.data().unwrap());
+        assert_eq!(selector, env::decode_hex("0x53ef1461").to_vec());
+        assert_eq!(to, Bits256(*wallet.address().hash()));
+        assert_eq!(l1_token, Bits256(*Address::from_str(&L1_TOKEN).unwrap()));
+        assert_eq!(msg_data_amount, l2_token_amount * DECIMAL_ADJUSTMENT_FACTOR);
+
+        // now verify that the initial amount == the final amount
+        assert_eq!(msg_data_amount, initial_deposit);
+
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn depositing_dust_registers_refund() -> Result<(), Error> {
         // "dust" here refers to any amount less than 1_000_000_000.
         // This is to account for conversion between the 18 decimals on most erc20 contracts, and the 9 decimals in the Fuel BridgeFungibleToken contract
