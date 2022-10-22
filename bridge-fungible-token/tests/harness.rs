@@ -8,9 +8,11 @@ use utils::environment as env;
 use utils::ext_sdk_provider;
 
 use fuels::prelude::*;
-use fuels::tx::{Address, AssetId};
+use fuels::tx::{Address, AssetId, Receipt};
 
 pub const L1_TOKEN: &str = "0x00000000000000000000000000000000000000000000000000000000deadbeef";
+pub const LAYER_1_ERC20_GATEWAY: &str =
+    "0xca400d3e7710eee293786830755278e6d2b9278b4177b8b1a896ebd5f55c10bc";
 pub const TO: &str = "0x0000000000000000000000000000000000000000000000000000000000000777";
 pub const FROM: &str = "0x0000000000000000000000008888888888888888888888888888888888888888";
 pub const MINIMUM_BRIDGABLE_AMOUNT: &str =
@@ -123,7 +125,6 @@ mod success {
     }
 
     #[tokio::test]
-    #[ignore]
     async fn claim_refund() -> Result<(), Error> {
         // perform a failing deposit first to register a refund & verify it, then claim and verify output message is created as expected
         let mut wallet = env::setup_wallet();
@@ -181,11 +182,42 @@ mod success {
 
         // verify that no tokens were minted for message.data.to
         assert_eq!(balance, 0);
-        let _call_response = test_contract.methods().claim_refund(
-            Bits256(*Address::from_str(&FROM).unwrap()),
-            Bits256(*Address::from_str(&L1_TOKEN).unwrap()),
-        );
+        let call_response = test_contract
+            .methods()
+            .claim_refund(
+                Bits256(*Address::from_str(&FROM).unwrap()),
+                Bits256(*Address::from_str(&L1_TOKEN).unwrap()),
+            )
+            .append_message_outputs(1)
+            .call()
+            .await
+            .unwrap();
         // verify correct message was sent
+
+        let message_receipt = call_response
+            .receipts
+            .iter()
+            .find(|&r| matches!(r, Receipt::MessageOut { .. }))
+            .unwrap();
+
+        assert_eq!(
+            *test_contract_id.hash(),
+            **message_receipt.sender().unwrap()
+        );
+        assert_eq!(
+            &Address::from_str(LAYER_1_ERC20_GATEWAY).unwrap(),
+            message_receipt.recipient().unwrap()
+        );
+        assert_eq!(message_receipt.amount().unwrap(), 0);
+        assert_eq!(message_receipt.len().unwrap(), 104);
+
+        // message data
+        let (selector, to, l1_token, amount) =
+            env::parse_output_message_data(message_receipt.data().unwrap());
+        assert_eq!(selector, env::decode_hex("0x53ef1461").to_vec());
+        assert_eq!(to, Bits256(*Address::from_str(&FROM).unwrap()));
+        assert_eq!(l1_token, Bits256(*Address::from_str(&L1_TOKEN).unwrap()));
+        assert_eq!(amount, 999999999u64);
 
         Ok(())
     }
@@ -245,7 +277,7 @@ mod success {
             Some(1_000_000),
         );
 
-        let _call_response = test_contract
+        let call_response = test_contract
             .methods()
             .withdraw_to(Bits256(*wallet.address().hash()))
             .call_params(call_params)
@@ -253,6 +285,31 @@ mod success {
             .call()
             .await
             .unwrap();
+
+        let message_receipt = call_response
+            .receipts
+            .iter()
+            .find(|&r| matches!(r, Receipt::MessageOut { .. }))
+            .unwrap();
+
+        assert_eq!(
+            *test_contract_id.hash(),
+            **message_receipt.sender().unwrap()
+        );
+        assert_eq!(
+            &Address::from_str(LAYER_1_ERC20_GATEWAY).unwrap(),
+            message_receipt.recipient().unwrap()
+        );
+        assert_eq!(message_receipt.amount().unwrap(), 0);
+        assert_eq!(message_receipt.len().unwrap(), 104);
+
+        // message data
+        let (selector, to, l1_token, amount) =
+            env::parse_output_message_data(message_receipt.data().unwrap());
+        assert_eq!(selector, env::decode_hex("0x53ef1461").to_vec());
+        assert_eq!(to, Bits256(*wallet.address().hash()));
+        assert_eq!(l1_token, Bits256(*Address::from_str(&L1_TOKEN).unwrap()));
+        assert_eq!(amount, 3000u64);
 
         Ok(())
     }

@@ -141,10 +141,7 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
     msg_data
 }
 pub fn encode_data(to: b256, amount: u64) -> Vec<u64> {
-    // construct a Vec<u64> from:
-    // func selector (0x53ef1461) + recipient.value + LAYER_1_TOKEN + amount (as b256)
     let mut data = ~Vec::with_capacity(13);
-
     // start with the function selector for finalizeWithdrawal on the L1ERC20Gateway contract
     data.push(0x53ef1461);
 
@@ -171,11 +168,8 @@ pub fn encode_data(to: b256, amount: u64) -> Vec<u64> {
     data
 }
 
-// ref: https://github.com/FuelLabs/fuel-specs/blob/bd6ec935e3d1797a192f731dadced3f121744d54/specs/vm/instruction_set.md#smo-send-message-to-output
 pub fn send_message_output(to: b256, amount: u64, ) {
-    // convert to eth decimals
-    let l1_amount = amount * (LAYER_1_DECIMALS - DECIMALS);
-    send_message(LAYER_1_ERC20_GATEWAY, encode_data(to, l1_amount), 0);
+    send_message(LAYER_1_ERC20_GATEWAY, encode_data(to, amount), 0);
 }
 
 pub fn transfer_tokens(amount: u64, asset: ContractId, to: Address) {

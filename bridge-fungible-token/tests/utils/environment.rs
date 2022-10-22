@@ -267,3 +267,13 @@ pub fn generate_outputs() -> Vec<Output> {
     v.push(Output::message(Address::zeroed(), 0));
     v
 }
+
+pub fn parse_output_message_data(data: &[u8]) -> (Vec<u8>, Bits256, Bits256, u64) {
+    let selector = &data[4..8];
+    let to: [u8; 32] = data[8..40].try_into().unwrap();
+    let token_array: [u8; 32] = data[40..72].try_into().unwrap();
+    let l1_token = Bits256(token_array);
+    let amount_array: [u8; 8] = data[96..].try_into().unwrap();
+    let amount: u64 = u64::from_be_bytes(amount_array);
+    (selector.to_vec(), Bits256(to), l1_token, amount)
+}
