@@ -111,7 +111,6 @@ impl BridgeFungibleToken for Contract {
     #[storage(read)]
     fn withdraw_to(to: b256) {
         let withdrawal_amount = msg_amount();
-        log(withdrawal_amount);
         require(withdrawal_amount != 0, BridgeFungibleTokenError::NoCoinsForwarded);
 
         let origin_contract_id = msg_asset_id();

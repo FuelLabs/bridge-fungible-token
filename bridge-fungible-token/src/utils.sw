@@ -169,7 +169,11 @@ pub fn encode_data(to: b256, amount: u64) -> Vec<u64> {
 }
 
 pub fn send_message_output(to: b256, amount: u64, ) {
-    send_message(LAYER_1_ERC20_GATEWAY, encode_data(to, amount), 0);
+    // using a hardcoded amount until exponent is implemented.
+    // i.e: 10 ** (LAYER_1_DECIMALS - DECIMALS)
+    let adjustment_factor = 1_000_000_000;
+    let decimal_adjusted_amount = amount * adjustment_factor;
+    send_message(LAYER_1_ERC20_GATEWAY, encode_data(to, decimal_adjusted_amount), 0);
 }
 
 pub fn transfer_tokens(amount: u64, asset: ContractId, to: Address) {

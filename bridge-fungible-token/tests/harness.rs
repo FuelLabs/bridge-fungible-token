@@ -22,6 +22,7 @@ pub const MAXIMUM_BRIDGABLE_AMOUNT: &str =
     "0x000000000000000000000000000000000000000000000000FFFFFFFFD5B51A00";
 pub const OVERFLOWING_AMOUNT: &str =
     "0x000000000000000000000000000000000000000000000001FFFFFFFFD5B51A00";
+pub const DECIMAL_ADJUSTMENT_FACTOR: u64 = 1_000_000_000;
 
 mod success {
     use super::*;
@@ -217,7 +218,7 @@ mod success {
         assert_eq!(selector, env::decode_hex("0x53ef1461").to_vec());
         assert_eq!(to, Bits256(*Address::from_str(&FROM).unwrap()));
         assert_eq!(l1_token, Bits256(*Address::from_str(&L1_TOKEN).unwrap()));
-        assert_eq!(amount, 999999999u64);
+        assert_eq!(amount, 999999999u64 * DECIMAL_ADJUSTMENT_FACTOR);
 
         Ok(())
     }
@@ -271,8 +272,9 @@ mod success {
         assert_eq!(balance, 18446744073);
 
         // Now try to withdraw
+        let l2_token_amount = 3000;
         let call_params = CallParameters::new(
-            Some(3000),
+            Some(l2_token_amount),
             Some(AssetId::new(*test_contract_id.hash())),
             Some(1_000_000),
         );
@@ -309,7 +311,7 @@ mod success {
         assert_eq!(selector, env::decode_hex("0x53ef1461").to_vec());
         assert_eq!(to, Bits256(*wallet.address().hash()));
         assert_eq!(l1_token, Bits256(*Address::from_str(&L1_TOKEN).unwrap()));
-        assert_eq!(amount, 3000u64);
+        assert_eq!(amount, l2_token_amount * DECIMAL_ADJUSTMENT_FACTOR);
 
         Ok(())
     }
