@@ -1,7 +1,7 @@
 library errors;
 
 pub enum BridgeFungibleTokenError {
-    UnauthorizedUser: (),
+    UnauthorizedSender: (),
     IncorrectAssetDeposited: (),
     NoCoinsForwarded: (),
     NoRefundAvailable: (),

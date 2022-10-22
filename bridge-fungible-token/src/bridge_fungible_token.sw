@@ -72,12 +72,12 @@ impl MessageReceiver for Contract {
     fn process_message(msg_idx: u8) {
         let input_sender = input_message_sender(1);
 
-        require(input_sender.value == LAYER_1_ERC20_GATEWAY, BridgeFungibleTokenError::UnauthorizedUser);
+        require(input_sender.value == LAYER_1_ERC20_GATEWAY, BridgeFungibleTokenError::UnauthorizedSender);
 
         let message_data = parse_message_data(msg_idx);
 
         // @review this.
-        // Register a refund if tokens don't match
+        // Register a refund if tokens don't match ?
         // register_refund(message_data.from, message_data.l1_asset, message_data.amount);
         require(message_data.l1_asset == ~EvmAddress::from(LAYER_1_TOKEN), BridgeFungibleTokenError::IncorrectAssetDeposited);
 
