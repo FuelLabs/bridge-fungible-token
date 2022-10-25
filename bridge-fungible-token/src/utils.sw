@@ -5,20 +5,24 @@ dep events;
 dep data;
 
 use std::{
-    alloc::alloc,
-    mem::copy,
+    constants::ZERO_B256,
+    flags::{
+        disable_panic_on_overflow,
+        enable_panic_on_overflow
+    },
+    logging::log,
+    math::*,
     outputs::{
         Output,
         output_count,
-        output_type,
+        output_type
     },
-    vec::Vec,
+    vec::Vec
 };
 
 use errors::BridgeFungibleTokenError;
 use events::DepositEvent;
 use data::MessageData;
-use std::{constants::ZERO_B256, mem::{addr_of, read, write}};
 
 // the function selector for finalizeWithdrawal on the L1ERC20Gateway contract
 const FINALIZE_WITHDRAWAL_SELECTOR: u64 = 0x53ef1461;
@@ -29,21 +33,55 @@ const GTF_INPUT_MESSAGE_DATA = 0x11E;
 const GTF_INPUT_MESSAGE_SENDER = 0x115;
 const GTF_INPUT_MESSAGE_RECIPIENT = 0x116;
 
+fn decimal_adjustment_factor() -> u64 {
+    if LAYER_1_DECIMALS > DECIMALS {
+        10.pow(LAYER_1_DECIMALS - DECIMALS)
+    } else if DECIMALS > LAYER_1_DECIMALS {
+        1
+    } else {
+        // TODO: Decide how to properly handle the case where
+        // DECIMALS == LAYER_1_DECIMALS
+        1
+    }
+}
+
+/// used to increase the amount of "decimal" places by appending the
+/// appropriate amount of 0s to the u64 via multiplication by the appropriate
+/// adjustment_factor.
+/// Potential overflow is accounted for & the result is returned as a b256
+pub fn safe_u64_to_b256(val: u64) -> b256 {
+    let adjustment_factor = decimal_adjustment_factor();
+    let mut result: b256 = ZERO_B256;
+    log(777);
+    disable_panic_on_overflow();
+    asm(product, overflow, value: val, factor: adjustment_factor, ptr: __addr_of(result)) {
+        mul product value factor;
+        move overflow of;
+        sw ptr product i3;
+        sw ptr overflow i2;
+    }
+    enable_panic_on_overflow();
+    log(result);
+    result
+}
+
 pub fn safe_b256_to_u64(val: b256) -> Result<u64, BridgeFungibleTokenError> {
     // first, decompose into u64 values
     let u64s = decompose(val);
+    let adjustment_factor = decimal_adjustment_factor();
 
+    // @todo use decimal_adjustment_factor() here instead of hardcoded values
     // verify amount will require no partial refund of dust by ensuring that
-    // the first 9 decimal places in the passed-in value are empty,
+    // the first n decimal places in the passed-in value are empty,
     // then verify amount is not too small or too large
-    if (u64s.3 / 1_000_000_000) * 1_000_000_000 == u64s.3
-        && u64s.3 >= 1_000_000_000
+    if (u64s.3 / adjustment_factor) * adjustment_factor == u64s.3
+        && u64s.3 >= adjustment_factor
         && u64s.0 == 0
         && u64s.1 == 0
         && u64s.2 == 0
     {
-        // reduce decimals by 9 places
-        Result::Ok(u64s.3 / 1_000_000_000)
+        // reduce decimals
+        Result::Ok(u64s.3 / adjustment_factor)
     } else {
         Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability)
     }
@@ -52,11 +90,14 @@ pub fn safe_b256_to_u64(val: b256) -> Result<u64, BridgeFungibleTokenError> {
 /// Build a single b256 value from a u64 left-padded with 3 0u64's
 pub fn u64_to_b256(val: u64) -> b256 {
     let res: b256 = 0x0000000000000000000000000000000000000000000000000000000000000000;
-    let ptr = addr_of(res);
-    write(ptr, 0);
-    write(ptr + 8, 0);
-    write(ptr + 16, 0);
-    write(ptr + 24, val);
+    let ptr = __addr_of(res);
+    ptr.write(0);
+    let ptr2 = ptr.add(8);
+    ptr2.write(0);
+    let ptr3 = ptr.add(16);
+    ptr3.write(0);
+    let ptr4 = ptr.add(24);
+    ptr4.write(val);
     res
 }
 
@@ -70,6 +111,7 @@ pub fn decompose(val: b256) -> (u64, u64, u64, u64) {
 }
 
 /// Extract a single 64 bit word from a b256 value using the specified offset.
+/// Todo look at refactoring to use raw_ptr.read/write
 fn single_word_from_b256(val: b256, offset: u64) -> u64 {
     let mut empty: u64 = 0;
     asm(r1: val, offset: offset, r2, res: empty) {
@@ -97,7 +139,7 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
 
     msg_data
 }
-pub fn encode_data(to: b256, amount: u64) -> Vec<u64> {
+pub fn encode_data(to: b256, amount: b256) -> Vec<u64> {
     let mut data = ~Vec::with_capacity(13);
     // start with the function selector
     data.push(FINALIZE_WITHDRAWAL_SELECTOR);
@@ -116,26 +158,16 @@ pub fn encode_data(to: b256, amount: u64) -> Vec<u64> {
     data.push(token_3);
     data.push(token_4);
 
-    // add the amount of tokens, padding with 3 0u64s to allow reading as a b256 on the other side of the bridge.
-    data.push(0u64);
-    data.push(0u64);
-    data.push(0u64);
-    data.push(amount);
+    // add the amount of tokens
+    let (amount_1, amount_2, amount_3, amount_4) = decompose(amount);
+    data.push(amount_1);
+    data.push(amount_2);
+    data.push(amount_3);
+    data.push(amount_4);
 
     data
 }
 
-pub fn send_message_output(to: b256, amount: u64, ) {
-    // using a hardcoded amount until exponent is implemented.
-    // i.e: 10 ** (LAYER_1_DECIMALS - DECIMALS)
-    let adjustment_factor = 1_000_000_000;
-    let decimal_adjusted_amount = amount * adjustment_factor;
-    send_message(LAYER_1_ERC20_GATEWAY, encode_data(to, decimal_adjusted_amount), 0);
-}
-
-///////////////////////////////////////
-// TODO: Replace with stdlib functions
-///////////////////////////////////////
 /// Get the length of a message input data
 // TODO: [std-lib] replace with 'input_message_data_length'
 pub fn input_message_data_length(index: u64) -> u64 {
@@ -145,7 +177,9 @@ pub fn input_message_data_length(index: u64) -> u64 {
 /// Get the data of a message input
 // TODO: [std-lib] replace with 'input_message_data'
 pub fn input_message_data<T>(index: u64, offset: u64) -> T {
-    read::<T>(__gtf::<u64>(index, GTF_INPUT_MESSAGE_DATA) + offset)
+    let data = __gtf::<raw_ptr>(index, GTF_INPUT_MESSAGE_DATA);
+    let data_with_offset = data + offset;
+    data_with_offset.read::<T>()
 }
 
 /// Get the sender of the input message at `index`.
@@ -159,46 +193,3 @@ pub fn input_message_sender(index: u64) -> Address {
 pub fn input_message_recipient(index: u64) -> Address {
     ~Address::from(__gtf::<b256>(index, GTF_INPUT_MESSAGE_RECIPIENT))
 }
-
-/// Sends a message to `recipient` of length `msg_len` through `output` with amount of `coins`
-///
-/// # Arguments
-///
-/// * `recipient` - The address of the message recipient
-/// * `msg_data` - arbitrary length message data
-/// * `coins` - Amount of base asset sent
-pub fn send_message(recipient: b256, msg_data: Vec<u64>, coins: u64) {
-    let mut recipient_heap_buffer = 0;
-    let mut data_heap_buffer = 0;
-    let mut size = 0;
-
-    // If msg_data is empty, we just ignore it and pass `smo` a pointer to the inner value of recipient.
-    // Otherwise, we allocate adjacent space on the heap for the data and the recipient and copy the
-    // data and recipient values there
-    if msg_data.is_empty() {
-        recipient_heap_buffer = addr_of(recipient);
-    } else {
-        size = msg_data.len() * 8;
-        data_heap_buffer = alloc(size);
-        recipient_heap_buffer = alloc(32);
-        copy(msg_data.buf.ptr, data_heap_buffer, size);
-        copy(addr_of(recipient), recipient_heap_buffer, 32);
-    };
-
-    let mut index = 0;
-    let outputs = output_count();
-
-    while index < outputs {
-        let type_of_output = output_type(index);
-        if let Output::Message = type_of_output {
-            asm(r1: recipient_heap_buffer, r2: size, r3: index, r4: coins) {
-                smo r1 r2 r3 r4;
-            };
-            return;
-        }
-        index += 1;
-    }
-    revert(FAILED_SEND_MESSAGE_SIGNAL);
-}
-
-const FAILED_SEND_MESSAGE_SIGNAL = 0xffff_ffff_ffff_0002;

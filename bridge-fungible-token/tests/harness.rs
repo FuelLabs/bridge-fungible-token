@@ -173,11 +173,11 @@ mod success {
             Bits256(*Address::from_str(&DUST).unwrap())
         );
         assert_eq!(
-            refund_registered_event[0].asset.value,
+            refund_registered_event[0].asset,
             Bits256(*Address::from_str(&L1_TOKEN).unwrap())
         );
         assert_eq!(
-            refund_registered_event[0].from.value,
+            refund_registered_event[0].from,
             Bits256(*Address::from_str(&FROM).unwrap())
         );
 
@@ -218,7 +218,8 @@ mod success {
         assert_eq!(selector, env::decode_hex("0x53ef1461").to_vec());
         assert_eq!(to, Bits256(*Address::from_str(&FROM).unwrap()));
         assert_eq!(l1_token, Bits256(*Address::from_str(&L1_TOKEN).unwrap()));
-        assert_eq!(amount, 999999999u64 * DECIMAL_ADJUSTMENT_FACTOR);
+        // Compare the value output in the message with the original value (DUST) as a uint.
+        assert_eq!(amount, 999999999);
 
         Ok(())
     }
@@ -256,6 +257,8 @@ mod success {
             &env::generate_outputs(),
         )
         .await;
+
+        println!("Withdraw Receipts: {:#?}", _receipts);
 
         let test_contract_base_asset_balance = provider
             .get_contract_asset_balance(test_contract.get_contract_id(), AssetId::default())
@@ -470,11 +473,11 @@ mod success {
             Bits256(*Address::from_str(&DUST).unwrap())
         );
         assert_eq!(
-            refund_registered_event[0].asset.value,
+            refund_registered_event[0].asset,
             Bits256(*Address::from_str(&L1_TOKEN).unwrap())
         );
         assert_eq!(
-            refund_registered_event[0].from.value,
+            refund_registered_event[0].from,
             Bits256(*Address::from_str(&FROM).unwrap())
         );
 
@@ -538,11 +541,11 @@ mod success {
             Bits256(*Address::from_str(&OVERFLOWING_AMOUNT).unwrap())
         );
         assert_eq!(
-            refund_registered_event[0].asset.value,
+            refund_registered_event[0].asset,
             Bits256(*Address::from_str(&L1_TOKEN).unwrap())
         );
         assert_eq!(
-            refund_registered_event[0].from.value,
+            refund_registered_event[0].from,
             Bits256(*Address::from_str(&FROM).unwrap())
         );
 
