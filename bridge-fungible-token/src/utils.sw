@@ -17,7 +17,7 @@ use std::{
 };
 
 use errors::BridgeFungibleTokenError;
-use events::{BurnEvent, MintEvent, TransferEvent};
+use events::{BurnEvent, MintEvent};
 use data::MessageData;
 use std::{
     constants::ZERO_B256,

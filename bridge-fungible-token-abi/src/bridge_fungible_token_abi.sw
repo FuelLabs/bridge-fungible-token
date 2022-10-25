@@ -7,7 +7,7 @@ abi BridgeFungibleToken {
     ///
     /// # Arguments
     ///
-    /// * `originator` - the EvmAddress that is entitled to a refund
+    /// * `originator` - the b256 value of the address entitled to a refund
     /// * `asset` - the EvmAddress of the L1 token for the refund
     #[storage(read, write)]
     fn claim_refund(originator: b256, asset: b256);

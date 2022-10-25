@@ -23,12 +23,6 @@ pub struct MintEvent {
     to: Address,
 }
 
-pub struct TransferEvent {
-    from: Identity,
-    to: Identity,
-    amount: u64,
-}
-
 pub struct WithdrawalEvent {
     to: b256,
     amount: u64,
