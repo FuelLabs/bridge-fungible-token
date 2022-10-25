@@ -17,7 +17,7 @@ use std::{
 };
 
 use errors::BridgeFungibleTokenError;
-use events::{BurnEvent, MintEvent};
+use events::{MintEvent};
 use data::MessageData;
 use std::{
     constants::ZERO_B256,
@@ -56,10 +56,6 @@ pub fn mint_and_transfer_tokens(amount: u64, to: Address) {
 
 pub fn burn_tokens(amount: u64, from: Identity) {
     burn(amount);
-    log(BurnEvent {
-        from: from,
-        amount,
-    })
 }
 
 pub fn safe_b256_to_u64(val: b256) -> Result<u64, BridgeFungibleTokenError> {

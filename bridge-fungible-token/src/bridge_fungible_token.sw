@@ -122,6 +122,7 @@ impl BridgeFungibleToken for Contract {
         send_message_output(to, withdrawal_amount);
         log(WithdrawalEvent {
             to: to,
+            from: sender,
             amount: withdrawal_amount,
             asset: origin_contract_id,
         });

@@ -7,11 +7,6 @@ use std::{
     vm::evm::evm_address::EvmAddress,
 };
 
-pub struct BurnEvent {
-    from: Identity,
-    amount: u64,
-}
-
 pub struct RefundRegisteredEvent {
     from: EvmAddress,
     asset: EvmAddress,
@@ -25,6 +20,7 @@ pub struct MintEvent {
 
 pub struct WithdrawalEvent {
     to: b256,
+    from: Identity,
     amount: u64,
     asset: ContractId,
 }
