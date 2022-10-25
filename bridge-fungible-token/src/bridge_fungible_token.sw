@@ -28,7 +28,6 @@ use std::{
     token::{
         burn,
         mint_to_address,
-        transfer_to_address,
     },
     vm::evm::evm_address::EvmAddress,
 };
@@ -41,7 +40,6 @@ use utils::{
     parse_message_data,
     safe_b256_to_u64,
     send_message_output,
-    transfer_tokens,
     u64_to_b256,
 };
 
@@ -86,11 +84,9 @@ impl MessageReceiver for Contract {
         let amount = safe_b256_to_u64(message_data.amount);
         match amount {
             Result::Err(e) => {
-                log(66);
                 register_refund(message_data.from, message_data.l1_asset, message_data.amount);
             },
             Result::Ok(a) => {
-                log(77);
                 mint_to_address(amount, message_data.to);
                 log(DepositEvent {
                     message_data.to,

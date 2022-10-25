@@ -12,33 +12,13 @@ use std::{
         output_count,
         output_type,
     },
-    revert::revert,
     vec::Vec,
 };
 
 use errors::BridgeFungibleTokenError;
 use events::DepositEvent;
 use data::MessageData;
-use std::{
-    constants::ZERO_B256,
-    inputs::{
-        Input,
-        input_pointer,
-        input_type,
-    },
-    logging::log,
-    mem::{
-        addr_of,
-        read,
-        write,
-    },
-    token::{
-        burn,
-        mint_to_address,
-        transfer_to_address,
-    },
-    vm::evm::evm_address::EvmAddress,
-};
+use std::{constants::ZERO_B256, mem::{addr_of, read, write}};
 
 // the function selector for finalizeWithdrawal on the L1ERC20Gateway contract
 const FINALIZE_WITHDRAWAL_SELECTOR: u64 = 0x53ef1461;
@@ -151,10 +131,6 @@ pub fn send_message_output(to: b256, amount: u64, ) {
     let adjustment_factor = 1_000_000_000;
     let decimal_adjusted_amount = amount * adjustment_factor;
     send_message(LAYER_1_ERC20_GATEWAY, encode_data(to, decimal_adjusted_amount), 0);
-}
-
-pub fn transfer_tokens(amount: u64, asset: ContractId, to: Address) {
-    transfer_to_address(amount, asset, to);
 }
 
 ///////////////////////////////////////
