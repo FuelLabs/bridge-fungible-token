@@ -70,7 +70,7 @@ fn register_refund(from: b256, asset: b256, amount: b256) {
 ////////////////////////////////////////
 // Implement the process_message function required to be a message receiver
 impl MessageReceiver for Contract {
-    #[storage(read, write)]
+    #[storage(write)]
     fn process_message(msg_idx: u8) {
         let input_sender = input_message_sender(1);
 
@@ -111,7 +111,6 @@ impl BridgeFungibleToken for Contract {
         send_message(LAYER_1_ERC20_GATEWAY, encode_data(originator, stored_amount), 0);
     }
 
-    #[storage(read)]
     fn withdraw_to(to: b256) {
         let withdrawal_amount = msg_amount();
         require(withdrawal_amount != 0, BridgeFungibleTokenError::NoCoinsForwarded);
@@ -132,11 +131,11 @@ impl BridgeFungibleToken for Contract {
         });
     }
 
-    fn name() -> str[8] {
+    fn name() -> str[32] {
         NAME
     }
 
-    fn symbol() -> str[5] {
+    fn symbol() -> str[32] {
         SYMBOL
     }
 

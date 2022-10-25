@@ -23,14 +23,13 @@ abi BridgeFungibleToken {
     ///
     /// * When no coins were sent with call
     /// * When the wrong asset was sent with the call
-    #[storage(read)]
     fn withdraw_to(to: b256);
 
     /// Get the name of this token contract
-    fn name() -> str[8];
+    fn name() -> str[32];
 
     /// Get the symbol of this token contract
-    fn symbol() -> str[5];
+    fn symbol() -> str[32];
 
     /// get the decimals of this token contract
     fn decimals() -> u8;
