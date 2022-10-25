@@ -40,6 +40,9 @@ use std::{
     vm::evm::evm_address::EvmAddress,
 };
 
+// the function selector for finalizeWithdrawal on the L1ERC20Gateway contract
+const FINALIZE_WITHDRAWAL_SELECTOR: u64 = 0x53ef1461;
+
 // TODO: [std-lib] remove once standard library functions have been added
 const GTF_INPUT_MESSAGE_DATA_LENGTH = 0x11B;
 const GTF_INPUT_MESSAGE_DATA = 0x11E;
@@ -141,8 +144,8 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
 }
 pub fn encode_data(to: b256, amount: u64) -> Vec<u64> {
     let mut data = ~Vec::with_capacity(13);
-    // start with the function selector for finalizeWithdrawal on the L1ERC20Gateway contract
-    data.push(0x53ef1461);
+    // start with the function selector
+    data.push(FINALIZE_WITHDRAWAL_SELECTOR);
 
     // add the address to recieve coins
     let (recip_1, recip_2, recip_3, recip_4) = decompose(to);
