@@ -13,8 +13,6 @@ LAYER_1_ERC20_GATEWAY = { type = "b256", value = "0xca400d3e7710eee2937868307552
 # TODO: Set actual value here instead of placeholder
 LAYER_1_TOKEN = { type = "b256", value = "0x00000000000000000000000000000000000000000000000000000000deadbeef" }
 PREDICATE_ROOT = { type = "b256", value = "0x1b68c76eb5a9674b776daab8e2ded519fc152cf1e4f78b08559d4106e36d2176" }
-# TODO: need varaible-length strings to allow flexibility in name and symbol !
-# For now, could use the hash of any string (i:e: a b256)
 DECIMALS = { type = "u8", value = "9u8" }
 LAYER_1_DECIMALS = { type = "u8", value = "18u8" }
 NAME = { type = "str[32]", value = "\"________________________MY_TOKEN\"" }
