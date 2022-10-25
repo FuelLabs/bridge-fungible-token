@@ -25,10 +25,14 @@ use std::{
     },
     logging::log,
     storage::StorageMap,
+    token::{
+        burn,
+        mint_to_address,
+        transfer_to_address,
+    },
     vm::evm::evm_address::EvmAddress,
 };
 use utils::{
-    burn_tokens,
     decompose,
     input_message_data,
     input_message_data_length,
@@ -118,7 +122,7 @@ impl BridgeFungibleToken for Contract {
         // check that the correct asset was sent with call
         require(contract_id() == origin_contract_id, BridgeFungibleTokenError::IncorrectAssetDeposited);
 
-        burn_tokens(withdrawal_amount, sender);
+        burn(withdrawal_amount);
         send_message_output(to, withdrawal_amount);
         log(WithdrawalEvent {
             to: to,

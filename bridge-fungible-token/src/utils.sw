@@ -58,10 +58,6 @@ pub fn mint_and_transfer_tokens(to: Address, from: b256, amount: u64) {
     });
 }
 
-pub fn burn_tokens(amount: u64, from: Identity) {
-    burn(amount);
-}
-
 pub fn safe_b256_to_u64(val: b256) -> Result<u64, BridgeFungibleTokenError> {
     // first, decompose into u64 values
     let u64s = decompose(val);
