@@ -17,7 +17,7 @@ use std::{
 };
 
 use errors::BridgeFungibleTokenError;
-use events::{MintEvent};
+use events::DepositEvent;
 use data::MessageData;
 use std::{
     constants::ZERO_B256,
@@ -49,9 +49,13 @@ const GTF_INPUT_MESSAGE_DATA = 0x11E;
 const GTF_INPUT_MESSAGE_SENDER = 0x115;
 const GTF_INPUT_MESSAGE_RECIPIENT = 0x116;
 
-pub fn mint_and_transfer_tokens(amount: u64, to: Address) {
+pub fn mint_and_transfer_tokens(to: Address, from: b256, amount: u64) {
     mint_to_address(amount, to);
-    log(MintEvent { amount, to });
+    log(DepositEvent {
+        to,
+        from,
+        amount,
+    });
 }
 
 pub fn burn_tokens(amount: u64, from: Identity) {
@@ -111,16 +115,16 @@ fn single_word_from_b256(val: b256, offset: u64) -> u64 {
 pub fn parse_message_data(msg_idx: u8) -> MessageData {
     let mut msg_data = MessageData {
         fuel_token: ~ContractId::from(ZERO_B256),
-        l1_asset: ~EvmAddress::from(ZERO_B256),
-        from: ~EvmAddress::from(ZERO_B256),
+        l1_asset: ZERO_B256,
+        from: ZERO_B256,
         to: ~Address::from(ZERO_B256),
         amount: ZERO_B256,
     };
 
     // Parse the message data
     msg_data.fuel_token = ~ContractId::from(input_message_data::<b256>(msg_idx, 0));
-    msg_data.l1_asset = ~EvmAddress::from(input_message_data::<b256>(msg_idx, 32));
-    msg_data.from = ~EvmAddress::from(input_message_data::<b256>(msg_idx, 32 + 32));
+    msg_data.l1_asset = input_message_data::<b256>(msg_idx, 32);
+    msg_data.from = input_message_data::<b256>(msg_idx, 32 + 32);
     msg_data.to = ~Address::from(input_message_data::<b256>(msg_idx, 32 + 32 + 32));
     msg_data.amount = input_message_data::<b256>(msg_idx, 32 + 32 + 32 + 32);
 

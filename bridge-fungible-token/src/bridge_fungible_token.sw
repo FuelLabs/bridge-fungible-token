@@ -46,14 +46,14 @@ use utils::{
 // Storage declarations
 ////////////////////////////////////////
 storage {
-    refund_amounts: StorageMap<(EvmAddress, EvmAddress), Option<b256>> = StorageMap {},
+    refund_amounts: StorageMap<(b256, b256), Option<b256>> = StorageMap {},
 }
 
 ////////////////////////////////////////
 // Storage-dependant private functions
 ////////////////////////////////////////
 #[storage(write)]
-fn register_refund(from: EvmAddress, asset: EvmAddress, amount: b256) {
+fn register_refund(from: b256, asset: b256, amount: b256) {
     storage.refund_amounts.insert((from, asset), Option::Some(amount));
     log(RefundRegisteredEvent {
         from,
@@ -78,7 +78,7 @@ impl MessageReceiver for Contract {
         // @review this.
         // Register a refund if tokens don't match ?
         // register_refund(message_data.from, message_data.l1_asset, message_data.amount);
-        require(message_data.l1_asset == ~EvmAddress::from(LAYER_1_TOKEN), BridgeFungibleTokenError::IncorrectAssetDeposited);
+        require(message_data.l1_asset == LAYER_1_TOKEN, BridgeFungibleTokenError::IncorrectAssetDeposited);
 
         let amount = safe_b256_to_u64(message_data.amount);
         match amount {
@@ -88,7 +88,7 @@ impl MessageReceiver for Contract {
             },
             Result::Ok(a) => {
                 log(77);
-                mint_and_transfer_tokens(a, message_data.to);
+                mint_and_transfer_tokens(message_data.to, message_data.from, a);
             },
         }
     }
@@ -97,10 +97,10 @@ impl MessageReceiver for Contract {
 impl BridgeFungibleToken for Contract {
     #[storage(read, write)]
     fn claim_refund(originator: b256, asset: b256) {
-        let stored_amount = storage.refund_amounts.get((~EvmAddress::from(originator), ~EvmAddress::from(asset)));
+        let stored_amount = storage.refund_amounts.get((originator, asset));
         require(stored_amount.is_some(), BridgeFungibleTokenError::NoRefundAvailable);
         // reset the refund amount to 0
-        storage.refund_amounts.insert((~EvmAddress::from(originator), ~EvmAddress::from(asset)), Option::None());
+        storage.refund_amounts.insert((originator, asset), Option::None());
 
         let values = decompose(stored_amount.unwrap());
         // send a message to unlock this amount on the ethereum (L1) bridge contract
