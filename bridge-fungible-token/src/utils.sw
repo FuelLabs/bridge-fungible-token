@@ -10,7 +10,6 @@ use std::{
         disable_panic_on_overflow,
         enable_panic_on_overflow
     },
-    logging::log,
     math::*,
     outputs::{
         Output,
@@ -52,7 +51,6 @@ fn decimal_adjustment_factor() -> u64 {
 pub fn safe_u64_to_b256(val: u64) -> b256 {
     let adjustment_factor = decimal_adjustment_factor();
     let mut result: b256 = ZERO_B256;
-    log(777);
     disable_panic_on_overflow();
     asm(product, overflow, value: val, factor: adjustment_factor, ptr: __addr_of(result)) {
         mul product value factor;
@@ -61,7 +59,6 @@ pub fn safe_u64_to_b256(val: u64) -> b256 {
         sw ptr overflow i2;
     }
     enable_panic_on_overflow();
-    log(result);
     result
 }
 
