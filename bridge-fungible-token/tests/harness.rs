@@ -1,11 +1,11 @@
 mod utils {
+    pub mod builder;
     pub mod environment;
-    pub mod ext_sdk_provider;
 }
 
 use std::str::FromStr;
+use utils::builder;
 use utils::environment as env;
-use utils::ext_sdk_provider;
 
 use fuels::prelude::*;
 use fuels::tx::{Address, AssetId, Receipt};
