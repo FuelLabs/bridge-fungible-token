@@ -25,14 +25,19 @@ abi BridgeFungibleToken {
     /// * When the wrong asset was sent with the call
     #[storage(read)]
     fn withdraw_to(to: b256);
+
     /// Get the name of this token contract
     fn name() -> str[8];
+
     /// Get the symbol of this token contract
     fn symbol() -> str[5];
+
     /// get the decimals of this token contract
     fn decimals() -> u8;
+
     /// get the L1 token that this contract bridges
     fn layer1_token() -> b256;
+
     /// get the L1_decimals of this token contract
     fn layer1_decimals() -> u8;
 }
