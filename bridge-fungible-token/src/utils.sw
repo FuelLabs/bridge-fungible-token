@@ -62,18 +62,6 @@ pub fn burn_tokens(amount: u64, from: Identity) {
     })
 }
 
-pub fn correct_input_type(index: u64) -> bool {
-    let type = input_type(index);
-    match type {
-        Input::Message => {
-            true
-        },
-        _ => {
-            false
-        }
-    }
-}
-
 pub fn safe_b256_to_u64(val: b256) -> Result<u64, BridgeFungibleTokenError> {
     // first, decompose into u64 values
     let u64s = decompose(val);

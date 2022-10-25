@@ -29,7 +29,6 @@ use std::{
 };
 use utils::{
     burn_tokens,
-    correct_input_type,
     decompose,
     input_message_data,
     input_message_data_length,
@@ -54,7 +53,7 @@ storage {
 // Storage-dependant private functions
 ////////////////////////////////////////
 #[storage(write)]
-pub fn register_refund(from: EvmAddress, asset: EvmAddress, amount: b256) {
+fn register_refund(from: EvmAddress, asset: EvmAddress, amount: b256) {
     storage.refund_amounts.insert((from, asset), Option::Some(amount));
     log(RefundRegisteredEvent {
         from,
