@@ -78,24 +78,24 @@ impl MessageReceiver for Contract {
 
         let message_data = parse_message_data(msg_idx);
 
-        // @review this.
-        // Register a refund if tokens don't match ?
-        // register_refund(message_data.from, message_data.l1_asset, message_data.amount);
-        require(message_data.l1_asset == LAYER_1_TOKEN, BridgeFungibleTokenError::IncorrectAssetDeposited);
-
-        let amount = safe_b256_to_u64(message_data.amount);
-        match amount {
-            Result::Err(e) => {
-                register_refund(message_data.from, message_data.l1_asset, message_data.amount);
-            },
-            Result::Ok(a) => {
-                mint_to_address(a, message_data.to);
-                log(DepositEvent {
-                    to: message_data.to,
-                    from: message_data.from,
-                    amount: a,
-                });
-            },
+        // Register a refund if tokens don't match
+        if message_data.l1_asset != LAYER_1_TOKEN {
+            register_refund(message_data.from, message_data.l1_asset, message_data.amount);
+        } else {
+            let amount = safe_b256_to_u64(message_data.amount);
+            match amount {
+                Result::Err(e) => {
+                    register_refund(message_data.from, message_data.l1_asset, message_data.amount);
+                },
+                Result::Ok(a) => {
+                    mint_to_address(a, message_data.to);
+                    log(DepositEvent {
+                        to: message_data.to,
+                        from: message_data.from,
+                        amount: a,
+                    });
+                },
+            }
         }
     }
 }
@@ -124,12 +124,12 @@ impl BridgeFungibleToken for Contract {
 
         burn(withdrawal_amount);
         send_message(LAYER_1_ERC20_GATEWAY, encode_data(to, safe_u64_to_b256(withdrawal_amount)), 0);
-        // log(WithdrawalEvent {
-        //     to: to,
-        //     from: sender,
-        //     amount: withdrawal_amount,
-        //     asset: origin_contract_id,
-        // });
+        log(WithdrawalEvent {
+            to: to,
+            from: sender,
+            amount: withdrawal_amount,
+            asset: origin_contract_id,
+        });
     }
 
     fn name() -> str[8] {

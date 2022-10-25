@@ -258,8 +258,6 @@ mod success {
         )
         .await;
 
-        println!("Withdraw Receipts: {:#?}", _receipts);
-
         let test_contract_base_asset_balance = provider
             .get_contract_asset_balance(test_contract.get_contract_id(), AssetId::default())
             .await
@@ -556,7 +554,6 @@ mod success {
 
     #[tokio::test]
     async fn can_get_name() {
-        // @review reuse let wallet = env::setup_wallet(); ?
         let wallet = launch_provider_and_get_wallet().await;
         // Set up the environment
         let (contract, _id) = env::get_fungible_token_instance(wallet.clone()).await;
@@ -611,8 +608,7 @@ mod revert {
     use super::*;
 
     #[tokio::test]
-    #[should_panic(expected = "Revert(42)")]
-    async fn verification_fails_with_wrong_l1_token() {
+    async fn deposit_with_wrong_l1_token_registers_refund() -> Result<(), Error> {
         let mut wallet = env::setup_wallet();
         let wrong_token_value: &str =
             "0x1111110000000000000000000000000000000000000000000000000000111111";
@@ -631,12 +627,12 @@ mod revert {
             contract_input,
             coin_inputs,
             message_inputs,
-            _test_contract_id,
+            test_contract_id,
             provider,
         ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None).await;
 
         // Relay the test message to the test contract
-        let _receipts = env::relay_message_to_contract(
+        let receipts = env::relay_message_to_contract(
             &wallet,
             message_inputs[0].clone(),
             contract_input,
@@ -646,12 +642,41 @@ mod revert {
         )
         .await;
 
+        let refund_registered_event = test_contract
+            .logs_with_type::<utils::environment::bridgefungibletokencontract_mod::RefundRegisteredEvent>(
+            &receipts,
+        )?;
+
         // Verify the message value was received by the test contract
         let test_contract_balance = provider
             .get_contract_asset_balance(test_contract.get_contract_id(), AssetId::default())
             .await
             .unwrap();
+
+        let balance = wallet
+            .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
+            .await?;
+
+        // Verify the message value was received by the test contract
         assert_eq!(test_contract_balance, 100);
+
+        // check that the RefundRegisteredEvent receipt is populated correctly
+        assert_eq!(
+            refund_registered_event[0].amount,
+            Bits256(*Address::from_str(&MINIMUM_BRIDGABLE_AMOUNT).unwrap())
+        );
+        assert_eq!(
+            refund_registered_event[0].asset,
+            Bits256(*Address::from_str(&wrong_token_value).unwrap())
+        );
+        assert_eq!(
+            refund_registered_event[0].from,
+            Bits256(*Address::from_str(&FROM).unwrap())
+        );
+
+        // verify that no tokens were minted for message.data.to
+        assert_eq!(balance, 0);
+        Ok(())
     }
 
     #[tokio::test]
