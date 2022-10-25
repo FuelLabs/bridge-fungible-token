@@ -38,7 +38,6 @@ use utils::{
     input_message_data_length,
     input_message_recipient,
     input_message_sender,
-    mint_and_transfer_tokens,
     parse_message_data,
     safe_b256_to_u64,
     send_message_output,
@@ -92,7 +91,12 @@ impl MessageReceiver for Contract {
             },
             Result::Ok(a) => {
                 log(77);
-                mint_and_transfer_tokens(message_data.to, message_data.from, a);
+                mint_to_address(amount, message_data.to);
+                log(DepositEvent {
+                    message_data.to,
+                    message_data.from,
+                    amount,
+                });
             },
         }
     }

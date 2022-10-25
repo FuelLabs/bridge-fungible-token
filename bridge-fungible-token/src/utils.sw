@@ -49,15 +49,6 @@ const GTF_INPUT_MESSAGE_DATA = 0x11E;
 const GTF_INPUT_MESSAGE_SENDER = 0x115;
 const GTF_INPUT_MESSAGE_RECIPIENT = 0x116;
 
-pub fn mint_and_transfer_tokens(to: Address, from: b256, amount: u64) {
-    mint_to_address(amount, to);
-    log(DepositEvent {
-        to,
-        from,
-        amount,
-    });
-}
-
 pub fn safe_b256_to_u64(val: b256) -> Result<u64, BridgeFungibleTokenError> {
     // first, decompose into u64 values
     let u64s = decompose(val);
