@@ -11,16 +11,10 @@ use std::{
         enable_panic_on_overflow
     },
     math::*,
-    outputs::{
-        Output,
-        output_count,
-        output_type
-    },
     vec::Vec
 };
 
 use errors::BridgeFungibleTokenError;
-use events::DepositEvent;
 use data::MessageData;
 
 // the function selector for finalizeWithdrawal on the L1ERC20Gateway contract
@@ -35,11 +29,10 @@ const GTF_INPUT_MESSAGE_RECIPIENT = 0x116;
 fn decimal_adjustment_factor() -> u64 {
     if LAYER_1_DECIMALS > DECIMALS {
         10.pow(LAYER_1_DECIMALS - DECIMALS)
-    } else if DECIMALS > LAYER_1_DECIMALS {
+    } else if LAYER_1_DECIMALS < DECIMALS {
+        // TODO: Discuss how we want to handle this case
         1
     } else {
-        // TODO: Decide how to properly handle the case where
-        // DECIMALS == LAYER_1_DECIMALS
         1
     }
 }
@@ -67,7 +60,6 @@ pub fn safe_b256_to_u64(val: b256) -> Result<u64, BridgeFungibleTokenError> {
     let u64s = decompose(val);
     let adjustment_factor = decimal_adjustment_factor();
 
-    // @todo use decimal_adjustment_factor() here instead of hardcoded values
     // verify amount will require no partial refund of dust by ensuring that
     // the first n decimal places in the passed-in value are empty,
     // then verify amount is not too small or too large

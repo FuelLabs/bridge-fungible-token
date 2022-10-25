@@ -7,12 +7,10 @@ dep utils;
 
 use bridge_fungible_token_abi::BridgeFungibleToken;
 use contract_message_receiver::MessageReceiver;
-use core::num::*;
 use errors::BridgeFungibleTokenError;
 use events::{DepositEvent, RefundRegisteredEvent, WithdrawalEvent};
 use std::{
     chain::auth::{
-        AuthError,
         msg_sender,
     },
     constants::ZERO_B256,
@@ -30,7 +28,6 @@ use std::{
         burn,
         mint_to_address,
     },
-    vm::evm::evm_address::EvmAddress,
 };
 use utils::{
     decompose,
@@ -44,14 +41,12 @@ use utils::{
     safe_u64_to_b256,
     u64_to_b256,
 };
-
 ////////////////////////////////////////
 // Storage declarations
 ////////////////////////////////////////
 storage {
     refund_amounts: StorageMap<(b256, b256), b256> = StorageMap {},
 }
-
 ////////////////////////////////////////
 // Storage-dependant private functions
 ////////////////////////////////////////
@@ -64,7 +59,6 @@ fn register_refund(from: b256, asset: b256, amount: b256) {
         amount,
     });
 }
-
 ////////////////////////////////////////
 // ABI Implementations
 ////////////////////////////////////////
@@ -73,11 +67,8 @@ impl MessageReceiver for Contract {
     #[storage(write)]
     fn process_message(msg_idx: u8) {
         let input_sender = input_message_sender(1);
-
         require(input_sender.value == LAYER_1_ERC20_GATEWAY, BridgeFungibleTokenError::UnauthorizedSender);
-
         let message_data = parse_message_data(msg_idx);
-
         // Register a refund if tokens don't match
         if message_data.l1_asset != LAYER_1_TOKEN {
             register_refund(message_data.from, message_data.l1_asset, message_data.amount);
@@ -99,7 +90,6 @@ impl MessageReceiver for Contract {
         }
     }
 }
-
 impl BridgeFungibleToken for Contract {
     #[storage(read, write)]
     fn claim_refund(originator: b256, asset: b256) {
@@ -110,17 +100,13 @@ impl BridgeFungibleToken for Contract {
         // send a message to unlock this amount on the ethereum (L1) bridge contract
         send_message(LAYER_1_ERC20_GATEWAY, encode_data(originator, stored_amount), 0);
     }
-
     fn withdraw_to(to: b256) {
         let withdrawal_amount = msg_amount();
         require(withdrawal_amount != 0, BridgeFungibleTokenError::NoCoinsForwarded);
-
         let origin_contract_id = msg_asset_id();
         let sender = msg_sender().unwrap();
-
         // check that the correct asset was sent with call
         require(contract_id() == origin_contract_id, BridgeFungibleTokenError::IncorrectAssetDeposited);
-
         burn(withdrawal_amount);
         send_message(LAYER_1_ERC20_GATEWAY, encode_data(to, safe_u64_to_b256(withdrawal_amount)), 0);
         log(WithdrawalEvent {
@@ -130,23 +116,18 @@ impl BridgeFungibleToken for Contract {
             asset: origin_contract_id,
         });
     }
-
     fn name() -> str[32] {
         NAME
     }
-
     fn symbol() -> str[32] {
         SYMBOL
     }
-
     fn decimals() -> u8 {
         DECIMALS
     }
-
     fn layer1_token() -> b256 {
         LAYER_1_TOKEN
     }
-
     fn layer1_decimals() -> u8 {
         LAYER_1_DECIMALS
     }
