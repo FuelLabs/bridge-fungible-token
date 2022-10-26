@@ -21,7 +21,7 @@ abigen!(
 
 pub const MESSAGE_SENDER_ADDRESS: &str =
     "0xca400d3e7710eee293786830755278e6d2b9278b4177b8b1a896ebd5f55c10bc";
-pub const TEST_RECEIVER_CONTRACT_BINARY: &str =
+pub const TEST_BRIDGE_FUNGIBLE_TOKEN_CONTRACT_BINARY: &str =
     "../bridge-fungible-token/out/debug/bridge_fungible_token.bin";
 
 pub fn setup_wallet() -> WalletUnlocked {
@@ -102,7 +102,7 @@ pub async fn setup_environment(
 
     // Deploy the target contract used for testing processing messages
     let test_contract_id = Contract::deploy(
-        TEST_RECEIVER_CONTRACT_BINARY,
+        TEST_BRIDGE_FUNGIBLE_TOKEN_CONTRACT_BINARY,
         &wallet,
         TxParameters::default(),
         StorageConfiguration::default(),
@@ -201,7 +201,7 @@ pub async fn prefix_contract_id(data: Vec<u8>) -> Vec<u8> {
     // Compute the test contract ID
     let storage_configuration = StorageConfiguration::default();
     let compiled_contract = Contract::load_contract(
-        TEST_RECEIVER_CONTRACT_BINARY,
+        TEST_BRIDGE_FUNGIBLE_TOKEN_CONTRACT_BINARY,
         &storage_configuration.storage_path,
     )
     .unwrap();
@@ -228,7 +228,7 @@ pub async fn get_fungible_token_instance(
 ) -> (BridgeFungibleTokenContract, ContractId) {
     // Deploy the target contract used for testing processing messages
     let fungible_token_contract_id = Contract::deploy(
-        TEST_RECEIVER_CONTRACT_BINARY,
+        TEST_BRIDGE_FUNGIBLE_TOKEN_CONTRACT_BINARY,
         &wallet,
         TxParameters::default(),
         StorageConfiguration::default(),
