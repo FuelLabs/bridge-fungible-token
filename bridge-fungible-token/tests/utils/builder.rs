@@ -22,11 +22,10 @@ pub async fn get_contract_message_script() -> (Vec<u8>, Bytes32) {
 }
 
 /// Gets the message to contract predicate
-pub async fn get_contract_message_predicate() -> (Vec<u8>, Address, [u8; 32]) {
+pub async fn get_contract_message_predicate() -> (Vec<u8>, Address) {
     let predicate_bytecode = std::fs::read(CONTRACT_MESSAGE_PREDICATE_BINARY).unwrap();
-    let root_array = *tx_contract::root_from_code(&predicate_bytecode);
-    let predicate_root = Address::from(root_array);
-    (predicate_bytecode, predicate_root, root_array)
+    let predicate_root = Address::from(*tx_contract::root_from_code(&predicate_bytecode));
+    (predicate_bytecode, predicate_root)
 }
 
 /// Build a message-to-contract transaction with the given input coins and outputs

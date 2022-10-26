@@ -71,7 +71,7 @@ pub async fn setup_environment(
         Some(v) => Address::from_str(v).unwrap(),
         None => Address::from_str(MESSAGE_SENDER_ADDRESS).unwrap(),
     };
-    let (predicate_bytecode, predicate_root, _) = builder::get_contract_message_predicate().await;
+    let (predicate_bytecode, predicate_root) = builder::get_contract_message_predicate().await;
     let all_messages: Vec<Message> = messages
         .iter()
         .flat_map(|message| {
