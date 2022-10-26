@@ -3,12 +3,12 @@ library bridge_fungible_token_abi;
 use std::{contract_id::ContractId, identity::Identity, vm::evm::evm_address::EvmAddress};
 
 abi BridgeFungibleToken {
-    /// Claim a refund for an EvmAddress if one has been registered.
+    /// Claim a refund for an address if one has been registered.
     ///
     /// # Arguments
     ///
-    /// * `originator` - the b256 value of the address entitled to a refund
-    /// * `asset` - the EvmAddress of the L1 token for the refund
+    /// * `originator` - the address entitled to a refund
+    /// * `asset` - the L1 token to be refunded back to the originator
     #[storage(read, write)]
     fn claim_refund(originator: b256, asset: b256);
 
@@ -17,7 +17,7 @@ abi BridgeFungibleToken {
     ///
     /// # Arguments
     ///
-    /// * `to` - the destination of the transfer (an Address or a ContractId)
+    /// * `to` - the address which is the destination of the transfer
     ///
     /// # Reverts
     ///
@@ -31,12 +31,12 @@ abi BridgeFungibleToken {
     /// Get the symbol of this token contract
     fn symbol() -> str[32];
 
-    /// get the decimals of this token contract
+    /// Get the decimals of this token contract
     fn decimals() -> u8;
 
-    /// get the L1 token that this contract bridges
+    /// Get the L1 token that this contract bridges
     fn layer1_token() -> b256;
 
-    /// get the L1_decimals of this token contract
+    /// Get the L1_decimals of this token contract
     fn layer1_decimals() -> u8;
 }
