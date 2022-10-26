@@ -39,7 +39,6 @@ use utils::{
     parse_message_data,
     safe_b256_to_u64,
     safe_u64_to_b256,
-    u64_to_b256,
 };
 ////////////////////////////////////////
 // Storage declarations

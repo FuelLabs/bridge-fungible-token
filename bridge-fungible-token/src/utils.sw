@@ -76,20 +76,6 @@ pub fn safe_b256_to_u64(val: b256) -> Result<u64, BridgeFungibleTokenError> {
     }
 }
 
-/// Build a single b256 value from a u64 left-padded with 3 0u64's
-pub fn u64_to_b256(val: u64) -> b256 {
-    let res: b256 = 0x0000000000000000000000000000000000000000000000000000000000000000;
-    let ptr = __addr_of(res);
-    ptr.write(0);
-    let ptr2 = ptr.add(8);
-    ptr2.write(0);
-    let ptr3 = ptr.add(16);
-    ptr3.write(0);
-    let ptr4 = ptr.add(24);
-    ptr4.write(val);
-    res
-}
-
 /// Get 4 64 bit words from a single b256 value.
 pub fn decompose(val: b256) -> (u64, u64, u64, u64) {
     let w1 = single_word_from_b256(val, 0);
