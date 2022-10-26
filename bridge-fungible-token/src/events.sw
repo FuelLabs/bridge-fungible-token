@@ -1,10 +1,6 @@
 library events;
 
-use std::{
-    contract_id::ContractId,
-    identity::Identity,
-    u256::U256,
-};
+use std::{contract_id::ContractId, identity::Identity, u256::U256};
 
 pub struct RefundRegisteredEvent {
     from: b256,
@@ -22,5 +18,4 @@ pub struct WithdrawalEvent {
     to: b256,
     from: Identity,
     amount: u64,
-    asset: ContractId,
 }

@@ -113,7 +113,6 @@ impl BridgeFungibleToken for Contract {
             to: to,
             from: sender,
             amount: withdrawal_amount,
-            asset: origin_contract_id,
         });
     }
     fn name() -> str[32] {
