@@ -42,6 +42,7 @@ fn decimal_adjustment_factor() -> u64 {
 // appropriate amount of 0s to the u64 via multiplication by the appropriate
 // adjustment_factor.
 // Potential overflow is accounted for & the result is returned as a b256
+// @review is this needed if using U256 type for math?
 pub fn safe_u64_to_b256(val: u64) -> b256 {
     let adjustment_factor = decimal_adjustment_factor();
     let mut result: b256 = ZERO_B256;
@@ -66,7 +67,8 @@ pub fn safe_b256_to_u64(val: b256) -> Result<u64, BridgeFungibleTokenError> {
     // then verify amount is not too small or too large
     // @review this, make no assumptions about relative size of decimals from different layers
     // @todo use modulo instead of div & then mul !
-    // @todo use
+    // @todo use U256
+    // @todo check if the provided 256 is too large to fit in the u64 _after_ decimal conversion
     if (u64s.3 / adjustment_factor) * adjustment_factor == u64s.3
         && u64s.3 >= adjustment_factor
         && u64s.0 == 0
@@ -114,6 +116,7 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
 
     msg_data
 }
+
 pub fn encode_data(to: b256, amount: b256) -> Vec<u64> {
     let mut data = ~Vec::with_capacity(13);
     // start with the function selector

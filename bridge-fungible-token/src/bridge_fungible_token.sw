@@ -28,6 +28,7 @@ use std::{
         burn,
         mint_to_address,
     },
+    u256::U256,
 };
 use utils::{
     decompose,
@@ -99,6 +100,7 @@ impl BridgeFungibleToken for Contract {
         // send a message to unlock this amount on the ethereum (L1) bridge contract
         send_message(LAYER_1_ERC20_GATEWAY, encode_data(originator, stored_amount), 0);
     }
+
     fn withdraw_to(to: b256) {
         let withdrawal_amount = msg_amount();
         require(withdrawal_amount != 0, BridgeFungibleTokenError::NoCoinsForwarded);
@@ -107,6 +109,7 @@ impl BridgeFungibleToken for Contract {
         // check that the correct asset was sent with call
         require(contract_id() == origin_contract_id, BridgeFungibleTokenError::IncorrectAssetDeposited);
         burn(withdrawal_amount);
+        // @review math! U256 here?
         send_message(LAYER_1_ERC20_GATEWAY, encode_data(to, safe_u64_to_b256(withdrawal_amount)), 0);
         log(WithdrawalEvent {
             to: to,
@@ -114,18 +117,23 @@ impl BridgeFungibleToken for Contract {
             amount: withdrawal_amount,
         });
     }
+
     fn name() -> str[32] {
         NAME
     }
+
     fn symbol() -> str[32] {
         SYMBOL
     }
+
     fn decimals() -> u8 {
         DECIMALS
     }
+
     fn layer1_token() -> b256 {
         LAYER_1_TOKEN
     }
+
     fn layer1_decimals() -> u8 {
         LAYER_1_DECIMALS
     }
