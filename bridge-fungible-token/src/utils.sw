@@ -17,7 +17,8 @@ use std::{
 use errors::BridgeFungibleTokenError;
 use data::MessageData;
 
-// the function selector for finalizeWithdrawal on the L1ERC20Gateway contract
+// the function selector for finalizeWithdrawal on the L1ERC20Gateway contract:
+// finalizeWithdrawal(address,address,uint256)
 const FINALIZE_WITHDRAWAL_SELECTOR: u64 = 0x53ef1461;
 
 // TODO: [std-lib] remove once standard library functions have been added
@@ -37,10 +38,10 @@ fn decimal_adjustment_factor() -> u64 {
     }
 }
 
-/// used to increase the amount of "decimal" places by appending the
-/// appropriate amount of 0s to the u64 via multiplication by the appropriate
-/// adjustment_factor.
-/// Potential overflow is accounted for & the result is returned as a b256
+// used to increase the amount of "decimal" places by appending the
+// appropriate amount of 0s to the u64 via multiplication by the appropriate
+// adjustment_factor.
+// Potential overflow is accounted for & the result is returned as a b256
 pub fn safe_u64_to_b256(val: u64) -> b256 {
     let adjustment_factor = decimal_adjustment_factor();
     let mut result: b256 = ZERO_B256;
@@ -63,6 +64,9 @@ pub fn safe_b256_to_u64(val: b256) -> Result<u64, BridgeFungibleTokenError> {
     // verify amount will require no partial refund of dust by ensuring that
     // the first n decimal places in the passed-in value are empty,
     // then verify amount is not too small or too large
+    // @review this, make no assumptions about relative size of decimals from different layers
+    // @todo use modulo instead of div & then mul !
+    // @todo use
     if (u64s.3 / adjustment_factor) * adjustment_factor == u64s.3
         && u64s.3 >= adjustment_factor
         && u64s.0 == 0
@@ -76,23 +80,19 @@ pub fn safe_b256_to_u64(val: b256) -> Result<u64, BridgeFungibleTokenError> {
     }
 }
 
-/// Get 4 64 bit words from a single b256 value.
+// Get 4 64-bit words from a single b256 value.
 pub fn decompose(val: b256) -> (u64, u64, u64, u64) {
-    let w1 = single_word_from_b256(val, 0);
-    let w2 = single_word_from_b256(val, 8);
-    let w3 = single_word_from_b256(val, 16);
-    let w4 = single_word_from_b256(val, 24);
-    (w1, w2, w3, w4)
-}
-
-/// Extract a single 64 bit word from a b256 value using the specified offset.
-/// Todo look at refactoring to use raw_ptr.read/write
-fn single_word_from_b256(val: b256, offset: u64) -> u64 {
-    let mut empty: u64 = 0;
-    asm(r1: val, offset: offset, r2, res: empty) {
-        add r2 r1 offset;
-        lw res r2 i0;
-        res: u64
+    let empty_tup = (0u64, 0u64, 0u64, 0u64);
+    asm(r1: __addr_of(val), res1: empty_tup.0, res2: empty_tup.1, res3: empty_tup.2, res4: empty_tup.3, tup: empty_tup) {
+        lw res1 r1 i0;
+        lw res2 r1 i1;
+        lw res3 r1 i2;
+        lw res4 r1 i3;
+        sw tup res1 i0;
+        sw tup res2 i1;
+        sw tup res3 i2;
+        sw tup res4 i3;
+        tup: (u64, u64, u64, u64)
     }
 }
 
