@@ -29,41 +29,57 @@ const GTF_INPUT_MESSAGE_SENDER = 0x115;
 const GTF_INPUT_MESSAGE_RECIPIENT = 0x116;
 
 pub fn adjust_withdrawal_decimals(val: u64) -> b256 {
-    let amount = ~U256::from(0, 0, 0, val);
     if DECIMALS < LAYER_1_DECIMALS {
+        let amount = ~U256::from(0, 0, 0, val);
         let factor = ~U256::from(0, 0, 0, 10.pow(LAYER_1_DECIMALS - DECIMALS));
-       let components = amount.multiply(factor).into();
-       compose(components)
+        let components = amount.multiply(factor).into();
+        compose(components)
     } else {
-        // either decimals are the same, or decimals are negative.
-        // decide how to handle negative decimals before mainnet
+        // Either decimals are the same, or decimals are negative.
+        // TODO: Decide how to handle negative decimals before mainnet.
+        // For now we make no decimal adjustment for either case.
         compose((0, 0, 0, val))
     }
 }
 
-pub fn adjust_deposit_decimals(val: U256) -> Result<U256, BridgeFungibleTokenError> {
-    if LAYER_1_DECIMALS > DECIMALS {
-        let mut exponent = LAYER_1_DECIMALS - DECIMALS;
-        let mut result = 1;
-        while exponent > 0 {
-            result = result * 10;
-            exponent = exponent - 1;
-        }
-        let adjustment_factor = ~U256::from(0, 0, 0, result);
+// Make any necessary adjustments to decimals(precision) on the deposited value, and return either a converted u64 or an error if the conversion can't be achieved without overflow or loss of precision.
+pub fn adjust_deposit_decimals(msg_val: b256) -> Result<u64, BridgeFungibleTokenError> {
+    let decomposed = decompose(msg_val);
+    let value = ~U256::from(decomposed.0, decomposed.1, decomposed.2, decomposed.3);
 
-        if val.divide(adjustment_factor).multiply(adjustment_factor) == ~U256::min()
-            && (val.gt(adjustment_factor)
-            || val.eq(adjustment_factor))
+    if LAYER_1_DECIMALS > DECIMALS {
+        let adjustment_factor = ~U256::from(0, 0, 0, 10.pow(LAYER_1_DECIMALS - DECIMALS));
+
+        if value.divide(adjustment_factor).multiply(adjustment_factor) == ~U256::min()
+            && (value.gt(adjustment_factor)
+            || value.eq(adjustment_factor))
         {
-            Result::Ok(val.divide(adjustment_factor))
+            let adjusted = value.divide(adjustment_factor);
+            let val_result = adjusted.as_u64();
+            match val_result {
+                Result::Err(e) => {
+                    Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability)
+                },
+                Result::Ok(val) => {
+                    Result::Ok(val)
+                },
+            }
         } else {
             Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability)
         }
     } else {
-        // either decimals are the same, or decimals are negative.
-        // decide how to handle negative decimals before mainnet
-        // @todo check that amount still fits in a u64 !
-        Result::Ok(val)
+        // Either decimals are the same, or decimals are negative.
+        // TODO: Decide how to handle negative decimals before mainnet.
+        // For now we make no decimal adjustment for either case.
+        let val_result = value.as_u64();
+        match val_result {
+            Result::Err(e) => {
+                Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability)
+            },
+            Result::Ok(val) => {
+                Result::Ok(val)
+            },
+        }
     }
 }
 

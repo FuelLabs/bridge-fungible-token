@@ -69,34 +69,26 @@ impl MessageReceiver for Contract {
         let input_sender = input_message_sender(1);
         require(input_sender.value == LAYER_1_ERC20_GATEWAY, BridgeFungibleTokenError::UnauthorizedSender);
         let message_data = parse_message_data(msg_idx);
+
         // Register a refund if tokens don't match
         if message_data.l1_asset != LAYER_1_TOKEN {
             register_refund(message_data.from, message_data.l1_asset, message_data.amount);
-        } else {
-            let decomposed = decompose(message_data.amount);
-            let res_amount = adjust_deposit_decimals(~U256::from(decomposed.0, decomposed.1, decomposed.2, decomposed.3));
-            match res_amount {
-                Result::Err(e) => {
-                    // Register a refund if value can't be adjusted
-                    register_refund(message_data.from, message_data.l1_asset, message_data.amount);
-                },
-                Result::Ok(a) => {
-                    let result = a.as_u64();
-                    match result {
-                        Result::Err(e) => {
-                            // Register a refund if value can't be converted to a u64
-                            register_refund(message_data.from, message_data.l1_asset, message_data.amount);
-                        },
-                        Result::Ok(a) => {
-                            mint_to_address(a, message_data.to);
-                            log(DepositEvent {
-                                to: message_data.to,
-                                from: message_data.from,
-                                amount: a,
-                            });
-                        }
-                    }
-                },
+            return;
+        };
+
+        let res_amount = adjust_deposit_decimals(message_data.amount);
+        match res_amount {
+            Result::Err(e) => {
+                // Register a refund if value can't be adjusted
+                register_refund(message_data.from, message_data.l1_asset, message_data.amount);
+            },
+            Result::Ok(a) => {
+                mint_to_address(a, message_data.to);
+                log(DepositEvent {
+                    to: message_data.to,
+                    from: message_data.from,
+                    amount: a,
+                });
             }
         }
     }
