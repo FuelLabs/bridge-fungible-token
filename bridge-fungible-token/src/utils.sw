@@ -8,10 +8,11 @@ use std::{
     constants::ZERO_B256,
     flags::{
         disable_panic_on_overflow,
-        enable_panic_on_overflow
+        enable_panic_on_overflow,
     },
     math::*,
-    vec::Vec
+    u256::U256,
+    vec::Vec,
 };
 
 use errors::BridgeFungibleTokenError;
@@ -27,58 +28,56 @@ const GTF_INPUT_MESSAGE_DATA = 0x11E;
 const GTF_INPUT_MESSAGE_SENDER = 0x115;
 const GTF_INPUT_MESSAGE_RECIPIENT = 0x116;
 
-fn decimal_adjustment_factor() -> u64 {
+pub fn adjust_withdrawal_decimals(val: u64) -> b256 {
+    let amount = ~U256::from(0, 0, 0, val);
+    if DECIMALS < LAYER_1_DECIMALS {
+        let factor = ~U256::from(0, 0, 0, 10.pow(LAYER_1_DECIMALS - DECIMALS));
+       let components = amount.multiply(factor).into();
+       compose(components)
+    } else {
+        // either decimals are the same, or decimals are negative.
+        // decide how to handle negative decimals before mainnet
+        compose((0, 0, 0, val))
+    }
+}
+
+pub fn adjust_deposit_decimals(val: U256) -> Result<U256, BridgeFungibleTokenError> {
     if LAYER_1_DECIMALS > DECIMALS {
-        10.pow(LAYER_1_DECIMALS - DECIMALS)
-    } else if LAYER_1_DECIMALS < DECIMALS {
-        // TODO: Discuss how we want to handle this case
-        1
+        let mut exponent = LAYER_1_DECIMALS - DECIMALS;
+        let mut result = 1;
+        while exponent > 0 {
+            result = result * 10;
+            exponent = exponent - 1;
+        }
+        let adjustment_factor = ~U256::from(0, 0, 0, result);
+
+        if val.divide(adjustment_factor).multiply(adjustment_factor) == ~U256::min()
+            && (val.gt(adjustment_factor)
+            || val.eq(adjustment_factor))
+        {
+            Result::Ok(val.divide(adjustment_factor))
+        } else {
+            Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability)
+        }
     } else {
-        1
+        // either decimals are the same, or decimals are negative.
+        // decide how to handle negative decimals before mainnet
+        // @todo check that amount still fits in a u64 !
+        Result::Ok(val)
     }
 }
 
-// used to increase the amount of "decimal" places by appending the
-// appropriate amount of 0s to the u64 via multiplication by the appropriate
-// adjustment_factor.
-// Potential overflow is accounted for & the result is returned as a b256
-// @review is this needed if using U256 type for math?
-pub fn safe_u64_to_b256(val: u64) -> b256 {
-    let adjustment_factor = decimal_adjustment_factor();
-    let mut result: b256 = ZERO_B256;
-    disable_panic_on_overflow();
-    asm(product, overflow, value: val, factor: adjustment_factor, ptr: __addr_of(result)) {
-        mul product value factor;
-        move overflow of;
-        sw ptr product i3;
-        sw ptr overflow i2;
-    }
-    enable_panic_on_overflow();
-    result
-}
-
-pub fn safe_b256_to_u64(val: b256) -> Result<u64, BridgeFungibleTokenError> {
-    // first, decompose into u64 values
-    let u64s = decompose(val);
-    let adjustment_factor = decimal_adjustment_factor();
-
-    // verify amount will require no partial refund of dust by ensuring that
-    // the first n decimal places in the passed-in value are empty,
-    // then verify amount is not too small or too large
-    // @review this, make no assumptions about relative size of decimals from different layers
-    // @todo use modulo instead of div & then mul !
-    // @todo use U256
-    // @todo check if the provided 256 is too large to fit in the u64 _after_ decimal conversion
-    if (u64s.3 / adjustment_factor) * adjustment_factor == u64s.3
-        && u64s.3 >= adjustment_factor
-        && u64s.0 == 0
-        && u64s.1 == 0
-        && u64s.2 == 0
-    {
-        // reduce decimals
-        Result::Ok(u64s.3 / adjustment_factor)
-    } else {
-        Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability)
+// Note: compose() & decompose() exist in sway-lib-core::ops but are not
+// currently exported. If they are made `pub` we can reuse them here.
+// Build a single b256 value from 4 64 bit words.
+pub fn compose(words: (u64, u64, u64, u64)) -> b256 {
+    let res: b256 = 0x0000000000000000000000000000000000000000000000000000000000000000;
+    asm(w0: words.0, w1: words.1, w2: words.2, w3: words.3, result: res) {
+        sw result w0 i0;
+        sw result w1 i1;
+        sw result w2 i2;
+        sw result w3 i3;
+        result: b256
     }
 }
 

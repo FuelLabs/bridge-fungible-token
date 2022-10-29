@@ -31,6 +31,9 @@ use std::{
     u256::U256,
 };
 use utils::{
+    adjust_deposit_decimals,
+    adjust_withdrawal_decimals,
+    compose,
     decompose,
     encode_data,
     input_message_data,
@@ -38,18 +41,16 @@ use utils::{
     input_message_recipient,
     input_message_sender,
     parse_message_data,
-    safe_b256_to_u64,
-    safe_u64_to_b256,
+    // safe_b256_to_u64,
+    // safe_u64_to_b256,
 };
-////////////////////////////////////////
+
 // Storage declarations
-////////////////////////////////////////
 storage {
     refund_amounts: StorageMap<(b256, b256), b256> = StorageMap {},
 }
-////////////////////////////////////////
+
 // Storage-dependant private functions
-////////////////////////////////////////
 #[storage(write)]
 fn register_refund(from: b256, asset: b256, amount: b256) {
     storage.refund_amounts.insert((from, asset), amount);
@@ -59,9 +60,8 @@ fn register_refund(from: b256, asset: b256, amount: b256) {
         amount,
     });
 }
-////////////////////////////////////////
+
 // ABI Implementations
-////////////////////////////////////////
 // Implement the process_message function required to be a message receiver
 impl MessageReceiver for Contract {
     #[storage(read, write)]
@@ -73,23 +73,35 @@ impl MessageReceiver for Contract {
         if message_data.l1_asset != LAYER_1_TOKEN {
             register_refund(message_data.from, message_data.l1_asset, message_data.amount);
         } else {
-            let amount = safe_b256_to_u64(message_data.amount);
-            match amount {
+            let decomposed = decompose(message_data.amount);
+            let res_amount = adjust_deposit_decimals(~U256::from(decomposed.0, decomposed.1, decomposed.2, decomposed.3));
+            match res_amount {
                 Result::Err(e) => {
+                    // Register a refund if value can't be adjusted
                     register_refund(message_data.from, message_data.l1_asset, message_data.amount);
                 },
                 Result::Ok(a) => {
-                    mint_to_address(a, message_data.to);
-                    log(DepositEvent {
-                        to: message_data.to,
-                        from: message_data.from,
-                        amount: a,
-                    });
+                    let result = a.as_u64();
+                    match result {
+                        Result::Err(e) => {
+                            // Register a refund if value can't be converted to a u64
+                            register_refund(message_data.from, message_data.l1_asset, message_data.amount);
+                        },
+                        Result::Ok(a) => {
+                            mint_to_address(a, message_data.to);
+                            log(DepositEvent {
+                                to: message_data.to,
+                                from: message_data.from,
+                                amount: a,
+                            });
+                        }
+                    }
                 },
             }
         }
     }
 }
+
 impl BridgeFungibleToken for Contract {
     #[storage(read, write)]
     fn claim_refund(originator: b256, asset: b256) {
@@ -102,19 +114,19 @@ impl BridgeFungibleToken for Contract {
     }
 
     fn withdraw_to(to: b256) {
-        let withdrawal_amount = msg_amount();
-        require(withdrawal_amount != 0, BridgeFungibleTokenError::NoCoinsForwarded);
+        let amount = msg_amount();
+        require(amount != 0, BridgeFungibleTokenError::NoCoinsForwarded);
         let origin_contract_id = msg_asset_id();
         let sender = msg_sender().unwrap();
         // check that the correct asset was sent with call
         require(contract_id() == origin_contract_id, BridgeFungibleTokenError::IncorrectAssetDeposited);
-        burn(withdrawal_amount);
-        // @review math! U256 here?
-        send_message(LAYER_1_ERC20_GATEWAY, encode_data(to, safe_u64_to_b256(withdrawal_amount)), 0);
+        burn(amount);
+        let adjusted_amount = adjust_withdrawal_decimals(amount);
+        send_message(LAYER_1_ERC20_GATEWAY, encode_data(to, adjusted_amount), 0);
         log(WithdrawalEvent {
             to: to,
             from: sender,
-            amount: withdrawal_amount,
+            amount: amount,
         });
     }
 
