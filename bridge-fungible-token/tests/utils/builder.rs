@@ -3,7 +3,7 @@
  * be made part of the fuels-rs sdk repo as part of the Provider
  * implementation, similar to functions like 'build_transfer_tx'
  */
-use fuel_crypto::Hasher;
+use fuels::signers::fuel_crypto::Hasher;
 
 use fuels::prelude::*;
 use fuels::tx::{Address, AssetId, Bytes32, Contract as tx_contract, Input, Output, Transaction};
