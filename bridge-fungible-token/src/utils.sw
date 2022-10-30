@@ -19,6 +19,8 @@ const GTF_INPUT_MESSAGE_DATA = 0x11E;
 const GTF_INPUT_MESSAGE_SENDER = 0x115;
 const GTF_INPUT_MESSAGE_RECIPIENT = 0x116;
 
+/// Make any necessary adjustments to decimals(precision) on the amount
+/// to be withdrawn. This amount needs to be passed via message.data as a b256
 pub fn adjust_withdrawal_decimals(val: u64) -> b256 {
     if DECIMALS < LAYER_1_DECIMALS {
         let amount = ~U256::from(0, 0, 0, val);
@@ -33,7 +35,7 @@ pub fn adjust_withdrawal_decimals(val: u64) -> b256 {
     }
 }
 
-// Make any necessary adjustments to decimals(precision) on the deposited value, and return either a converted u64 or an error if the conversion can't be achieved without overflow or loss of precision.
+/// Make any necessary adjustments to decimals(precision) on the deposited value, and return either a converted u64 or an error if the conversion can't be achieved without overflow or loss of precision.
 pub fn adjust_deposit_decimals(msg_val: b256) -> Result<u64, BridgeFungibleTokenError> {
     let decomposed = decompose(msg_val);
     let value = ~U256::from(decomposed.0, decomposed.1, decomposed.2, decomposed.3);
@@ -74,9 +76,7 @@ pub fn adjust_deposit_decimals(msg_val: b256) -> Result<u64, BridgeFungibleToken
     }
 }
 
-// Note: compose() & decompose() exist in sway-lib-core::ops but are not
-// currently exported. If they are made `pub` we can reuse them here.
-// Build a single b256 value from 4 64 bit words.
+/// Build a single b256 value from a tuple of 4 u64 values.
 pub fn compose(words: (u64, u64, u64, u64)) -> b256 {
     let res: b256 = 0x0000000000000000000000000000000000000000000000000000000000000000;
     asm(w0: words.0, w1: words.1, w2: words.2, w3: words.3, result: res) {
@@ -88,7 +88,7 @@ pub fn compose(words: (u64, u64, u64, u64)) -> b256 {
     }
 }
 
-// Get 4 64-bit words from a single b256 value.
+/// Get a tuple of 4 u64 values from a single b256 value.
 pub fn decompose(val: b256) -> (u64, u64, u64, u64) {
     let empty_tup = (0u64, 0u64, 0u64, 0u64);
     asm(r1: __addr_of(val), res1: empty_tup.0, res2: empty_tup.1, res3: empty_tup.2, res4: empty_tup.3, tup: empty_tup) {
@@ -104,6 +104,7 @@ pub fn decompose(val: b256) -> (u64, u64, u64, u64) {
     }
 }
 
+/// Read the bytes passed as message data into an in-memory representation using the MessageData type.
 pub fn parse_message_data(msg_idx: u8) -> MessageData {
     let mut msg_data = MessageData {
         fuel_token: ~ContractId::from(ZERO_B256),
@@ -123,6 +124,7 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
     msg_data
 }
 
+/// Encode the data to be passed out of the contract when sending a message
 pub fn encode_data(to: b256, amount: b256) -> Vec<u64> {
     let mut data = ~Vec::with_capacity(13);
     // start with the function selector
