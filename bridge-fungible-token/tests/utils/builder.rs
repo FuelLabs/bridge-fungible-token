@@ -8,7 +8,7 @@ use fuels::signers::fuel_crypto::Hasher;
 use fuels::prelude::*;
 use fuels::tx::{Address, AssetId, Bytes32, Contract as tx_contract, Input, Output, Transaction};
 
-const CONTRACT_MESSAGE_MIN_GAS: u64 = 1_200_000;
+const CONTRACT_MESSAGE_MIN_GAS: u64 = 3_000_000;
 const CONTRACT_MESSAGE_SCRIPT_BINARY: &str =
     "../bridge-message-predicates/contract_message_script.bin";
 const CONTRACT_MESSAGE_PREDICATE_BINARY: &str =

@@ -273,16 +273,18 @@ mod success {
         assert_eq!(balance, 18446744073);
 
         // Now try to withdraw
+        let custom_tx_params = TxParameters::new(None, Some(5_000_000), None);
         let l2_token_amount = 3000;
         let call_params = CallParameters::new(
             Some(l2_token_amount),
             Some(AssetId::new(*test_contract_id.hash())),
-            Some(1_000_000),
+            None,
         );
 
         let call_response = test_contract
             .methods()
             .withdraw_to(Bits256(*wallet.address().hash()))
+            .tx_params(custom_tx_params)
             .call_params(call_params)
             .append_message_outputs(1)
             .call()
@@ -374,15 +376,17 @@ mod success {
         assert_eq!(balance, l2_token_amount);
 
         // Now try to withdraw
+        let custom_tx_params = TxParameters::new(None, Some(5_000_000), None);
         let call_params = CallParameters::new(
             Some(l2_token_amount),
             Some(AssetId::new(*test_contract_id.hash())),
-            Some(1_000_000),
+            None,
         );
 
         let call_response = test_contract
             .methods()
             .withdraw_to(Bits256(*wallet.address().hash()))
+            .tx_params(custom_tx_params)
             .call_params(call_params)
             .append_message_outputs(1)
             .call()
