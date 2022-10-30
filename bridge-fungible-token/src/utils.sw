@@ -4,7 +4,7 @@ dep errors;
 dep events;
 dep data;
 
-use std::{constants::ZERO_B256, logging::log, math::*, u256::U256, vec::Vec};
+use std::{constants::ZERO_B256, math::*, u256::U256, vec::Vec};
 
 use errors::BridgeFungibleTokenError;
 use data::MessageData;
@@ -35,37 +35,30 @@ pub fn adjust_withdrawal_decimals(val: u64) -> b256 {
 
 // Make any necessary adjustments to decimals(precision) on the deposited value, and return either a converted u64 or an error if the conversion can't be achieved without overflow or loss of precision.
 pub fn adjust_deposit_decimals(msg_val: b256) -> Result<u64, BridgeFungibleTokenError> {
-    log(333);
     let decomposed = decompose(msg_val);
     let value = ~U256::from(decomposed.0, decomposed.1, decomposed.2, decomposed.3);
 
     if LAYER_1_DECIMALS > DECIMALS {
-        log(444);
         let adjustment_factor = ~U256::from(0, 0, 0, 10.pow(LAYER_1_DECIMALS - DECIMALS));
 
         if value.divide(adjustment_factor).multiply(adjustment_factor) == value
             && (value.gt(adjustment_factor)
             || value.eq(adjustment_factor))
         {
-            log(555);
             let adjusted = value.divide(adjustment_factor);
             let val_result = adjusted.as_u64();
             match val_result {
                 Result::Err(e) => {
-                    log(666);
                     Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability)
                 },
                 Result::Ok(val) => {
-                    log(777);
                     Result::Ok(val)
                 },
             }
         } else {
-            log(888);
             Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability)
         }
     } else {
-        log(999);
         // Either decimals are the same, or decimals are negative.
         // TODO: Decide how to handle negative decimals before mainnet.
         // For now we make no decimal adjustment for either case.

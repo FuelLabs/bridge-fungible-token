@@ -67,25 +67,20 @@ impl MessageReceiver for Contract {
         let input_sender = input_message_sender(1);
         require(input_sender.value == LAYER_1_ERC20_GATEWAY, BridgeFungibleTokenError::UnauthorizedSender);
         let message_data = parse_message_data(msg_idx);
-        log(111);
 
         // Register a refund if tokens don't match
         if message_data.l1_asset != LAYER_1_TOKEN {
-            log(1212);
             register_refund(message_data.from, message_data.l1_asset, message_data.amount);
             return;
         };
-        log(222);
 
         let res_amount = adjust_deposit_decimals(message_data.amount);
         match res_amount {
             Result::Err(e) => {
-                log(2323);
                 // Register a refund if value can't be adjusted
                 register_refund(message_data.from, message_data.l1_asset, message_data.amount);
             },
             Result::Ok(a) => {
-                log(3434);
                 mint_to_address(a, message_data.to);
                 log(DepositEvent {
                     to: message_data.to,

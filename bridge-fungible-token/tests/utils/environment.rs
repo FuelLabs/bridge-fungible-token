@@ -242,7 +242,7 @@ pub async fn get_fungible_token_instance(
     (fungible_token_instance, fungible_token_contract_id.into())
 }
 
-pub async fn contruct_msg_data(
+pub async fn construct_msg_data(
     l1_token: &str,
     from: &str,
     mut to: Vec<u8>,
@@ -275,4 +275,9 @@ pub fn parse_output_message_data(data: &[u8]) -> (Vec<u8>, Bits256, Bits256, u64
     let amount_array: [u8; 8] = data[96..].try_into().unwrap();
     let amount: u64 = u64::from_be_bytes(amount_array);
     (selector.to_vec(), Bits256(to), l1_token, amount)
+}
+
+pub fn hex_to_uint_128(hex: &str) -> u128 {
+    let trimmed = hex.trim_start_matches("0x");
+    u128::from_str_radix(trimmed, 16).unwrap()
 }

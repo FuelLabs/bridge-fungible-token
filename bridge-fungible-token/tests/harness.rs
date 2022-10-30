@@ -18,10 +18,11 @@ pub const FROM: &str = "0x000000000000000000000000888888888888888888888888888888
 pub const MINIMUM_BRIDGABLE_AMOUNT: &str =
     "0x000000000000000000000000000000000000000000000000000000003B9ACA00";
 pub const DUST: &str = "0x000000000000000000000000000000000000000000000000000000003B9AC9FF";
+// 18446744073709551615000000000 (u64::max() * 10 ^ 19)
 pub const MAXIMUM_BRIDGABLE_AMOUNT: &str =
-    "0x000000000000000000000000000000000000000000000000FFFFFFFFD5B51A00";
+    "0x00000000000000000000000000000000000000003B9AC9FFFFFFFFFFC4653600";
 pub const OVERFLOWING_AMOUNT: &str =
-    "0x000000000000000000000000000000000000000000000001FFFFFFFFD5B51A00";
+    "0x00000000000000000000000000000000000000003B9ACA000000000000000000";
 pub const DECIMAL_ADJUSTMENT_FACTOR: u64 = 1_000_000_000;
 
 mod success {
@@ -31,7 +32,7 @@ mod success {
     async fn relay_message_with_predicate_and_script_constraint() -> Result<(), Error> {
         let mut wallet = env::setup_wallet();
 
-        let (message, coin) = env::contruct_msg_data(
+        let (message, coin) = env::construct_msg_data(
             L1_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
@@ -80,7 +81,7 @@ mod success {
     async fn depositing_max_amount_ok() -> Result<(), Error> {
         let mut wallet = env::setup_wallet();
 
-        let (message, coin) = env::contruct_msg_data(
+        let (message, coin) = env::construct_msg_data(
             L1_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
@@ -120,8 +121,12 @@ mod success {
 
         // Verify the message value was received by the test contract
         assert_eq!(test_contract_base_asset_balance, 100);
+
+        let intermediate_val = env::hex_to_uint_128(MAXIMUM_BRIDGABLE_AMOUNT);
+        let l2_token_amount = u64::try_from(intermediate_val / 1_000_000_000u128).unwrap();
+
         // Check that wallet now has bridged coins
-        assert_eq!(balance, 18446744073);
+        assert_eq!(balance, l2_token_amount);
         Ok(())
     }
 
@@ -130,7 +135,7 @@ mod success {
         // perform a failing deposit first to register a refund & verify it, then claim and verify output message is created as expected
         let mut wallet = env::setup_wallet();
         let (message, coin) =
-            env::contruct_msg_data(L1_TOKEN, FROM, wallet.address().hash().to_vec(), DUST).await;
+            env::construct_msg_data(L1_TOKEN, FROM, wallet.address().hash().to_vec(), DUST).await;
 
         // Set up the environment
         let (
@@ -229,7 +234,7 @@ mod success {
         // perform successful deposit first, verify it, then withdraw and verify balances
         let mut wallet = env::setup_wallet();
 
-        let (message, coin) = env::contruct_msg_data(
+        let (message, coin) = env::construct_msg_data(
             L1_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
@@ -269,8 +274,12 @@ mod success {
 
         // Verify the message value was received by the test contract
         assert_eq!(test_contract_base_asset_balance, 100);
+
+        let intermediate_val = env::hex_to_uint_128(MAXIMUM_BRIDGABLE_AMOUNT);
+        let l2_token_amount = u64::try_from(intermediate_val / 1_000_000_000u128).unwrap();
+
         // Check that wallet now has bridged coins
-        assert_eq!(balance, 18446744073);
+        assert_eq!(balance, l2_token_amount);
 
         // Now try to withdraw
         let custom_tx_params = TxParameters::new(None, Some(5_000_000), None);
@@ -328,11 +337,11 @@ mod success {
 
         // first make a deposit
         let mut wallet = env::setup_wallet();
-        let (message, coin) = env::contruct_msg_data(
+        let (message, coin) = env::construct_msg_data(
             L1_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
-            MAXIMUM_BRIDGABLE_AMOUNT,
+            MINIMUM_BRIDGABLE_AMOUNT,
         )
         .await;
 
@@ -369,10 +378,10 @@ mod success {
         // Verify the message value was received by the test contract
         assert_eq!(test_contract_base_asset_balance, 100);
         // Check that wallet now has bridged coins
-        // decimal repr of 0xFFFFFFFFD5B51A00 (MAXIMUM_BRIDGABLE_AMOUNT):
-        let initial_deposit = 18446744073000000000;
 
-        let l2_token_amount = initial_deposit / DECIMAL_ADJUSTMENT_FACTOR;
+        let intermediate_val = env::hex_to_uint_128(MINIMUM_BRIDGABLE_AMOUNT);
+        let l2_token_amount = u64::try_from(intermediate_val / 1_000_000_000u128).unwrap();
+
         assert_eq!(balance, l2_token_amount);
 
         // Now try to withdraw
@@ -416,10 +425,14 @@ mod success {
         assert_eq!(selector, env::decode_hex("0x53ef1461").to_vec());
         assert_eq!(to, Bits256(*wallet.address().hash()));
         assert_eq!(l1_token, Bits256(*Address::from_str(&L1_TOKEN).unwrap()));
-        assert_eq!(msg_data_amount, l2_token_amount * DECIMAL_ADJUSTMENT_FACTOR);
+        assert_eq!(
+            u128::try_from(msg_data_amount).unwrap(),
+            u128::try_from(l2_token_amount).unwrap()
+                * u128::try_from(DECIMAL_ADJUSTMENT_FACTOR).unwrap()
+        );
 
         // now verify that the initial amount == the final amount
-        assert_eq!(msg_data_amount, initial_deposit);
+        assert_eq!(u128::try_from(msg_data_amount).unwrap(), intermediate_val);
 
         Ok(())
     }
@@ -432,7 +445,7 @@ mod success {
         let mut wallet = env::setup_wallet();
 
         let (message, coin) =
-            env::contruct_msg_data(L1_TOKEN, FROM, wallet.address().hash().to_vec(), DUST).await;
+            env::construct_msg_data(L1_TOKEN, FROM, wallet.address().hash().to_vec(), DUST).await;
 
         // Set up the environment
         let (
@@ -492,7 +505,7 @@ mod success {
     async fn depositing_amount_too_large_registers_refund() -> Result<(), Error> {
         let mut wallet = env::setup_wallet();
 
-        let (message, coin) = env::contruct_msg_data(
+        let (message, coin) = env::construct_msg_data(
             L1_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
@@ -617,7 +630,7 @@ mod revert {
         let wrong_token_value: &str =
             "0x1111110000000000000000000000000000000000000000000000000000111111";
 
-        let (message, coin) = env::contruct_msg_data(
+        let (message, coin) = env::construct_msg_data(
             wrong_token_value,
             FROM,
             env::decode_hex(TO),
@@ -687,7 +700,7 @@ mod revert {
     #[should_panic(expected = "Revert(42)")]
     async fn verification_fails_with_wrong_sender() {
         let mut wallet = env::setup_wallet();
-        let (message, coin) = env::contruct_msg_data(
+        let (message, coin) = env::construct_msg_data(
             L1_TOKEN,
             FROM,
             env::decode_hex(TO),
