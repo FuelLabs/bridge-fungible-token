@@ -109,8 +109,7 @@ pub async fn setup_environment(
     )
     .await
     .unwrap();
-    let test_contract =
-        BridgeFungibleTokenContract::new(test_contract_id.to_string(), wallet.clone());
+    let test_contract = BridgeFungibleTokenContract::new(test_contract_id.clone(), wallet.clone());
 
     // Build inputs for provided coins
     let coin_inputs: Vec<Input> = all_coins
@@ -135,7 +134,6 @@ pub async fn setup_environment(
             recipient: Address::from(message.recipient.clone()),
             amount: message.amount,
             nonce: message.nonce,
-            owner: Address::from(message.owner.clone()),
             data: message.data.clone(),
             predicate: predicate_bytecode.clone(),
             predicate_data: vec![],
@@ -156,7 +154,7 @@ pub async fn setup_environment(
         contract_input,
         coin_inputs,
         message_inputs,
-        test_contract_id.clone(),
+        test_contract_id,
         provider,
     )
 }
@@ -237,7 +235,7 @@ pub async fn get_fungible_token_instance(
     .unwrap();
 
     let fungible_token_instance =
-        BridgeFungibleTokenContract::new(fungible_token_contract_id.to_string(), wallet);
+        BridgeFungibleTokenContract::new(fungible_token_contract_id.clone(), wallet);
 
     (fungible_token_instance, fungible_token_contract_id.into())
 }
