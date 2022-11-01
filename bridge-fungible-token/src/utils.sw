@@ -79,29 +79,16 @@ pub fn adjust_deposit_decimals(msg_val: b256) -> Result<u64, BridgeFungibleToken
 /// Build a single b256 value from a tuple of 4 u64 values.
 pub fn compose(words: (u64, u64, u64, u64)) -> b256 {
     let res: b256 = 0x0000000000000000000000000000000000000000000000000000000000000000;
-    asm(w0: words.0, w1: words.1, w2: words.2, w3: words.3, result: res) {
-        sw result w0 i0;
-        sw result w1 i1;
-        sw result w2 i2;
-        sw result w3 i3;
-        result: b256
+    asm(r1: __addr_of(words), r2: __addr_of(res)) {
+        mcpi r2 r1 i32;
+        r2: b256
     }
 }
 
 /// Get a tuple of 4 u64 values from a single b256 value.
 pub fn decompose(val: b256) -> (u64, u64, u64, u64) {
     let empty_tup = (0u64, 0u64, 0u64, 0u64);
-    asm(r1: __addr_of(val), res1: empty_tup.0, res2: empty_tup.1, res3: empty_tup.2, res4: empty_tup.3, tup: empty_tup) {
-        lw res1 r1 i0;
-        lw res2 r1 i1;
-        lw res3 r1 i2;
-        lw res4 r1 i3;
-        sw tup res1 i0;
-        sw tup res2 i1;
-        sw tup res3 i2;
-        sw tup res4 i3;
-        tup: (u64, u64, u64, u64)
-    }
+    asm(r1: __addr_of(val)) { r1: (u64, u64, u64, u64) }
 }
 
 /// Read the bytes passed as message data into an in-memory representation using the MessageData type.
