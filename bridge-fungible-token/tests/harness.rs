@@ -21,9 +21,13 @@ pub const DUST: &str = "0x000000000000000000000000000000000000000000000000000000
 // 18446744073709551615000000000 (u64::max() * 10 ^ 19)
 pub const MAXIMUM_BRIDGABLE_AMOUNT: &str =
     "0x00000000000000000000000000000000000000003B9AC9FFFFFFFFFFC4653600";
-pub const OVERFLOWING_AMOUNT: &str =
+pub const OVERFLOWING_AMOUNT_1: &str =
     "0x00000000000000000000000000000000000000003B9ACA000000000000000000";
-pub const DECIMAL_ADJUSTMENT_FACTOR: u64 = 1_000_000_000;
+pub const OVERFLOWING_AMOUNT_2: &str =
+    "0x000000000000000000000001000000000000000000000000000000003B9ACA00";
+pub const OVERFLOWING_AMOUNT_3: &str =
+    "0x000000010000000000000000000000000000000000000000000000003B9ACA00";
+pub const DECIMAL_ADJUSTMENT_FACTOR_1: u64 = 1_000_000_000;
 
 mod success {
     use super::*;
@@ -323,7 +327,7 @@ mod success {
         assert_eq!(selector, env::decode_hex("0x53ef1461").to_vec());
         assert_eq!(to, Bits256(*wallet.address().hash()));
         assert_eq!(l1_token, Bits256(*Address::from_str(&L1_TOKEN).unwrap()));
-        assert_eq!(amount, l2_token_amount * DECIMAL_ADJUSTMENT_FACTOR);
+        assert_eq!(amount, l2_token_amount * DECIMAL_ADJUSTMENT_FACTOR_1);
 
         Ok(())
     }
@@ -428,7 +432,7 @@ mod success {
         assert_eq!(
             u128::try_from(msg_data_amount).unwrap(),
             u128::try_from(l2_token_amount).unwrap()
-                * u128::try_from(DECIMAL_ADJUSTMENT_FACTOR).unwrap()
+                * u128::try_from(DECIMAL_ADJUSTMENT_FACTOR_1).unwrap()
         );
 
         // now verify that the initial amount == the final amount
@@ -509,7 +513,7 @@ mod success {
             L1_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
-            OVERFLOWING_AMOUNT,
+            OVERFLOWING_AMOUNT_1,
         )
         .await;
 
@@ -553,7 +557,143 @@ mod success {
         // check that the RefundRegisteredEvent receipt is populated correctly
         assert_eq!(
             refund_registered_event[0].amount,
-            Bits256(*Address::from_str(&OVERFLOWING_AMOUNT).unwrap())
+            Bits256(*Address::from_str(&OVERFLOWING_AMOUNT_1).unwrap())
+        );
+        assert_eq!(
+            refund_registered_event[0].asset,
+            Bits256(*Address::from_str(&L1_TOKEN).unwrap())
+        );
+        assert_eq!(
+            refund_registered_event[0].from,
+            Bits256(*Address::from_str(&FROM).unwrap())
+        );
+
+        // verify that no tokens were minted for message.data.to
+        assert_eq!(balance, 0);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn depositing_amount_too_large_registers_refund_2() -> Result<(), Error> {
+        let mut wallet = env::setup_wallet();
+
+        let (message, coin) = env::construct_msg_data(
+            L1_TOKEN,
+            FROM,
+            wallet.address().hash().to_vec(),
+            OVERFLOWING_AMOUNT_2,
+        )
+        .await;
+
+        // Set up the environment
+        let (
+            test_contract,
+            contract_input,
+            coin_inputs,
+            message_inputs,
+            test_contract_id,
+            provider,
+        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None).await;
+
+        // Relay the test message to the test contract
+        let receipts = env::relay_message_to_contract(
+            &wallet,
+            message_inputs[0].clone(),
+            contract_input,
+            &coin_inputs[..],
+            &vec![],
+            &env::generate_outputs(),
+        )
+        .await;
+
+        let refund_registered_event = test_contract
+            .logs_with_type::<utils::environment::bridgefungibletokencontract_mod::RefundRegisteredEvent>(
+            &receipts,
+        )?;
+
+        let test_contract_balance = provider
+            .get_contract_asset_balance(test_contract.get_contract_id(), AssetId::default())
+            .await
+            .unwrap();
+        let balance = wallet
+            .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
+            .await?;
+
+        // Verify the message value was received by the test contract
+        assert_eq!(test_contract_balance, 100);
+
+        // check that the RefundRegisteredEvent receipt is populated correctly
+        assert_eq!(
+            refund_registered_event[0].amount,
+            Bits256(*Address::from_str(&OVERFLOWING_AMOUNT_2).unwrap())
+        );
+        assert_eq!(
+            refund_registered_event[0].asset,
+            Bits256(*Address::from_str(&L1_TOKEN).unwrap())
+        );
+        assert_eq!(
+            refund_registered_event[0].from,
+            Bits256(*Address::from_str(&FROM).unwrap())
+        );
+
+        // verify that no tokens were minted for message.data.to
+        assert_eq!(balance, 0);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn depositing_amount_too_large_registers_refund_3() -> Result<(), Error> {
+        let mut wallet = env::setup_wallet();
+
+        let (message, coin) = env::construct_msg_data(
+            L1_TOKEN,
+            FROM,
+            wallet.address().hash().to_vec(),
+            OVERFLOWING_AMOUNT_3,
+        )
+        .await;
+
+        // Set up the environment
+        let (
+            test_contract,
+            contract_input,
+            coin_inputs,
+            message_inputs,
+            test_contract_id,
+            provider,
+        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None).await;
+
+        // Relay the test message to the test contract
+        let receipts = env::relay_message_to_contract(
+            &wallet,
+            message_inputs[0].clone(),
+            contract_input,
+            &coin_inputs[..],
+            &vec![],
+            &env::generate_outputs(),
+        )
+        .await;
+
+        let refund_registered_event = test_contract
+            .logs_with_type::<utils::environment::bridgefungibletokencontract_mod::RefundRegisteredEvent>(
+            &receipts,
+        )?;
+
+        let test_contract_balance = provider
+            .get_contract_asset_balance(test_contract.get_contract_id(), AssetId::default())
+            .await
+            .unwrap();
+        let balance = wallet
+            .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
+            .await?;
+
+        // Verify the message value was received by the test contract
+        assert_eq!(test_contract_balance, 100);
+
+        // check that the RefundRegisteredEvent receipt is populated correctly
+        assert_eq!(
+            refund_registered_event[0].amount,
+            Bits256(*Address::from_str(&OVERFLOWING_AMOUNT_3).unwrap())
         );
         assert_eq!(
             refund_registered_event[0].asset,
