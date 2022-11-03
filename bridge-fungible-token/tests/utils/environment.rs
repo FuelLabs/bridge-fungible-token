@@ -27,15 +27,14 @@ pub struct TestConfig {
 }
 
 pub fn generate_test_config(decimals: (u8, u8)) -> TestConfig {
-    let l1_decimals = decimals.0;
-    let l2_decimals = decimals.1;
+    let l1_decimals = U256::from(decimals.0);
+    let l2_decimals = U256::from(decimals.1);
     let one = U256::from(1);
 
-    let mut adjustment_factor = U256::from(0);
-    if l1_decimals > l2_decimals {
-        adjustment_factor = U256::from(10).pow(U256::from(l1_decimals) - U256::from(l2_decimals));
+    let adjustment_factor = if l1_decimals > l2_decimals {
+        U256::from(10).pow(l1_decimals - l2_decimals)
     } else {
-        adjustment_factor = one;
+        one
     };
 
     let min_amount = U256::from(1) * adjustment_factor;
@@ -327,9 +326,4 @@ pub fn parse_output_message_data(data: &[u8]) -> (Vec<u8>, Bits256, Bits256, U25
     let amount_array: [u8; 8] = data[96..].try_into().unwrap();
     let amount: U256 = U256::from_big_endian(&amount_array.to_vec());
     (selector.to_vec(), Bits256(to), l1_token, amount)
-}
-
-pub fn hex_to_uint_256(hex: &str) -> U256 {
-    let trimmed = hex.trim_start_matches("0x");
-    U256::from_str_radix(trimmed, 16).unwrap()
 }
