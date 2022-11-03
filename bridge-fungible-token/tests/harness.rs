@@ -3,6 +3,7 @@ mod utils {
     pub mod environment;
 }
 
+use primitive_types::U256;
 use std::str::FromStr;
 use utils::builder;
 use utils::environment as env;
@@ -15,21 +16,20 @@ pub const LAYER_1_ERC20_GATEWAY: &str =
     "0xca400d3e7710eee293786830755278e6d2b9278b4177b8b1a896ebd5f55c10bc";
 pub const TO: &str = "0x0000000000000000000000000000000000000000000000000000000000000777";
 pub const FROM: &str = "0x0000000000000000000000008888888888888888888888888888888888888888";
-pub const MINIMUM_BRIDGABLE_AMOUNT: &str =
-    "0x000000000000000000000000000000000000000000000000000000003B9ACA00";
-pub const DUST: &str = "0x000000000000000000000000000000000000000000000000000000003B9AC9FF";
-// 18446744073709551615000000000 (u64::max() * 10 ^ 19)
-pub const MAXIMUM_BRIDGABLE_AMOUNT: &str =
-    "0x00000000000000000000000000000000000000003B9AC9FFFFFFFFFFC4653600";
-pub const OVERFLOWING_AMOUNT_1: &str =
-    "0x00000000000000000000000000000000000000003B9ACA000000000000000000";
+// pub const MINIMUM_BRIDGABLE_AMOUNT: &str =
+//     "0x000000000000000000000000000000000000000000000000000000003B9ACA00";
+// pub const DUST: &str = "0x000000000000000000000000000000000000000000000000000000003B9AC9FF";
+// // 18446744073709551615000000000 (u64::max() * 10 ^ 19)
+// pub const MAXIMUM_BRIDGABLE_AMOUNT: &str =
+//     "0x00000000000000000000000000000000000000003B9AC9FFFFFFFFFFC4653600";
+// pub const TOO_MUCH: &str = "0x00000000000000000000000000000000000000003B9ACA000000000000000000";
 // test overflowing values in different positions of a b256: word 2
-pub const OVERFLOWING_AMOUNT_2: &str =
-    "0x000000000000000000000001000000000000000000000000000000003B9ACA00";
-// test overflowing values in different positions of a b256: word 1
-pub const OVERFLOWING_AMOUNT_3: &str =
-    "0x000000010000000000000000000000000000000000000000000000003B9ACA00";
-pub const DECIMAL_ADJUSTMENT_FACTOR_1: u64 = 1_000_000_000;
+// pub const TOO_MUCH_2: &str = "0x000000000000000000000001000000000000000000000000000000003B9ACA00";
+// // test overflowing values in different positions of a b256: word 1
+// pub const TOO_MUCH_3: &str = "0x000000010000000000000000000000000000000000000000000000003B9ACA00";
+pub const LAYER_1_DECIMALS: u8 = 18u8;
+pub const LAYER_2_DECIMALS: u8 = 9u8;
+// pub const DECIMAL_ADJUSTMENT_FACTOR: u64 = 10u64 ^ (LAYER_1_DECIMALS - LAYER_2_DECIMALS);
 
 mod success {
     use super::*;
@@ -38,11 +38,14 @@ mod success {
     async fn relay_message_with_predicate_and_script_constraint() -> Result<(), Error> {
         let mut wallet = env::setup_wallet();
 
+        // generate the test config struct based on the decimals
+        let config = env::generate_test_config((LAYER_1_DECIMALS, LAYER_2_DECIMALS));
+
         let (message, coin) = env::construct_msg_data(
             L1_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
-            MINIMUM_BRIDGABLE_AMOUNT,
+            &format!("{:X}", config.test_amount),
         )
         .await;
 
@@ -79,7 +82,10 @@ mod success {
         // Verify the message value was received by the test contract
         assert_eq!(test_contract_base_asset_balance, 100);
         // Check that wallet now has bridged coins
-        assert_eq!(balance, 1);
+        assert_eq!(
+            balance,
+            env::l2_equivalent_amount(config.test_amount, &config)
+        );
         Ok(())
     }
 
@@ -87,11 +93,13 @@ mod success {
     async fn depositing_max_amount_ok() -> Result<(), Error> {
         let mut wallet = env::setup_wallet();
 
+        let config = env::generate_test_config((LAYER_1_DECIMALS, LAYER_2_DECIMALS));
+
         let (message, coin) = env::construct_msg_data(
             L1_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
-            MAXIMUM_BRIDGABLE_AMOUNT,
+            &format!("{:X}", config.max_amount),
         )
         .await;
 
@@ -128,11 +136,11 @@ mod success {
         // Verify the message value was received by the test contract
         assert_eq!(test_contract_base_asset_balance, 100);
 
-        let intermediate_val = env::hex_to_uint_128(MAXIMUM_BRIDGABLE_AMOUNT);
-        let l2_token_amount = u64::try_from(intermediate_val / 1_000_000_000u128).unwrap();
-
         // Check that wallet now has bridged coins
-        assert_eq!(balance, l2_token_amount);
+        assert_eq!(
+            balance,
+            env::l2_equivalent_amount(config.max_amount, &config)
+        );
         Ok(())
     }
 
@@ -140,8 +148,16 @@ mod success {
     async fn claim_refund() -> Result<(), Error> {
         // perform a failing deposit first to register a refund & verify it, then claim and verify output message is created as expected
         let mut wallet = env::setup_wallet();
-        let (message, coin) =
-            env::construct_msg_data(L1_TOKEN, FROM, wallet.address().hash().to_vec(), DUST).await;
+
+        let config = env::generate_test_config((LAYER_1_DECIMALS, LAYER_2_DECIMALS));
+
+        let (message, coin) = env::construct_msg_data(
+            L1_TOKEN,
+            FROM,
+            wallet.address().hash().to_vec(),
+            &format!("{:X}", config.not_enough),
+        )
+        .await;
 
         // Set up the environment
         let (
@@ -181,15 +197,15 @@ mod success {
         assert_eq!(test_contract_balance, 100);
         assert_eq!(
             refund_registered_event[0].amount,
-            Bits256(*Address::from_str(&DUST).unwrap())
+            Bits256::from_hex_str(&format!("{:X}", config.not_enough)).unwrap()
         );
         assert_eq!(
             refund_registered_event[0].asset,
-            Bits256(*Address::from_str(&L1_TOKEN).unwrap())
+            Bits256::from_hex_str(&L1_TOKEN).unwrap()
         );
         assert_eq!(
             refund_registered_event[0].from,
-            Bits256(*Address::from_str(&FROM).unwrap())
+            Bits256::from_hex_str(&FROM).unwrap()
         );
 
         // verify that no tokens were minted for message.data.to
@@ -197,8 +213,8 @@ mod success {
         let call_response = test_contract
             .methods()
             .claim_refund(
-                Bits256(*Address::from_str(&FROM).unwrap()),
-                Bits256(*Address::from_str(&L1_TOKEN).unwrap()),
+                Bits256::from_hex_str(&FROM).unwrap(),
+                Bits256::from_hex_str(&L1_TOKEN).unwrap(),
             )
             .append_message_outputs(1)
             .call()
@@ -227,10 +243,10 @@ mod success {
         let (selector, to, l1_token, amount) =
             env::parse_output_message_data(message_receipt.data().unwrap());
         assert_eq!(selector, env::decode_hex("0x53ef1461").to_vec());
-        assert_eq!(to, Bits256(*Address::from_str(&FROM).unwrap()));
-        assert_eq!(l1_token, Bits256(*Address::from_str(&L1_TOKEN).unwrap()));
+        assert_eq!(to, Bits256::from_hex_str(&FROM).unwrap());
+        assert_eq!(l1_token, Bits256::from_hex_str(&L1_TOKEN).unwrap());
         // Compare the value output in the message with the original value (DUST) as a uint.
-        assert_eq!(amount, 999999999);
+        assert_eq!(amount, U256::from(999999999));
 
         Ok(())
     }
@@ -239,12 +255,12 @@ mod success {
     async fn withdraw_from_bridge() -> Result<(), Error> {
         // perform successful deposit first, verify it, then withdraw and verify balances
         let mut wallet = env::setup_wallet();
-
+        let config = env::generate_test_config((LAYER_1_DECIMALS, LAYER_2_DECIMALS));
         let (message, coin) = env::construct_msg_data(
             L1_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
-            MAXIMUM_BRIDGABLE_AMOUNT,
+            &format!("{:X}", config.max_amount),
         )
         .await;
 
@@ -281,17 +297,17 @@ mod success {
         // Verify the message value was received by the test contract
         assert_eq!(test_contract_base_asset_balance, 100);
 
-        let intermediate_val = env::hex_to_uint_128(MAXIMUM_BRIDGABLE_AMOUNT);
-        let l2_token_amount = u64::try_from(intermediate_val / 1_000_000_000u128).unwrap();
-
         // Check that wallet now has bridged coins
-        assert_eq!(balance, l2_token_amount);
+        assert_eq!(
+            balance,
+            env::l2_equivalent_amount(config.max_amount, &config)
+        );
 
         // Now try to withdraw
         let custom_tx_params = TxParameters::new(None, Some(5_000_000), None);
-        let l2_token_amount = 3000;
+        let withdrawal_amount = 3000;
         let call_params = CallParameters::new(
-            Some(l2_token_amount),
+            Some(withdrawal_amount),
             Some(AssetId::new(*test_contract_id.hash())),
             None,
         );
@@ -328,8 +344,11 @@ mod success {
             env::parse_output_message_data(message_receipt.data().unwrap());
         assert_eq!(selector, env::decode_hex("0x53ef1461").to_vec());
         assert_eq!(to, Bits256(*wallet.address().hash()));
-        assert_eq!(l1_token, Bits256(*Address::from_str(&L1_TOKEN).unwrap()));
-        assert_eq!(amount, l2_token_amount * DECIMAL_ADJUSTMENT_FACTOR_1);
+        assert_eq!(l1_token, Bits256::from_hex_str(&L1_TOKEN).unwrap());
+        assert_eq!(
+            amount,
+            U256::from(withdrawal_amount) * &config.adjustment_factor
+        );
 
         Ok(())
     }
@@ -343,11 +362,12 @@ mod success {
 
         // first make a deposit
         let mut wallet = env::setup_wallet();
+        let config = env::generate_test_config((LAYER_1_DECIMALS, LAYER_2_DECIMALS));
         let (message, coin) = env::construct_msg_data(
             L1_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
-            MINIMUM_BRIDGABLE_AMOUNT,
+            &format!("{:X}", config.min_amount),
         )
         .await;
 
@@ -385,8 +405,7 @@ mod success {
         assert_eq!(test_contract_base_asset_balance, 100);
         // Check that wallet now has bridged coins
 
-        let intermediate_val = env::hex_to_uint_128(MINIMUM_BRIDGABLE_AMOUNT);
-        let l2_token_amount = u64::try_from(intermediate_val / 1_000_000_000u128).unwrap();
+        let l2_token_amount = env::l2_equivalent_amount(config.min_amount, &config);
 
         assert_eq!(balance, l2_token_amount);
 
@@ -430,15 +449,10 @@ mod success {
             env::parse_output_message_data(message_receipt.data().unwrap());
         assert_eq!(selector, env::decode_hex("0x53ef1461").to_vec());
         assert_eq!(to, Bits256(*wallet.address().hash()));
-        assert_eq!(l1_token, Bits256(*Address::from_str(&L1_TOKEN).unwrap()));
-        assert_eq!(
-            u128::try_from(msg_data_amount).unwrap(),
-            u128::try_from(l2_token_amount).unwrap()
-                * u128::try_from(DECIMAL_ADJUSTMENT_FACTOR_1).unwrap()
-        );
+        assert_eq!(l1_token, Bits256::from_hex_str(&L1_TOKEN).unwrap());
 
         // now verify that the initial amount == the final amount
-        assert_eq!(u128::try_from(msg_data_amount).unwrap(), intermediate_val);
+        assert_eq!(msg_data_amount, config.min_amount);
 
         Ok(())
     }
@@ -449,9 +463,14 @@ mod success {
         // This is to account for conversion between the 18 decimals on most erc20 contracts, and the 9 decimals in the Fuel BridgeFungibleToken contract
 
         let mut wallet = env::setup_wallet();
-
-        let (message, coin) =
-            env::construct_msg_data(L1_TOKEN, FROM, wallet.address().hash().to_vec(), DUST).await;
+        let config = env::generate_test_config((LAYER_1_DECIMALS, LAYER_2_DECIMALS));
+        let (message, coin) = env::construct_msg_data(
+            L1_TOKEN,
+            FROM,
+            wallet.address().hash().to_vec(),
+            &format!("{:X}", config.not_enough),
+        )
+        .await;
 
         // Set up the environment
         let (
@@ -491,15 +510,15 @@ mod success {
         assert_eq!(test_contract_balance, 100);
         assert_eq!(
             refund_registered_event[0].amount,
-            Bits256(*Address::from_str(&DUST).unwrap())
+            Bits256::from_hex_str(&format!("{:X}", config.not_enough)).unwrap()
         );
         assert_eq!(
             refund_registered_event[0].asset,
-            Bits256(*Address::from_str(&L1_TOKEN).unwrap())
+            Bits256::from_hex_str(&L1_TOKEN).unwrap()
         );
         assert_eq!(
             refund_registered_event[0].from,
-            Bits256(*Address::from_str(&FROM).unwrap())
+            Bits256::from_hex_str(&FROM).unwrap()
         );
 
         // verify that no tokens were minted for message.data.to
@@ -510,12 +529,12 @@ mod success {
     #[tokio::test]
     async fn depositing_amount_too_large_registers_refund() -> Result<(), Error> {
         let mut wallet = env::setup_wallet();
-
+        let config = env::generate_test_config((LAYER_1_DECIMALS, LAYER_2_DECIMALS));
         let (message, coin) = env::construct_msg_data(
             L1_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
-            OVERFLOWING_AMOUNT_1,
+            &format!("{:X}", config.overflow_1),
         )
         .await;
 
@@ -559,15 +578,15 @@ mod success {
         // check that the RefundRegisteredEvent receipt is populated correctly
         assert_eq!(
             refund_registered_event[0].amount,
-            Bits256(*Address::from_str(&OVERFLOWING_AMOUNT_1).unwrap())
+            Bits256::from_hex_str(&format!("{:X}", config.overflow_1)).unwrap()
         );
         assert_eq!(
             refund_registered_event[0].asset,
-            Bits256(*Address::from_str(&L1_TOKEN).unwrap())
+            Bits256::from_hex_str(&L1_TOKEN).unwrap()
         );
         assert_eq!(
             refund_registered_event[0].from,
-            Bits256(*Address::from_str(&FROM).unwrap())
+            Bits256::from_hex_str(&FROM).unwrap()
         );
 
         // verify that no tokens were minted for message.data.to
@@ -578,12 +597,13 @@ mod success {
     #[tokio::test]
     async fn depositing_amount_too_large_registers_refund_2() -> Result<(), Error> {
         let mut wallet = env::setup_wallet();
+        let config = env::generate_test_config((LAYER_1_DECIMALS, LAYER_2_DECIMALS));
 
         let (message, coin) = env::construct_msg_data(
             L1_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
-            OVERFLOWING_AMOUNT_2,
+            &format!("{:X}", config.overflow_2),
         )
         .await;
 
@@ -627,15 +647,15 @@ mod success {
         // check that the RefundRegisteredEvent receipt is populated correctly
         assert_eq!(
             refund_registered_event[0].amount,
-            Bits256(*Address::from_str(&OVERFLOWING_AMOUNT_2).unwrap())
+            Bits256::from_hex_str(&format!("{:X}", config.overflow_2)).unwrap()
         );
         assert_eq!(
             refund_registered_event[0].asset,
-            Bits256(*Address::from_str(&L1_TOKEN).unwrap())
+            Bits256::from_hex_str(&L1_TOKEN).unwrap()
         );
         assert_eq!(
             refund_registered_event[0].from,
-            Bits256(*Address::from_str(&FROM).unwrap())
+            Bits256::from_hex_str(&FROM).unwrap()
         );
 
         // verify that no tokens were minted for message.data.to
@@ -646,12 +666,13 @@ mod success {
     #[tokio::test]
     async fn depositing_amount_too_large_registers_refund_3() -> Result<(), Error> {
         let mut wallet = env::setup_wallet();
+        let config = env::generate_test_config((LAYER_1_DECIMALS, LAYER_2_DECIMALS));
 
         let (message, coin) = env::construct_msg_data(
             L1_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
-            OVERFLOWING_AMOUNT_3,
+            &format!("{:X}", config.overflow_3),
         )
         .await;
 
@@ -695,15 +716,15 @@ mod success {
         // check that the RefundRegisteredEvent receipt is populated correctly
         assert_eq!(
             refund_registered_event[0].amount,
-            Bits256(*Address::from_str(&OVERFLOWING_AMOUNT_3).unwrap())
+            Bits256::from_hex_str(&format!("{:X}", config.overflow_3)).unwrap()
         );
         assert_eq!(
             refund_registered_event[0].asset,
-            Bits256(*Address::from_str(&L1_TOKEN).unwrap())
+            Bits256::from_hex_str(&L1_TOKEN).unwrap()
         );
         assert_eq!(
             refund_registered_event[0].from,
-            Bits256(*Address::from_str(&FROM).unwrap())
+            Bits256::from_hex_str(&FROM).unwrap()
         );
 
         // verify that no tokens were minted for message.data.to
@@ -772,11 +793,13 @@ mod revert {
         let wrong_token_value: &str =
             "0x1111110000000000000000000000000000000000000000000000000000111111";
 
+        let config = env::generate_test_config((LAYER_1_DECIMALS, LAYER_2_DECIMALS));
+
         let (message, coin) = env::construct_msg_data(
             wrong_token_value,
             FROM,
             env::decode_hex(TO),
-            MINIMUM_BRIDGABLE_AMOUNT,
+            &format!("{:X}", config.min_amount),
         )
         .await;
 
@@ -822,15 +845,15 @@ mod revert {
         // check that the RefundRegisteredEvent receipt is populated correctly
         assert_eq!(
             refund_registered_event[0].amount,
-            Bits256(*Address::from_str(&MINIMUM_BRIDGABLE_AMOUNT).unwrap())
+            Bits256::from_hex_str(&format!("{:X}", config.min_amount)).unwrap()
         );
         assert_eq!(
             refund_registered_event[0].asset,
-            Bits256(*Address::from_str(&wrong_token_value).unwrap())
+            Bits256::from_hex_str(&wrong_token_value).unwrap()
         );
         assert_eq!(
             refund_registered_event[0].from,
-            Bits256(*Address::from_str(&FROM).unwrap())
+            Bits256::from_hex_str(&FROM).unwrap()
         );
 
         // verify that no tokens were minted for message.data.to
@@ -842,11 +865,12 @@ mod revert {
     #[should_panic(expected = "Revert(42)")]
     async fn verification_fails_with_wrong_sender() {
         let mut wallet = env::setup_wallet();
+        let config = env::generate_test_config((LAYER_1_DECIMALS, LAYER_2_DECIMALS));
         let (message, coin) = env::construct_msg_data(
             L1_TOKEN,
             FROM,
             env::decode_hex(TO),
-            MINIMUM_BRIDGABLE_AMOUNT,
+            &format!("{:X}", config.min_amount),
         )
         .await;
 

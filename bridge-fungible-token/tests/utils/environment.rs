@@ -13,6 +13,54 @@ use fuels::tx::Output;
 use fuels::tx::Receipt;
 use fuels::tx::Transaction;
 use fuels::tx::{Address, AssetId, Bytes32, Input, TxPointer, UtxoId, Word};
+use primitive_types::U256;
+
+pub struct TestConfig {
+    pub adjustment_factor: U256,
+    pub min_amount: U256,
+    pub max_amount: U256,
+    pub test_amount: U256,
+    pub not_enough: U256,
+    pub overflow_1: U256,
+    pub overflow_2: U256,
+    pub overflow_3: U256,
+}
+
+pub fn generate_test_config(decimals: (u8, u8)) -> TestConfig {
+    let l1_decimals = decimals.0;
+    let l2_decimals = decimals.1;
+
+    let mut adjustment_factor = 0u64;
+    if l1_decimals > l2_decimals {
+        adjustment_factor = 10u64 ^ (u64::from(l1_decimals) - u64::from(l2_decimals));
+    } else {
+        adjustment_factor = 1u64;
+    };
+    let one = U256::from(1);
+    let adjustment_factor: U256 = U256::from(adjustment_factor);
+    let min_amount = U256::from(1) * adjustment_factor;
+    let max_amount = U256::from(u64::MAX) * adjustment_factor;
+    let test_amount = (min_amount + max_amount) / U256::from(2);
+    let not_enough = min_amount - one;
+    let overflow_1 = max_amount + one;
+    let overflow_2 = max_amount + one << 160;
+    let overflow_3 = max_amount + one << 224;
+
+    TestConfig {
+        adjustment_factor,
+        min_amount,
+        test_amount,
+        max_amount,
+        not_enough,
+        overflow_1,
+        overflow_2,
+        overflow_3,
+    }
+}
+
+pub fn l2_equivalent_amount(test_amount: U256, config: &TestConfig) -> u64 {
+    (test_amount / config.adjustment_factor).as_u64()
+}
 
 abigen!(
     BridgeFungibleTokenContract,
@@ -265,17 +313,17 @@ pub fn generate_outputs() -> Vec<Output> {
     v
 }
 
-pub fn parse_output_message_data(data: &[u8]) -> (Vec<u8>, Bits256, Bits256, u64) {
+pub fn parse_output_message_data(data: &[u8]) -> (Vec<u8>, Bits256, Bits256, U256) {
     let selector = &data[4..8];
     let to: [u8; 32] = data[8..40].try_into().unwrap();
     let token_array: [u8; 32] = data[40..72].try_into().unwrap();
     let l1_token = Bits256(token_array);
-    let amount_array: [u8; 8] = data[96..].try_into().unwrap();
-    let amount: u64 = u64::from_be_bytes(amount_array);
+    let amount_array: [u8; 32] = data[96..].try_into().unwrap();
+    let amount: U256 = U256::from_big_endian(&amount_array.to_vec());
     (selector.to_vec(), Bits256(to), l1_token, amount)
 }
 
-pub fn hex_to_uint_128(hex: &str) -> u128 {
+pub fn hex_to_uint_256(hex: &str) -> U256 {
     let trimmed = hex.trim_start_matches("0x");
-    u128::from_str_radix(trimmed, 16).unwrap()
+    U256::from_str_radix(trimmed, 16).unwrap()
 }
