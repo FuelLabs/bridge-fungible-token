@@ -29,15 +29,15 @@ pub struct TestConfig {
 pub fn generate_test_config(decimals: (u8, u8)) -> TestConfig {
     let l1_decimals = decimals.0;
     let l2_decimals = decimals.1;
-
-    let mut adjustment_factor = 0u64;
-    if l1_decimals > l2_decimals {
-        adjustment_factor = 10u64 ^ (u64::from(l1_decimals) - u64::from(l2_decimals));
-    } else {
-        adjustment_factor = 1u64;
-    };
     let one = U256::from(1);
-    let adjustment_factor: U256 = U256::from(adjustment_factor);
+
+    let mut adjustment_factor = U256::from(0);
+    if l1_decimals > l2_decimals {
+        adjustment_factor = U256::from(10).pow(U256::from(l1_decimals) - U256::from(l2_decimals));
+    } else {
+        adjustment_factor = one;
+    };
+
     let min_amount = U256::from(1) * adjustment_factor;
     let max_amount = U256::from(u64::MAX) * adjustment_factor;
     let test_amount = (min_amount + max_amount) / U256::from(2);
@@ -292,13 +292,16 @@ pub async fn construct_msg_data(
     l1_token: &str,
     from: &str,
     mut to: Vec<u8>,
-    amount: &str,
+    amount: U256,
 ) -> ((u64, Vec<u8>), (u64, AssetId)) {
     let mut message_data = Vec::with_capacity(5);
     message_data.append(&mut decode_hex(&l1_token));
     message_data.append(&mut decode_hex(&from));
     message_data.append(&mut to);
-    message_data.append(&mut decode_hex(&amount));
+    // message_data.append(&mut decode_hex(&amount));
+    let mut amount_arr = [0u8; 32];
+    amount.to_big_endian(&mut amount_arr);
+    message_data.append(&mut amount_arr[..].to_vec());
 
     let message_data = prefix_contract_id(message_data).await;
     let message = (100, message_data);
@@ -318,7 +321,7 @@ pub fn parse_output_message_data(data: &[u8]) -> (Vec<u8>, Bits256, Bits256, U25
     let to: [u8; 32] = data[8..40].try_into().unwrap();
     let token_array: [u8; 32] = data[40..72].try_into().unwrap();
     let l1_token = Bits256(token_array);
-    let amount_array: [u8; 32] = data[96..].try_into().unwrap();
+    let amount_array: [u8; 8] = data[96..].try_into().unwrap();
     let amount: U256 = U256::from_big_endian(&amount_array.to_vec());
     (selector.to_vec(), Bits256(to), l1_token, amount)
 }

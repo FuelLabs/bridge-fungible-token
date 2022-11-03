@@ -16,20 +16,8 @@ pub const LAYER_1_ERC20_GATEWAY: &str =
     "0xca400d3e7710eee293786830755278e6d2b9278b4177b8b1a896ebd5f55c10bc";
 pub const TO: &str = "0x0000000000000000000000000000000000000000000000000000000000000777";
 pub const FROM: &str = "0x0000000000000000000000008888888888888888888888888888888888888888";
-// pub const MINIMUM_BRIDGABLE_AMOUNT: &str =
-//     "0x000000000000000000000000000000000000000000000000000000003B9ACA00";
-// pub const DUST: &str = "0x000000000000000000000000000000000000000000000000000000003B9AC9FF";
-// // 18446744073709551615000000000 (u64::max() * 10 ^ 19)
-// pub const MAXIMUM_BRIDGABLE_AMOUNT: &str =
-//     "0x00000000000000000000000000000000000000003B9AC9FFFFFFFFFFC4653600";
-// pub const TOO_MUCH: &str = "0x00000000000000000000000000000000000000003B9ACA000000000000000000";
-// test overflowing values in different positions of a b256: word 2
-// pub const TOO_MUCH_2: &str = "0x000000000000000000000001000000000000000000000000000000003B9ACA00";
-// // test overflowing values in different positions of a b256: word 1
-// pub const TOO_MUCH_3: &str = "0x000000010000000000000000000000000000000000000000000000003B9ACA00";
 pub const LAYER_1_DECIMALS: u8 = 18u8;
 pub const LAYER_2_DECIMALS: u8 = 9u8;
-// pub const DECIMAL_ADJUSTMENT_FACTOR: u64 = 10u64 ^ (LAYER_1_DECIMALS - LAYER_2_DECIMALS);
 
 mod success {
     use super::*;
@@ -45,7 +33,7 @@ mod success {
             L1_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
-            &format!("{:X}", config.test_amount),
+            config.test_amount,
         )
         .await;
 
@@ -99,7 +87,7 @@ mod success {
             L1_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
-            &format!("{:X}", config.max_amount),
+            config.max_amount,
         )
         .await;
 
@@ -155,7 +143,7 @@ mod success {
             L1_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
-            &format!("{:X}", config.not_enough),
+            config.not_enough,
         )
         .await;
 
@@ -260,7 +248,7 @@ mod success {
             L1_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
-            &format!("{:X}", config.max_amount),
+            config.max_amount,
         )
         .await;
 
@@ -367,7 +355,7 @@ mod success {
             L1_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
-            &format!("{:X}", config.min_amount),
+            config.min_amount,
         )
         .await;
 
@@ -468,7 +456,7 @@ mod success {
             L1_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
-            &format!("{:X}", config.not_enough),
+            config.not_enough,
         )
         .await;
 
@@ -534,7 +522,7 @@ mod success {
             L1_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
-            &format!("{:X}", config.overflow_1),
+            config.overflow_1,
         )
         .await;
 
@@ -603,7 +591,7 @@ mod success {
             L1_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
-            &format!("{:X}", config.overflow_2),
+            config.overflow_2,
         )
         .await;
 
@@ -672,7 +660,7 @@ mod success {
             L1_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
-            &format!("{:X}", config.overflow_3),
+            config.overflow_3,
         )
         .await;
 
@@ -799,7 +787,7 @@ mod revert {
             wrong_token_value,
             FROM,
             env::decode_hex(TO),
-            &format!("{:X}", config.min_amount),
+            config.min_amount,
         )
         .await;
 
@@ -866,13 +854,8 @@ mod revert {
     async fn verification_fails_with_wrong_sender() {
         let mut wallet = env::setup_wallet();
         let config = env::generate_test_config((LAYER_1_DECIMALS, LAYER_2_DECIMALS));
-        let (message, coin) = env::construct_msg_data(
-            L1_TOKEN,
-            FROM,
-            env::decode_hex(TO),
-            &format!("{:X}", config.min_amount),
-        )
-        .await;
+        let (message, coin) =
+            env::construct_msg_data(L1_TOKEN, FROM, env::decode_hex(TO), config.min_amount).await;
 
         let bad_sender: &str =
             "0x55555500000000000000000000000000000000000000000000000000005555555";
