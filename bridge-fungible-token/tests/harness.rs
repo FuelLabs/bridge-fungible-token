@@ -185,7 +185,7 @@ mod success {
         assert_eq!(test_contract_balance, 100);
         assert_eq!(
             refund_registered_event[0].amount,
-            Bits256::from_hex_str(&format!("{:X}", config.not_enough)).unwrap()
+            Bits256(env::encode_hex(config.not_enough))
         );
         assert_eq!(
             refund_registered_event[0].asset,
@@ -498,7 +498,7 @@ mod success {
         assert_eq!(test_contract_balance, 100);
         assert_eq!(
             refund_registered_event[0].amount,
-            Bits256::from_hex_str(&format!("{:X}", config.not_enough)).unwrap()
+            Bits256(env::encode_hex(config.not_enough))
         );
         assert_eq!(
             refund_registered_event[0].asset,
@@ -566,7 +566,7 @@ mod success {
         // check that the RefundRegisteredEvent receipt is populated correctly
         assert_eq!(
             refund_registered_event[0].amount,
-            Bits256::from_hex_str(&format!("{:X}", config.overflow_1)).unwrap()
+            Bits256(env::encode_hex(config.overflow_1))
         );
         assert_eq!(
             refund_registered_event[0].asset,
@@ -833,7 +833,7 @@ mod revert {
         // check that the RefundRegisteredEvent receipt is populated correctly
         assert_eq!(
             refund_registered_event[0].amount,
-            Bits256::from_hex_str(&format!("{:X}", config.min_amount)).unwrap()
+            Bits256(env::encode_hex(config.min_amount))
         );
         assert_eq!(
             refund_registered_event[0].asset,

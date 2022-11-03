@@ -288,6 +288,12 @@ pub async fn get_fungible_token_instance(
     (fungible_token_instance, fungible_token_contract_id.into())
 }
 
+pub fn encode_hex(val: U256) -> [u8; 32] {
+    let mut arr = [0u8; 32];
+    val.to_big_endian(&mut arr);
+    arr
+}
+
 pub async fn construct_msg_data(
     l1_token: &str,
     from: &str,
@@ -298,10 +304,7 @@ pub async fn construct_msg_data(
     message_data.append(&mut decode_hex(&l1_token));
     message_data.append(&mut decode_hex(&from));
     message_data.append(&mut to);
-    // message_data.append(&mut decode_hex(&amount));
-    let mut amount_arr = [0u8; 32];
-    amount.to_big_endian(&mut amount_arr);
-    message_data.append(&mut amount_arr[..].to_vec());
+    message_data.append(&mut encode_hex(amount).to_vec());
 
     let message_data = prefix_contract_id(message_data).await;
     let message = (100, message_data);
