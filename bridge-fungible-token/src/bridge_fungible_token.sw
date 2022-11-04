@@ -47,12 +47,7 @@ storage {
 // Storage-dependant private functions
 #[storage(read, write)]
 fn register_refund(from: b256, asset: b256, amount: b256) {
-    log(6969);
-    log(amount);
-    // @note amount is correct here !
     storage.refund_amounts.insert((from, asset), amount);
-    let stored_amount = storage.refund_amounts.get((from, asset));
-    log(stored_amount);
     log(RefundRegisteredEvent {
         from,
         asset,

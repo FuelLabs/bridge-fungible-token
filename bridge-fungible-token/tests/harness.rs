@@ -209,8 +209,6 @@ mod success {
             .unwrap();
         // verify correct message was sent
 
-        println!("Receipts: {:#?}", call_response.receipts);
-
         let message_receipt = call_response
             .receipts
             .iter()

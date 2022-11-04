@@ -35,22 +35,14 @@ pub fn generate_test_config(decimals: (u8, u8)) -> TestConfig {
     } else {
         one
     };
-    println!(" Generator::adjustment_factor: {:?}", adjustment_factor);
 
     let min_amount = U256::from(1) * adjustment_factor;
-    println!(" Generator::min_amount: {:?}", min_amount);
     let max_amount = U256::from(u64::MAX) * adjustment_factor;
-    println!(" Generator::max_amount: {:?}", max_amount);
     let test_amount = ((U256::from(1) + U256::from(u64::MAX)) / U256::from(2)) * adjustment_factor;
-    println!(" Generator::test_amount: {:?}", test_amount);
     let not_enough = min_amount - one;
-    println!(" Generator::not_enough: {:?}", not_enough);
     let overflow_1 = max_amount + one;
-    println!(" Generator::overflow_1: {:?}", overflow_1);
     let overflow_2 = max_amount + one << 160;
-    println!(" Generator::overflow_2: {:?}", overflow_2);
     let overflow_3 = max_amount + one << 224;
-    println!(" Generator::overflow_3: {:?}", overflow_3);
 
     TestConfig {
         adjustment_factor,
@@ -314,10 +306,6 @@ pub async fn construct_msg_data(
     message_data.append(&mut encode_hex(amount).to_vec());
 
     let message_data = prefix_contract_id(message_data).await;
-
-    println!("Test Msg Data: {:?}", message_data);
-    println!("Len: {:?}", message_data.len());
-
     let message = (100, message_data);
     let coin = (DEFAULT_COIN_AMOUNT, AssetId::default());
 
@@ -331,18 +319,11 @@ pub fn generate_outputs() -> Vec<Output> {
 }
 
 pub fn parse_output_message_data(data: &[u8]) -> (Vec<u8>, Bits256, Bits256, U256) {
-    println!("here: 1");
     let selector = &data[4..8];
     let to: [u8; 32] = data[8..40].try_into().unwrap();
     let token_array: [u8; 32] = data[40..72].try_into().unwrap();
     let l1_token = Bits256(token_array);
     let amount_array: [u8; 32] = data[72..].try_into().unwrap();
-    println!("here: 2");
-    println!("Data: {:#?}", data);
-    println!("Data length: {:#?}", data.len());
-    println!("Amount array: {:#?}", amount_array);
     let amount: U256 = U256::from_big_endian(&amount_array.to_vec());
-    println!("here: 3");
-    println!("Amount: {:?}", amount);
     (selector.to_vec(), Bits256(to), l1_token, amount)
 }
