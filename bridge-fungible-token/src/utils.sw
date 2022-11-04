@@ -23,8 +23,8 @@ const GTF_INPUT_MESSAGE_RECIPIENT = 0x116;
 /// to be withdrawn. This amount needs to be passed via message.data as a b256
 pub fn adjust_withdrawal_decimals(val: u64) -> b256 {
     if DECIMALS < LAYER_1_DECIMALS {
-        let amount = ~U256::from(0, 0, 0, val);
-        let factor = ~U256::from(0, 0, 0, 10.pow(LAYER_1_DECIMALS - DECIMALS));
+        let amount = U256::from((0, 0, 0, val));
+        let factor = U256::from((0, 0, 0, 10.pow(LAYER_1_DECIMALS - DECIMALS)));
         let components = amount.multiply(factor).into();
         compose(components)
     } else {
@@ -38,11 +38,9 @@ pub fn adjust_withdrawal_decimals(val: u64) -> b256 {
 /// Make any necessary adjustments to decimals(precision) on the deposited value, and return either a converted u64 or an error if the conversion can't be achieved without overflow or loss of precision.
 pub fn adjust_deposit_decimals(msg_val: b256) -> Result<u64, BridgeFungibleTokenError> {
     let decomposed = decompose(msg_val);
-    let value = ~U256::from(decomposed.0, decomposed.1, decomposed.2, decomposed.3);
-
+    let value = U256::from((decomposed.0, decomposed.1, decomposed.2, decomposed.3));
     if LAYER_1_DECIMALS > DECIMALS {
-        let adjustment_factor = ~U256::from(0, 0, 0, 10.pow(LAYER_1_DECIMALS - DECIMALS));
-
+        let adjustment_factor = U256::from((0, 0, 0, 10.pow(LAYER_1_DECIMALS - DECIMALS)));
         if value.divide(adjustment_factor).multiply(adjustment_factor) == value
             && (value.gt(adjustment_factor)
             || value.eq(adjustment_factor))
@@ -89,26 +87,25 @@ pub fn decompose(val: b256) -> (u64, u64, u64, u64) {
 /// Read the bytes passed as message data into an in-memory representation using the MessageData type.
 pub fn parse_message_data(msg_idx: u8) -> MessageData {
     let mut msg_data = MessageData {
-        fuel_token: ~ContractId::from(ZERO_B256),
+        fuel_token: ContractId::from(ZERO_B256),
         l1_asset: ZERO_B256,
         from: ZERO_B256,
-        to: ~Address::from(ZERO_B256),
+        to: Address::from(ZERO_B256),
         amount: ZERO_B256,
     };
 
     // Parse the message data
-    msg_data.fuel_token = ~ContractId::from(input_message_data::<b256>(msg_idx, 0));
-    msg_data.l1_asset = input_message_data::<b256>(msg_idx, 32);
-    msg_data.from = input_message_data::<b256>(msg_idx, 32 + 32);
-    msg_data.to = ~Address::from(input_message_data::<b256>(msg_idx, 32 + 32 + 32));
-    msg_data.amount = input_message_data::<b256>(msg_idx, 32 + 32 + 32 + 32);
-
+    msg_data.fuel_token = ContractId::from(input_message_data::<b256>(msg_idx, 0));
+    msg_data.l1_asset = input_message_data::<b256>(msg_idx, 8);
+    msg_data.from = input_message_data::<b256>(msg_idx, 8 + 8);
+    msg_data.to = Address::from(input_message_data::<b256>(msg_idx, 8 + 8 + 8));
+    msg_data.amount = input_message_data::<b256>(msg_idx, 8 + 8 + 8 + 8);
     msg_data
 }
 
 /// Encode the data to be passed out of the contract when sending a message
 pub fn encode_data(to: b256, amount: b256) -> Vec<u64> {
-    let mut data = ~Vec::with_capacity(13);
+    let mut data = Vec::with_capacity(13);
     // start with the function selector
     data.push(FINALIZE_WITHDRAWAL_SELECTOR);
 
@@ -132,32 +129,19 @@ pub fn encode_data(to: b256, amount: b256) -> Vec<u64> {
     data.push(amount_2);
     data.push(amount_3);
     data.push(amount_4);
-
     data
-}
-
-/// Get the length of a message input data
-// TODO: [std-lib] replace with 'input_message_data_length'
-pub fn input_message_data_length(index: u64) -> u64 {
-    __gtf::<u64>(index, GTF_INPUT_MESSAGE_DATA_LENGTH)
 }
 
 /// Get the data of a message input
 // TODO: [std-lib] replace with 'input_message_data'
 pub fn input_message_data<T>(index: u64, offset: u64) -> T {
     let data = __gtf::<raw_ptr>(index, GTF_INPUT_MESSAGE_DATA);
-    let data_with_offset = data + offset;
+    let data_with_offset = data.add(offset / 8);
     data_with_offset.read::<T>()
 }
 
 /// Get the sender of the input message at `index`.
 // TODO: [std-lib] replace with 'input_message_sender'
 pub fn input_message_sender(index: u64) -> Address {
-    ~Address::from(__gtf::<b256>(index, GTF_INPUT_MESSAGE_SENDER))
-}
-
-/// Get the recipient of the input message at `index`.
-// TODO: [std-lib] replace with 'input_message_recipient'
-pub fn input_message_recipient(index: u64) -> Address {
-    ~Address::from(__gtf::<b256>(index, GTF_INPUT_MESSAGE_RECIPIENT))
+    Address::from(__gtf::<b256>(index, GTF_INPUT_MESSAGE_SENDER))
 }
