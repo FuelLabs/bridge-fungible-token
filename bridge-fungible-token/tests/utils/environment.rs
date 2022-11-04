@@ -338,11 +338,11 @@ pub fn generate_outputs() -> Vec<Output> {
 
 pub fn parse_output_message_data(data: &[u8]) -> (Vec<u8>, Bits256, Bits256, U256) {
     println!("We are now here: 1");
-    let selector = &data[..4];
-    let to: [u8; 32] = data[4..36].try_into().unwrap();
-    let token_array: [u8; 32] = data[36..68].try_into().unwrap();
+    let selector = &data[4..8];
+    let to: [u8; 32] = data[8..40].try_into().unwrap();
+    let token_array: [u8; 32] = data[40..72].try_into().unwrap();
     let l1_token = Bits256(token_array);
-    let amount_array: [u8; 32] = data[68..].try_into().unwrap();
+    let amount_array: [u8; 32] = data[72..].try_into().unwrap();
     println!("We are now here: 2");
     println!("Data: {:#?}", data);
     println!("Data length: {:#?}", data.len());
@@ -352,20 +352,3 @@ pub fn parse_output_message_data(data: &[u8]) -> (Vec<u8>, Bits256, Bits256, U25
     println!("Amount: {:?}", amount);
     (selector.to_vec(), Bits256(to), l1_token, amount)
 }
-
-// pub fn parse_output_message_data(data: &[u8]) -> (Vec<u8>, Bits256, Bits256, U256) {
-//     println!("We are now here: 1");
-//     let selector = &data[4..8];
-//     let to: [u8; 32] = data[8..40].try_into().unwrap();
-//     let token_array: [u8; 32] = data[40..72].try_into().unwrap();
-//     let l1_token = Bits256(token_array);
-//     let amount_array: [u8; 32] = data[72..].try_into().unwrap();
-//     println!("We are now here: 2");
-//     println!("Data: {:#?}", data);
-//     println!("Data length: {:#?}", data.len());
-//     println!("Amount array: {:#?}", amount_array);
-//     let amount: U256 = U256::from_big_endian(&amount_array.to_vec());
-//     println!("We are now here: 3");
-//     println!("Amount: {:?}", amount);
-//     (selector.to_vec(), Bits256(to), l1_token, amount)
-// }
