@@ -82,7 +82,7 @@ pub async fn build_contract_message_tx(
     // Create the transaction
     Transaction::script(
         params.gas_price,
-        CONTRACT_MESSAGE_MIN_GAS,
+        CONTRACT_MESSAGE_MIN_GAS * 10,
         params.maturity,
         script_bytecode,
         vec![],

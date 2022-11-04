@@ -9,7 +9,8 @@ use fuels::prelude::*;
 use fuels::signers::fuel_crypto::SecretKey;
 use fuels::test_helpers::{setup_single_message, setup_test_client, Config, DEFAULT_COIN_AMOUNT};
 use fuels::tx::{
-    Address, AssetId, Bytes32, Input, Output, Receipt, Script, TxPointer, UtxoId, Word,
+    Address, AssetId, Bytes32, ConsensusParameters, Input, Output, Receipt, Script, TxPointer,
+    UtxoId, Word,
 };
 use primitive_types::U256;
 
@@ -139,13 +140,15 @@ pub async fn setup_environment(
         .collect();
 
     // Create the client and provider
-    let mut provider_config = Config::local_node();
-    provider_config.predicates = true;
+    let provider_config = Config::local_node();
+    let consensus_parameters_config = ConsensusParameters::DEFAULT.with_max_gas_per_tx(300_000_000);
+
     let (client, _) = setup_test_client(
         all_coins.clone(),
         all_messages.clone(),
         Some(provider_config),
         None,
+        Some(consensus_parameters_config),
     )
     .await;
     let provider = Provider::new(client);

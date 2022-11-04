@@ -293,7 +293,7 @@ mod success {
         );
 
         // Now try to withdraw
-        let custom_tx_params = TxParameters::new(None, Some(5_000_000), None);
+        let custom_tx_params = TxParameters::new(None, Some(30_000_000), None);
         let withdrawal_amount = 3000;
         let call_params = CallParameters::new(
             Some(withdrawal_amount),
@@ -399,7 +399,7 @@ mod success {
         assert_eq!(balance, l2_token_amount);
 
         // Now try to withdraw
-        let custom_tx_params = TxParameters::new(None, Some(5_000_000), None);
+        let custom_tx_params = TxParameters::new(None, Some(30_000_000), None);
         let call_params = CallParameters::new(
             Some(l2_token_amount),
             Some(AssetId::new(*test_contract_id.hash())),
