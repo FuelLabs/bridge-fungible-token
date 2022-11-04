@@ -10,17 +10,16 @@ use contract_message_receiver::MessageReceiver;
 use errors::BridgeFungibleTokenError;
 use events::{DepositEvent, RefundRegisteredEvent, WithdrawalEvent};
 use std::{
-    chain::auth::{
+    auth::{
         msg_sender,
     },
-    constants::ZERO_B256,
-    context::{
-        call_frames::{
-            contract_id,
-            msg_asset_id,
-        },
-        msg_amount,
+    call_frames::{
+        contract_id,
+        msg_asset_id,
     },
+    constants::ZERO_B256,
+    context::msg_amount,
+    convert::From,
     logging::log,
     message::send_message,
     storage::StorageMap,
@@ -36,9 +35,6 @@ use utils::{
     compose,
     decompose,
     encode_data,
-    input_message_data,
-    input_message_data_length,
-    input_message_recipient,
     input_message_sender,
     parse_message_data,
 };
@@ -49,9 +45,14 @@ storage {
 }
 
 // Storage-dependant private functions
-#[storage(write)]
+#[storage(read, write)]
 fn register_refund(from: b256, asset: b256, amount: b256) {
+    log(6969);
+    log(amount);
+    // @note amount is correct here !
     storage.refund_amounts.insert((from, asset), amount);
+    let stored_amount = storage.refund_amounts.get((from, asset));
+    log(stored_amount);
     log(RefundRegisteredEvent {
         from,
         asset,
