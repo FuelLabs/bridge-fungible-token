@@ -5,14 +5,12 @@ use std::num::ParseIntError;
 use std::str::FromStr;
 
 use fuel_core_interfaces::model::Message;
-use fuels::contract::script::Script;
 use fuels::prelude::*;
 use fuels::signers::fuel_crypto::SecretKey;
 use fuels::test_helpers::{setup_single_message, setup_test_client, Config, DEFAULT_COIN_AMOUNT};
-use fuels::tx::Output;
-use fuels::tx::Receipt;
-use fuels::tx::Transaction;
-use fuels::tx::{Address, AssetId, Bytes32, Input, TxPointer, UtxoId, Word};
+use fuels::tx::{
+    Address, AssetId, Bytes32, Input, Output, Receipt, Script, TxPointer, UtxoId, Word,
+};
 use primitive_types::U256;
 
 pub struct TestConfig {
@@ -239,14 +237,13 @@ pub async fn relay_message_to_contract(
 }
 
 /// Relays a message-to-contract message
-pub async fn sign_and_call_tx(wallet: &WalletUnlocked, tx: &mut Transaction) -> Vec<Receipt> {
+pub async fn sign_and_call_tx(wallet: &WalletUnlocked, tx: &mut Script) -> Vec<Receipt> {
     // Get provider and client
     let provider = wallet.get_provider().unwrap();
 
     // Sign transaction and call
     wallet.sign_transaction(tx).await.unwrap();
-    let script = Transaction::Script::new(tx.clone());
-    script.call(provider).await.unwrap()
+    provider.send_transaction(tx).await.unwrap()
 }
 
 /// Prefixes the given bytes with the test contract ID
@@ -312,18 +309,12 @@ pub async fn construct_msg_data(
     message_data.append(&mut decode_hex(&from));
     message_data.append(&mut to);
     message_data.append(&mut encode_hex(amount).to_vec());
-    // println!("Test L1 Token: {:?}", decode_hex(&l1_token));
-    // println!("Len: {:?}", decode_hex(&l1_token).len());
-    // println!("Test From: {:?}", decode_hex(&from));
-    // println!("Len: {:?}", decode_hex(&from).len());
-    // println!("Test To: {:?}", to);
-    // println!("Len: {:?}", to.len());
-    // println!("Test amount: {:?}", encode_hex(amount).to_vec());
-    // println!("Len: {:?}", encode_hex(amount).to_vec().len());
 
     let message_data = prefix_contract_id(message_data).await;
+
     println!("Test Msg Data: {:?}", message_data);
     println!("Len: {:?}", message_data.len());
+
     let message = (100, message_data);
     let coin = (DEFAULT_COIN_AMOUNT, AssetId::default());
 
@@ -337,18 +328,18 @@ pub fn generate_outputs() -> Vec<Output> {
 }
 
 pub fn parse_output_message_data(data: &[u8]) -> (Vec<u8>, Bits256, Bits256, U256) {
-    println!("We are now here: 1");
+    println!("here: 1");
     let selector = &data[4..8];
     let to: [u8; 32] = data[8..40].try_into().unwrap();
     let token_array: [u8; 32] = data[40..72].try_into().unwrap();
     let l1_token = Bits256(token_array);
     let amount_array: [u8; 32] = data[72..].try_into().unwrap();
-    println!("We are now here: 2");
+    println!("here: 2");
     println!("Data: {:#?}", data);
     println!("Data length: {:#?}", data.len());
     println!("Amount array: {:#?}", amount_array);
     let amount: U256 = U256::from_big_endian(&amount_array.to_vec());
-    println!("We are now here: 3");
+    println!("here: 3");
     println!("Amount: {:?}", amount);
     (selector.to_vec(), Bits256(to), l1_token, amount)
 }
