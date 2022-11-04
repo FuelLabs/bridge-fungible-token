@@ -28,7 +28,6 @@ mod success {
 
         // generate the test config struct based on the decimals
         let config = env::generate_test_config((LAYER_1_DECIMALS, LAYER_2_DECIMALS));
-
         let (message, coin) = env::construct_msg_data(
             L1_TOKEN,
             FROM,
@@ -210,6 +209,8 @@ mod success {
             .unwrap();
         // verify correct message was sent
 
+        println!("Receipts: {:#?}", call_response.receipts);
+
         let message_receipt = call_response
             .receipts
             .iter()
@@ -234,7 +235,7 @@ mod success {
         assert_eq!(to, Bits256::from_hex_str(&FROM).unwrap());
         assert_eq!(l1_token, Bits256::from_hex_str(&L1_TOKEN).unwrap());
         // Compare the value output in the message with the original value (DUST) as a uint.
-        assert_eq!(amount, U256::from(999999999));
+        assert_eq!(amount, config.not_enough);
 
         Ok(())
     }
@@ -850,7 +851,7 @@ mod revert {
     }
 
     #[tokio::test]
-    #[should_panic(expected = "Revert(42)")]
+    #[should_panic(expected = "Revert(18446744073709486080)")]
     async fn verification_fails_with_wrong_sender() {
         let mut wallet = env::setup_wallet();
         let config = env::generate_test_config((LAYER_1_DECIMALS, LAYER_2_DECIMALS));
