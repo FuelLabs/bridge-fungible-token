@@ -634,7 +634,7 @@ mod success {
         // check that the RefundRegisteredEvent receipt is populated correctly
         assert_eq!(
             refund_registered_event[0].amount,
-            Bits256::from_hex_str(&format!("{:X}", config.overflow_2)).unwrap()
+            Bits256(env::encode_hex(config.overflow_2))
         );
         assert_eq!(
             refund_registered_event[0].asset,
@@ -703,7 +703,7 @@ mod success {
         // check that the RefundRegisteredEvent receipt is populated correctly
         assert_eq!(
             refund_registered_event[0].amount,
-            Bits256::from_hex_str(&format!("{:X}", config.overflow_3)).unwrap()
+            Bits256(env::encode_hex(config.overflow_3))
         );
         assert_eq!(
             refund_registered_event[0].asset,
@@ -746,7 +746,7 @@ mod success {
         let (contract, _id) = env::get_fungible_token_instance(wallet.clone()).await;
 
         let call_response = contract.methods().decimals().call().await.unwrap();
-        assert_eq!(call_response.value, 9)
+        assert_eq!(call_response.value, LAYER_2_DECIMALS)
     }
 
     #[tokio::test]
@@ -767,7 +767,7 @@ mod success {
         let (contract, _id) = env::get_fungible_token_instance(wallet.clone()).await;
 
         let call_response = contract.methods().layer1_decimals().call().await.unwrap();
-        assert_eq!(call_response.value, 18)
+        assert_eq!(call_response.value, LAYER_1_DECIMALS)
     }
 }
 
