@@ -63,6 +63,7 @@ impl MessageReceiver for Contract {
         let input_sender = input_message_sender(1);
         require(input_sender.value == LAYER_1_ERC20_GATEWAY, BridgeFungibleTokenError::UnauthorizedSender);
         let message_data = parse_message_data(msg_idx);
+        require(message_data.amount != ZERO_B256, BridgeFungibleTokenError::NoCoinsSent);
 
         // Register a refund if tokens don't match
         if message_data.l1_asset != LAYER_1_TOKEN {
@@ -101,7 +102,7 @@ impl BridgeFungibleToken for Contract {
 
     fn withdraw_to(to: b256) {
         let amount = msg_amount();
-        require(amount != 0, BridgeFungibleTokenError::NoCoinsForwarded);
+        require(amount != 0, BridgeFungibleTokenError::NoCoinsSent);
         let origin_contract_id = msg_asset_id();
         let sender = msg_sender().unwrap();
         // check that the correct asset was sent with call
