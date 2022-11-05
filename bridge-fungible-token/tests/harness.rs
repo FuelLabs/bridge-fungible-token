@@ -446,7 +446,7 @@ mod success {
 
     #[tokio::test]
     async fn depositing_not_enough_registers_refund() -> Result<(), Error> {
-        // In the case where LAYER_1_DECIMALS == LAYER_2_DECIMALS, this test will fail because it will attempt to bridge 0 coins which will always revert.
+        // In cases where LAYER_1_DECIMALS == LAYER_2_DECIMALS or LAYER_1_DECIMALS < LAYER_2_DECIMALS, this test will fail because it will attempt to bridge 0 coins which will always revert.
         let mut wallet = env::setup_wallet();
         let config = env::generate_test_config((LAYER_1_DECIMALS, LAYER_2_DECIMALS));
         let (message, coin) = env::construct_msg_data(
