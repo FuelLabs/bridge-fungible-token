@@ -39,6 +39,7 @@ pub fn adjust_withdrawal_decimals(val: u64) -> b256 {
 pub fn adjust_deposit_decimals(msg_val: b256) -> Result<u64, BridgeFungibleTokenError> {
     let decomposed = decompose(msg_val);
     let value = U256::from((decomposed.0, decomposed.1, decomposed.2, decomposed.3));
+
     if LAYER_1_DECIMALS > DECIMALS {
         let adjustment_factor = U256::from((0, 0, 0, 10.pow(LAYER_1_DECIMALS - DECIMALS)));
         if value.divide(adjustment_factor).multiply(adjustment_factor) == value
