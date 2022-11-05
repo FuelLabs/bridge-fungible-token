@@ -231,6 +231,7 @@ mod success {
         assert_eq!(message_receipt.len().unwrap(), 104);
 
         // message data
+        dbg!(message_receipt.data().unwrap());
         let (selector, to, l1_token, amount) =
             env::parse_output_message_data(message_receipt.data().unwrap());
         assert_eq!(selector, env::decode_hex("0x53ef1461").to_vec());

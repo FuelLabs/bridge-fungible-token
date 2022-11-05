@@ -11,7 +11,7 @@ use data::MessageData;
 
 // the function selector for finalizeWithdrawal on the L1ERC20Gateway contract:
 // finalizeWithdrawal(address,address,uint256)
-const FINALIZE_WITHDRAWAL_SELECTOR: u64 = 0x53ef1461;
+const FINALIZE_WITHDRAWAL_SELECTOR: u64 = 0x53ef146100000000;
 
 // TODO: [std-lib] remove once standard library functions have been added
 const GTF_INPUT_MESSAGE_DATA_LENGTH = 0x11B;
@@ -107,29 +107,30 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
 /// Encode the data to be passed out of the contract when sending a message
 pub fn encode_data(to: b256, amount: b256) -> Vec<u64> {
     let mut data = Vec::with_capacity(13);
+    let (recip_1, recip_2, recip_3, recip_4) = decompose(to);
+    let (token_1, token_2, token_3, token_4) = decompose(LAYER_1_TOKEN);
+    let (amount_1, amount_2, amount_3, amount_4) = decompose(amount);
+
     // start with the function selector
-    data.push(FINALIZE_WITHDRAWAL_SELECTOR);
+    data.push(FINALIZE_WITHDRAWAL_SELECTOR + (recip_1 >> 32));
 
     // add the address to recieve coins
-    let (recip_1, recip_2, recip_3, recip_4) = decompose(to);
-    data.push(recip_1);
-    data.push(recip_2);
-    data.push(recip_3);
-    data.push(recip_4);
+    data.push((recip_1 << 32) + (recip_2 >> 32));
+    data.push((recip_2 << 32) + (recip_3 >> 32));
+    data.push((recip_3 << 32) + (recip_4 >> 32));
+    data.push((recip_4 << 32) + (token_1 >> 32));
 
     // add the address of the L1 token contract
-    let (token_1, token_2, token_3, token_4) = decompose(LAYER_1_TOKEN);
-    data.push(token_1);
-    data.push(token_2);
-    data.push(token_3);
-    data.push(token_4);
+    data.push((token_1 << 32) + (token_2 >> 32));
+    data.push((token_2 << 32) + (token_3 >> 32));
+    data.push((token_3 << 32) + (token_4 >> 32));
+    data.push((token_4 << 32) + (amount_1 >> 32));
 
     // add the amount of tokens
-    let (amount_1, amount_2, amount_3, amount_4) = decompose(amount);
-    data.push(amount_1);
-    data.push(amount_2);
-    data.push(amount_3);
-    data.push(amount_4);
+    data.push((amount_1 << 32) + (amount_2 >> 32));
+    data.push((amount_2 << 32) + (amount_3 >> 32));
+    data.push((amount_3 << 32) + (amount_4 >> 32));
+    data.push(amount_4 << 32);
     data
 }
 
