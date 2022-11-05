@@ -25,7 +25,7 @@ forc build -p bridge-fungible-token
 Run tests:
 
 ```sh
-cd bridge-fungible-token && gargo test && cd ..
+cd bridge-fungible-token && cargo test && cd ..
 ```
 
 ## Contributing
