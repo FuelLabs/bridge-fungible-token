@@ -65,12 +65,13 @@ impl MessageReceiver for Contract {
         let message_data = parse_message_data(msg_idx);
         require(message_data.amount != ZERO_B256, BridgeFungibleTokenError::NoCoinsSent);
 
-        // Register a refund if tokens don't match
-        if message_data.l1_asset != LAYER_1_TOKEN {
+        // Register a refund if tokens don't match, or if delta decimals is too large
+        if (message_data.l1_asset != LAYER_1_TOKEN)
+            || (LAYER_1_DECIMALS - DECIMALS > 19u8)
+        {
             register_refund(message_data.from, message_data.l1_asset, message_data.amount);
             return;
         };
-
         let res_amount = adjust_deposit_decimals(message_data.amount);
         match res_amount {
             Result::Err(e) => {
@@ -88,23 +89,24 @@ impl MessageReceiver for Contract {
         }
     }
 }
-
 impl BridgeFungibleToken for Contract {
     #[storage(read, write)]
     fn claim_refund(originator: b256, asset: b256) {
         let stored_amount = storage.refund_amounts.get((originator, asset));
         require(stored_amount != ZERO_B256, BridgeFungibleTokenError::NoRefundAvailable);
+
         // reset the refund amount to 0
         storage.refund_amounts.insert((originator, asset), ZERO_B256);
+
         // send a message to unlock this amount on the ethereum (L1) bridge contract
         send_message(LAYER_1_ERC20_GATEWAY, encode_data(originator, stored_amount), 0);
     }
-
     fn withdraw_to(to: b256) {
         let amount = msg_amount();
         require(amount != 0, BridgeFungibleTokenError::NoCoinsSent);
         let origin_contract_id = msg_asset_id();
         let sender = msg_sender().unwrap();
+
         // check that the correct asset was sent with call
         require(contract_id() == origin_contract_id, BridgeFungibleTokenError::IncorrectAssetDeposited);
         burn(amount);
@@ -116,23 +118,18 @@ impl BridgeFungibleToken for Contract {
             amount: amount,
         });
     }
-
     fn name() -> str[32] {
         NAME
     }
-
     fn symbol() -> str[32] {
         SYMBOL
     }
-
     fn decimals() -> u8 {
         DECIMALS
     }
-
     fn layer1_token() -> b256 {
         LAYER_1_TOKEN
     }
-
     fn layer1_decimals() -> u8 {
         LAYER_1_DECIMALS
     }
