@@ -41,8 +41,8 @@ pub fn generate_test_config(decimals: (u8, u8)) -> TestConfig {
     let test_amount = ((U256::from(1) + U256::from(u64::MAX)) / U256::from(2)) * adjustment_factor;
     let not_enough = min_amount - one;
     let overflow_1 = max_amount + one;
-    let overflow_2 = max_amount + one << 160;
-    let overflow_3 = max_amount + one << 224;
+    let overflow_2 = max_amount + (one << 160);
+    let overflow_3 = max_amount + (one << 224);
 
     TestConfig {
         adjustment_factor,

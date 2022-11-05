@@ -142,7 +142,7 @@ mod success {
             L1_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
-            config.not_enough,
+            config.overflow_2,
         )
         .await;
 
@@ -184,7 +184,7 @@ mod success {
         assert_eq!(test_contract_balance, 100);
         assert_eq!(
             refund_registered_event[0].amount,
-            Bits256(env::encode_hex(config.not_enough))
+            Bits256(env::encode_hex(config.overflow_2))
         );
         assert_eq!(
             refund_registered_event[0].asset,
@@ -232,8 +232,8 @@ mod success {
         assert_eq!(selector, env::decode_hex("0x53ef1461").to_vec());
         assert_eq!(to, Bits256::from_hex_str(&FROM).unwrap());
         assert_eq!(l1_token, Bits256::from_hex_str(&L1_TOKEN).unwrap());
-        // Compare the value output in the message with the original value (DUST) as a uint.
-        assert_eq!(amount, config.not_enough);
+        // Compare the value output in the message with the original value sent
+        assert_eq!(amount, config.overflow_2);
 
         Ok(())
     }
@@ -445,10 +445,8 @@ mod success {
     }
 
     #[tokio::test]
-    async fn depositing_dust_registers_refund() -> Result<(), Error> {
-        // "dust" here refers to any amount less than 1_000_000_000.
-        // This is to account for conversion between the 18 decimals on most erc20 contracts, and the 9 decimals in the Fuel BridgeFungibleToken contract
-
+    async fn depositing_not_enough_registers_refund() -> Result<(), Error> {
+        // In the case where LAYER_1_DECIMALS == LAYER_2_DECIMALS, this test will fail because it will attempt to bridge 0 coins which will always revert.
         let mut wallet = env::setup_wallet();
         let config = env::generate_test_config((LAYER_1_DECIMALS, LAYER_2_DECIMALS));
         let (message, coin) = env::construct_msg_data(
