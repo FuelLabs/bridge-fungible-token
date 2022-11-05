@@ -16,6 +16,10 @@ pub const LAYER_1_ERC20_GATEWAY: &str =
     "0xca400d3e7710eee293786830755278e6d2b9278b4177b8b1a896ebd5f55c10bc";
 pub const TO: &str = "0x0000000000000000000000000000000000000000000000000000000000000777";
 pub const FROM: &str = "0x0000000000000000000000008888888888888888888888888888888888888888";
+// In the case where (LAYER_1_DECIMALS - LAYER_2_DECIMALS) > 19, some tests
+// will fail with RevertTransactionError("ArithmeticOverflow").
+// BridgeFungibleToken contracts should not be deployed in this configuration
+// as it could lead to lost L1 tokens.
 pub const LAYER_1_DECIMALS: u8 = 18u8;
 pub const LAYER_2_DECIMALS: u8 = 9u8;
 
@@ -445,7 +449,7 @@ mod success {
     }
 
     #[tokio::test]
-    async fn depositing_not_enough_registers_refund() -> Result<(), Error> {
+    async fn depositing_amount_too_small_registers_refund() -> Result<(), Error> {
         // In cases where LAYER_1_DECIMALS == LAYER_2_DECIMALS or LAYER_1_DECIMALS < LAYER_2_DECIMALS, this test will fail because it will attempt to bridge 0 coins which will always revert.
         let mut wallet = env::setup_wallet();
         let config = env::generate_test_config((LAYER_1_DECIMALS, LAYER_2_DECIMALS));
@@ -878,4 +882,72 @@ mod revert {
         )
         .await;
     }
+}
+
+#[tokio::test]
+async fn delta_decimals_too_big_registers_refund() -> Result<(), Error> {
+    // In cases where LAYER_1_DECIMALS - LAYER_2_DECIMALS > 19,
+    // there would be arithmetic overflow and possibly tokens lost.
+    // We want to catch these cases eraly and register a refund.
+    let mut wallet = env::setup_wallet();
+    let config = env::generate_test_config((LAYER_1_DECIMALS, LAYER_2_DECIMALS));
+    let (message, coin) = env::construct_msg_data(
+        L1_TOKEN,
+        FROM,
+        wallet.address().hash().to_vec(),
+        config.test_amount,
+    )
+    .await;
+
+    // Set up the environment
+    let (test_contract, contract_input, coin_inputs, message_inputs, test_contract_id, provider) =
+        env::setup_environment(&mut wallet, vec![coin], vec![message], None).await;
+
+    // Relay the test message to the test contract
+    let receipts = env::relay_message_to_contract(
+        &wallet,
+        message_inputs[0].clone(),
+        contract_input,
+        &coin_inputs[..],
+        &vec![],
+        &env::generate_outputs(),
+    )
+    .await;
+
+    if LAYER_1_DECIMALS - LAYER_2_DECIMALS > 19 {
+        let refund_registered_event = test_contract
+            .logs_with_type::<utils::environment::bridgefungibletokencontract_mod::RefundRegisteredEvent>(
+            &receipts,
+        )?;
+
+        // Verify the message value was received by the test contract
+        let test_contract_balance = provider
+            .get_contract_asset_balance(test_contract.get_contract_id(), AssetId::default())
+            .await
+            .unwrap();
+        let balance = wallet
+            .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
+            .await?;
+
+        assert_eq!(test_contract_balance, 100);
+
+        assert_eq!(
+            refund_registered_event[0].amount,
+            Bits256(env::encode_hex(config.test_amount))
+        );
+
+        assert_eq!(
+            refund_registered_event[0].asset,
+            Bits256::from_hex_str(&L1_TOKEN).unwrap()
+        );
+        assert_eq!(
+            refund_registered_event[0].from,
+            Bits256::from_hex_str(&FROM).unwrap()
+        );
+
+        // verify that no tokens were minted for message.data.to
+        assert_eq!(balance, 0);
+    }
+
+    Ok(())
 }
