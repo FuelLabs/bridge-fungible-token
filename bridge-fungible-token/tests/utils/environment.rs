@@ -133,7 +133,7 @@ pub async fn setup_environment(
 
     // Create the client and provider
     let provider_config = Config::local_node();
-    let consensus_parameters_config = ConsensusParameters::DEFAULT.with_max_gas_per_tx(300_000_000);
+    let consensus_parameters_config = ConsensusParameters::DEFAULT.with_max_gas_per_tx(100_000_000);
 
     let (client, _) = setup_test_client(
         all_coins.clone(),

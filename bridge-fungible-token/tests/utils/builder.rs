@@ -10,7 +10,7 @@ use fuels::tx::{
     Address, AssetId, Bytes32, Contract as tx_contract, Input, Output, Script, Transaction,
 };
 
-const CONTRACT_MESSAGE_MIN_GAS: u64 = 30_000_000;
+const CONTRACT_MESSAGE_MIN_GAS: u64 = 55_000_000;
 const CONTRACT_MESSAGE_SCRIPT_BINARY: &str =
     "../bridge-message-predicates/contract_message_script.bin";
 const CONTRACT_MESSAGE_PREDICATE_BINARY: &str =
@@ -82,7 +82,7 @@ pub async fn build_contract_message_tx(
     // Create the transaction
     Transaction::script(
         params.gas_price,
-        CONTRACT_MESSAGE_MIN_GAS * 10,
+        CONTRACT_MESSAGE_MIN_GAS,
         params.maturity,
         script_bytecode,
         vec![],
