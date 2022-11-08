@@ -19,13 +19,26 @@ const GTF_INPUT_MESSAGE_DATA = 0x11E;
 const GTF_INPUT_MESSAGE_SENDER = 0x115;
 const GTF_INPUT_MESSAGE_RECIPIENT = 0x116;
 
+// optimized mulitplication using composition of left-shifts to implement multiplication by powers of 10.
+fn lsh_mult_by_pow_ten(v: U256, exponent: u8) -> U256 {
+    let mut i = exponent;
+    let mut temp = v;
+
+    while i > 0u8 {
+        let n = temp.lsh(3) + temp.lsh(1);
+        i -= 1u8;
+        temp = n;
+    };
+
+    temp
+}
+
 /// Make any necessary adjustments to decimals(precision) on the amount
 /// to be withdrawn. This amount needs to be passed via message.data as a b256
 pub fn adjust_withdrawal_decimals(val: u64) -> b256 {
     if DECIMALS < LAYER_1_DECIMALS {
         let amount = U256::from((0, 0, 0, val));
-        let factor = U256::from((0, 0, 0, 10.pow(LAYER_1_DECIMALS - DECIMALS)));
-        let components = amount.multiply(factor).into();
+        let components = lsh_mult_by_pow_ten(amount, LAYER_1_DECIMALS - DECIMALS).into();
         compose(components)
     } else {
         // Either decimals are the same, or decimals are negative.
@@ -41,13 +54,14 @@ pub fn adjust_deposit_decimals(msg_val: b256) -> Result<u64, BridgeFungibleToken
     let value = U256::from((decomposed.0, decomposed.1, decomposed.2, decomposed.3));
 
     if LAYER_1_DECIMALS > DECIMALS {
-        let adjustment_factor = U256::from((0, 0, 0, 10.pow(LAYER_1_DECIMALS - DECIMALS)));
-        if value.divide(adjustment_factor).multiply(adjustment_factor) == value
+        let decimal_diff = LAYER_1_DECIMALS - DECIMALS;
+        let adjustment_factor = U256::from((0, 0, 0, 10.pow(decimal_diff)));
+        let intermediate = value.divide(adjustment_factor);
+        if lsh_mult_by_pow_ten(intermediate, decimal_diff) == value
             && (value.gt(adjustment_factor)
             || value.eq(adjustment_factor))
         {
-            let adjusted = value.divide(adjustment_factor);
-            let val_result = adjusted.as_u64();
+            let val_result = intermediate.as_u64();
             match val_result {
                 Result::Err(e) => {
                     Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability)
