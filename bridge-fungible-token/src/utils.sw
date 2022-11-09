@@ -25,7 +25,7 @@ fn lsh_mult_by_pow_ten(v: U256, exponent: u8) -> U256 {
     let mut temp = v;
 
     while i > 0u8 {
-        let n = temp.lsh(3) + temp.lsh(1);
+        let n = (temp << 3) + (temp << 1);
         i -= 1u8;
         temp = n;
     };
