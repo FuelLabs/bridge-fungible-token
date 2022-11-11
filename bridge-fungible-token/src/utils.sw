@@ -42,11 +42,11 @@ pub fn adjust_deposit_decimals(msg_val: b256) -> Result<u64, BridgeFungibleToken
 
     if LAYER_1_DECIMALS > DECIMALS {
         let adjustment_factor = U256::from((0, 0, 0, 10.pow(LAYER_1_DECIMALS - DECIMALS)));
-        if value.divide(adjustment_factor).multiply(adjustment_factor) == value
+        let adjusted = value.divide(adjustment_factor);
+        if adjusted.multiply(adjustment_factor) == value
             && (value.gt(adjustment_factor)
             || value.eq(adjustment_factor))
         {
-            let adjusted = value.divide(adjustment_factor);
             let val_result = adjusted.as_u64();
             match val_result {
                 Result::Err(e) => {
