@@ -4,9 +4,10 @@ Each ERC-20 token to be bridged needs to have a corresponding fungible token con
 
 ## Dependencies
 
-| dep     | version                                                  |
-| ------- | -------------------------------------------------------- |
-| Forc    | [v0.31.1](https://fuellabs.github.io/sway/v0.31.1/introduction/installation.html) |
+| dep         | version                                                  |
+| ----------- | -------------------------------------------------------- |
+| Forc        | [v0.31.1](https://fuellabs.github.io/sway/v0.31.1/introduction/installation.html) |
+| Forc-Client | [v0.31.1](https://fuellabs.github.io/sway/v0.31.1/forc/plugins/forc_client/index.html) |
 
 ## Configure
 
