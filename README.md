@@ -27,15 +27,13 @@ This project uses the general contract message relaying script/predicate from th
 Build:
 
 ```sh
-forc build -p bridge-message-predicates/contract-message-receiver
-forc build -p bridge-fungible-token-abi
 forc build -p bridge-fungible-token
 ```
 
 Run tests:
 
 ```sh
-cd bridge-fungible-token && forc test && cd ..
+cd bridge-fungible-token && cargo test && cd ..
 ```
 
 ## Contributing
