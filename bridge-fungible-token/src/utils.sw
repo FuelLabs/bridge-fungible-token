@@ -28,52 +28,47 @@ const GTF_INPUT_MESSAGE_DATA = 0x11E;
 const GTF_INPUT_MESSAGE_SENDER = 0x115;
 const GTF_INPUT_MESSAGE_RECIPIENT = 0x116;
 
-fn bn_mul(bn: U256, d: u64) -> (b256, u64) {
+fn bn_mul(bn: U256, factor: u64) -> (b256, u64) {
     disable_panic_on_overflow();
-    let tuple_result: (b256, u64) = (
-        0x0000000000000000000000000000000000000000000000000000000000000000,
-        0,
-    );
-    let product_buffer = asm(bn: __addr_of(bn), d: d, c0, c1, v, f, product, carry_offset, product_buffer: __addr_of(tuple_result)) {
+    let product_and_overflow = asm(bn: __addr_of(bn), factor: factor, carry, new_carry, value, current_product, product_with_carry, prod_and_ovf) {
         // Run multiplication on the lower 64bit word
-        lw v bn i3; // load the word in (bn + 3 words) into v
-        mul v v d; // multiply v * d and save result in v
-        move c1 of; // record the carry
-        sw product_buffer v i3; // store the word in v in product_buffer + 3 words
+        lw value bn i3; // load the word in (bn + 3 words) into v
+        mul current_product value factor; // multiply v * d and save result in v
+        move new_carry of; // record the carry
+        move prod_and_ovf sp;
+        cfei i40;
+        sw prod_and_ovf current_product i3; // store the word in v in prod_and_ovf + 3 words
         // Run multiplication on the next 64bit word
-        lw v bn i2;
-        mul v v d;
-        move c0 of;
-        add v v c1; // add the previous carry
-        add c1 c0 of; // record the total new carry
-        sw product_buffer v i2;
-
-        // Run multiplication on the next 64bit word
-        lw v bn i1;
-        mul v v d;
-        move c0 of;
-        add v v c1; // add the previous carry
-        add c1 c0 of; // record the total new carry
-        sw product_buffer v i1;
+        lw value bn i2;
+        mul current_product value factor;
+        move carry of;
+        add product_with_carry current_product new_carry; // add the previous carry
+        add new_carry carry of; // record the total new carry
+        sw prod_and_ovf product_with_carry i2;
 
         // Run multiplication on the next 64bit word
-        lw v bn i0;
-        mul v v d;
-        move c0 of;
-        add v v c1; // add the previous carry
-        add c1 c0 of; // record the total new carry
-        move c0 of;
-        sw product_buffer v i0;
+        lw value bn i1;
+        mul current_product value factor;
+        move carry of;
+        add product_with_carry current_product new_carry; // add the previous carry
+        add new_carry carry of; // record the total new carry
+        sw prod_and_ovf product_with_carry i1;
 
-        // add address of product and 4 words/32 bytes, store in carry_offset
-        addi carry_offset product_buffer i32;
-        sw carry_offset c1 i0;
+        // Run multiplication on the next 64bit word
+        lw value bn i0;
+        mul current_product value factor;
+        move carry of;
+        add product_with_carry current_product new_carry; // add the previous carry
+        add new_carry carry of; // record the total new carry
+        move carry of;
+        sw prod_and_ovf product_with_carry i0;
+        sw prod_and_ovf new_carry i4;
 
-        product_buffer: (b256, u64)
+        prod_and_ovf: (b256, u64)
     };
 
     enable_panic_on_overflow();
-    product_buffer
+    product_and_overflow
 }
 
 /// Make any necessary adjustments to decimals(precision) on the amount
