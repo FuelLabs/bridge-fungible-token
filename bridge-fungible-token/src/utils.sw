@@ -63,8 +63,8 @@ fn shift_decimals_left(bn: U256, d: u8) -> Result<U256, BridgeFungibleTokenError
             decimals_to_shift = decimals_to_shift - 19;
             bn_clone += prod;
         };
-        return Result::Ok(bn_clone);
     };
+    return Result::Ok(bn_clone);
 }
 
 /// Make any necessary adjustments to decimals(precision) on the amount
