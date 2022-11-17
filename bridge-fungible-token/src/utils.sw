@@ -28,47 +28,43 @@ const GTF_INPUT_MESSAGE_DATA = 0x11E;
 const GTF_INPUT_MESSAGE_SENDER = 0x115;
 const GTF_INPUT_MESSAGE_RECIPIENT = 0x116;
 
-fn bn_mul(bn: U256, factor: u64) -> (b256, u64) {
-    disable_panic_on_overflow();
-    let product_and_overflow = asm(bn: __addr_of(bn), factor: factor, carry, new_carry, value, current_product, product_with_carry, prod_and_ovf) {
-        // Run multiplication on the lower 64bit word
-        lw value bn i3; // load the word in (bn + 3 words) into v
-        mul current_product value factor; // multiply v * d and save result in v
-        move new_carry of; // record the carry
-        move prod_and_ovf sp;
-        cfei i40;
-        sw prod_and_ovf current_product i3; // store the word in v in prod_and_ovf + 3 words
-        // Run multiplication on the next 64bit word
-        lw value bn i2;
-        mul current_product value factor;
-        move carry of;
-        add product_with_carry current_product new_carry; // add the previous carry
-        add new_carry carry of; // record the total new carry
-        sw prod_and_ovf product_with_carry i2;
+fn shift_decimals_left(bn: U256, d: u8) -> Result<U256, BridgeFungibleTokenError> {
+    let mut bn_clone = bn;
+    let mut decimals_to_shift = asm(r1: d) { r1: u64 };
 
-        // Run multiplication on the next 64bit word
-        lw value bn i1;
-        mul current_product value factor;
-        move carry of;
-        add product_with_carry current_product new_carry; // add the previous carry
-        add new_carry carry of; // record the total new carry
-        sw prod_and_ovf product_with_carry i1;
-
-        // Run multiplication on the next 64bit word
-        lw value bn i0;
-        mul current_product value factor;
-        move carry of;
-        add product_with_carry current_product new_carry; // add the previous carry
-        add new_carry carry of; // record the total new carry
-        move carry of;
-        sw prod_and_ovf product_with_carry i0;
-        sw prod_and_ovf new_carry i4;
-
-        prod_and_ovf: (b256, u64)
+    // the zero case
+    if (decimals_to_shift == 0) {
+        return Result::Ok(bn)
     };
 
-    enable_panic_on_overflow();
-    product_and_overflow
+    // the too large case
+    // (there are only 78 decimal digits in a 256bit number)
+    if (decimals_to_shift > 77) {
+        return Result::Err(BridgeFungibleTokenError::OverflowError)
+    };
+
+    // math time
+    while (decimals_to_shift > 0) {
+        if (decimals_to_shift < 20) {
+            //multiply result by 10.pow(d)
+            let (prod, overflow) = bn_mult(bn_clone, 10.pow(decimals_to_shift));
+            if (overflow != 0) {
+                return Result::Err(BridgeFungibleTokenError::OverflowError);
+            };
+            decimals_to_shift = 0;
+            bn_clone = prod;
+            break;
+        } else {
+            //multiply result by 10.pow(19)
+            let (prod, overflow) = bn_mult(bn_clone, 10.pow(19));
+            if (overflow != 0) {
+                return Result::Err(BridgeFungibleTokenError::OverflowError);
+            };
+            decimals_to_shift = decimals_to_shift - 19;
+            bn_clone += prod;
+        };
+        return Result::Ok(bn_clone);
+    };
 }
 
 /// Make any necessary adjustments to decimals(precision) on the amount
@@ -76,8 +72,8 @@ fn bn_mul(bn: U256, factor: u64) -> (b256, u64) {
 pub fn adjust_withdrawal_decimals(val: u64) -> b256 {
     if DECIMALS < LAYER_1_DECIMALS {
         let amount = U256::from((0, 0, 0, val));
-        let (product, overflow) = bn_mul(amount, 10.pow(LAYER_1_DECIMALS - DECIMALS));
-        product
+        let result = shift_decimals_left(amount, LAYER_1_DECIMALS - DECIMALS);
+        compose(result.unwrap().into())
     } else {
         // Either decimals are the same, or decimals are negative.
         // TODO: Decide how to handle negative decimals before mainnet.
@@ -103,14 +99,14 @@ pub fn adjust_deposit_decimals(msg_val: b256) -> Result<u64, BridgeFungibleToken
         let adjustment_factor = 10.pow(LAYER_1_DECIMALS - DECIMALS);
         let bn_factor = U256::from((0, 0, 0, adjustment_factor));
         let adjusted = value.divide(bn_factor);
-        let (product, overflow) = bn_mul(adjusted, 10.pow(LAYER_1_DECIMALS - DECIMALS));
-
-        let decomposed = decompose(product);
-        let temp_val = U256::from(decomposed);
-
-        if temp_val == value
-            && (value.gt(bn_factor)
-            || value.eq(bn_factor))
+        // let (product, overflow) = bn_mult(adjusted, 10.pow(LAYER_1_DECIMALS - DECIMALS));
+        let result = shift_decimals_left(value, LAYER_1_DECIMALS - DECIMALS);
+        if result.is_err() {
+            return Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability)
+        };
+        if result.unwrap() == value
+            && (value > bn_factor
+            || value == bn_factor)
         {
             let val_result = adjusted.as_u64();
             match val_result {
@@ -211,4 +207,48 @@ pub fn input_message_data<T>(index: u64, offset: u64) -> T {
 // TODO: [std-lib] replace with 'input_message_sender'
 pub fn input_message_sender(index: u64) -> Address {
     Address::from(__gtf::<b256>(index, GTF_INPUT_MESSAGE_SENDER))
+}
+
+// TODO: [std-lib] replace when added as a method to U128/U256
+fn bn_mult(bn: U256, factor: u64) -> (U256, u64) {
+    disable_panic_on_overflow();
+    let product_and_overflow = asm(bn: __addr_of(bn), factor: factor, carry, new_carry, value, current_product, product_with_carry, prod_and_ovf) {
+        // Run multiplication on the lower 64bit word
+        lw value bn i3; // load the word in (bn + 3 words) into v
+        mul current_product value factor; // multiply v * d and save result in v
+        move new_carry of; // record the carry
+        move prod_and_ovf sp;
+        cfei i40;
+        sw prod_and_ovf current_product i3; // store the word in v in prod_and_ovf + 3 words
+        // Run multiplication on the next 64bit word
+        lw value bn i2;
+        mul current_product value factor;
+        move carry of;
+        add product_with_carry current_product new_carry; // add the previous carry
+        add new_carry carry of; // record the total new carry
+        sw prod_and_ovf product_with_carry i2;
+
+        // Run multiplication on the next 64bit word
+        lw value bn i1;
+        mul current_product value factor;
+        move carry of;
+        add product_with_carry current_product new_carry; // add the previous carry
+        add new_carry carry of; // record the total new carry
+        sw prod_and_ovf product_with_carry i1;
+
+        // Run multiplication on the next 64bit word
+        lw value bn i0;
+        mul current_product value factor;
+        move carry of;
+        add product_with_carry current_product new_carry; // add the previous carry
+        add new_carry carry of; // record the total new carry
+        move carry of;
+        sw prod_and_ovf product_with_carry i0;
+        sw prod_and_ovf new_carry i4;
+
+        prod_and_ovf: (U256, u64)
+    };
+
+    enable_panic_on_overflow();
+    product_and_overflow
 }
