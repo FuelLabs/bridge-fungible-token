@@ -46,16 +46,12 @@ fn shift_decimals_left(bn: U256, d: u8) -> Result<U256, BridgeFungibleTokenError
     // math time
     while (decimals_to_shift > 0) {
         if (decimals_to_shift < 20) {
-            //multiply result by 10.pow(d)
             let (prod, overflow) = bn_mult(bn_clone, 10.pow(decimals_to_shift));
             if (overflow != 0) {
                 return Result::Err(BridgeFungibleTokenError::OverflowError);
             };
-            decimals_to_shift = 0;
-            bn_clone = prod;
-            break;
+            return Result::Ok(prod)
         } else {
-            //multiply result by 10.pow(19)
             let (prod, overflow) = bn_mult(bn_clone, 10.pow(19));
             if (overflow != 0) {
                 return Result::Err(BridgeFungibleTokenError::OverflowError);
@@ -99,11 +95,12 @@ pub fn adjust_deposit_decimals(msg_val: b256) -> Result<u64, BridgeFungibleToken
         let adjustment_factor = 10.pow(LAYER_1_DECIMALS - DECIMALS);
         let bn_factor = U256::from((0, 0, 0, adjustment_factor));
         let adjusted = value.divide(bn_factor);
-        // let (product, overflow) = bn_mult(adjusted, 10.pow(LAYER_1_DECIMALS - DECIMALS));
-        let result = shift_decimals_left(value, LAYER_1_DECIMALS - DECIMALS);
+
+        let result = shift_decimals_left(adjusted, decimal_diff);
         if result.is_err() {
             return Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability)
         };
+
         if result.unwrap() == value
             && (value > bn_factor
             || value == bn_factor)
