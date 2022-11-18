@@ -209,43 +209,46 @@ pub fn input_message_sender(index: u64) -> Address {
 // TODO: [std-lib] replace when added as a method to U128/U256
 fn bn_mult(bn: U256, factor: u64) -> (U256, u64) {
     disable_panic_on_overflow();
-    let product_and_overflow = asm(bn: __addr_of(bn), factor: factor, carry, new_carry, value, current_product, product_with_carry, prod_and_ovf) {
+    let result = (
+        0x0000000000000000000000000000000000000000000000000000000000000000,
+        0,
+    );
+    let result = asm(bn: __addr_of(bn), factor: factor, carry_0, carry_1, value, product, sum, result: result) {
         // Run multiplication on the lower 64bit word
-        lw value bn i3; // load the word in (bn + 3 words) into v
-        mul current_product value factor; // multiply v * d and save result in v
-        move new_carry of; // record the carry
-        move prod_and_ovf sp;
-        cfei i40;
-        sw prod_and_ovf current_product i3; // store the word in v in prod_and_ovf + 3 words
-        // Run multiplication on the next 64bit word
-        lw value bn i2;
-        mul current_product value factor;
-        move carry of;
-        add product_with_carry current_product new_carry; // add the previous carry
-        add new_carry carry of; // record the total new carry
-        sw prod_and_ovf product_with_carry i2;
+        lw value bn i3; // load the word in (bn + 3 words) into value
+        mul product value factor; // mult value * factor and save in product
+        move carry_0 of; // record the carry
+        sw result product i3;
 
         // Run multiplication on the next 64bit word
-        lw value bn i1;
-        mul current_product value factor;
-        move carry of;
-        add product_with_carry current_product new_carry; // add the previous carry
-        add new_carry carry of; // record the total new carry
-        sw prod_and_ovf product_with_carry i1;
+        lw value bn i2; // load the word in (bn + 2 words) into value
+        mul product value factor; // mult value * factor and save in product
+        move carry_1 of; // record the carry
+        add sum product carry_0; // add previous carry + product
+        add carry_0 carry_1 of; // record the total new carry
+        sw result sum i2;
 
         // Run multiplication on the next 64bit word
-        lw value bn i0;
-        mul current_product value factor;
-        move carry of;
-        add product_with_carry current_product new_carry; // add the previous carry
-        add new_carry carry of; // record the total new carry
-        move carry of;
-        sw prod_and_ovf product_with_carry i0;
-        sw prod_and_ovf new_carry i4;
+        lw value bn i1; // load the word in (bn + 1 words) into value
+        mul product value factor; // mult value * factor and save in product
+        move carry_1 of; // record the carry
+        add sum product carry_0; // add previous carry + product
+        add carry_0 carry_1 of; // record the total new carry
+        sw result sum i1;
 
-        prod_and_ovf: (U256, u64)
+        // Run multiplication on the next 64bit word
+        lw value bn i0; // load the word in bn into value
+        mul product value factor; // mult value * factor and save in product
+        move carry_1 of; // record the carry
+        add sum product carry_0; // add previous carry + product
+        add carry_0 carry_1 of; // record the total new carry
+        move carry_1 of; // record any overflow
+        sw result sum i0;
+        sw result carry_0 i4;
+
+        result: (U256, u64)
     };
 
     enable_panic_on_overflow();
-    product_and_overflow
+    result
 }
