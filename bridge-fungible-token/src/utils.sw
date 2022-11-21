@@ -34,13 +34,13 @@ fn shift_decimals_left(bn: U256, d: u8) -> Result<U256, BridgeFungibleTokenError
 
     // the zero case
     if (decimals_to_shift == 0) {
-        return Result::Ok(bn)
+        return Result::Ok(bn);
     };
 
     // the too large case
     // (there are only 78 decimal digits in a 256bit number)
     if (decimals_to_shift > 77) {
-        return Result::Err(BridgeFungibleTokenError::OverflowError)
+        return Result::Err(BridgeFungibleTokenError::OverflowError);
     };
 
     // math time
@@ -50,7 +50,7 @@ fn shift_decimals_left(bn: U256, d: u8) -> Result<U256, BridgeFungibleTokenError
             if (overflow != 0) {
                 return Result::Err(BridgeFungibleTokenError::OverflowError);
             };
-            return Result::Ok(prod)
+            return Result::Ok(prod);
         } else {
             let (prod, overflow) = bn_mult(bn_clone, 10.pow(19));
             if (overflow != 0) {
@@ -60,7 +60,7 @@ fn shift_decimals_left(bn: U256, d: u8) -> Result<U256, BridgeFungibleTokenError
             bn_clone += prod;
         };
     };
-    return Result::Ok(bn_clone);
+    Result::Ok(bn_clone)
 }
 
 /// Make any necessary adjustments to decimals(precision) on the amount
@@ -90,7 +90,7 @@ pub fn adjust_deposit_decimals(msg_val: b256) -> Result<u64, BridgeFungibleToken
         // if an overflow is going to occur when calculating adjustment_factor,
         // it will be caught here first.
         if decimal_diff > 19u8 {
-            return Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability)
+            return Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability);
         };
         let adjustment_factor = 10.pow(LAYER_1_DECIMALS - DECIMALS);
         let bn_factor = U256::from((0, 0, 0, adjustment_factor));
@@ -98,7 +98,7 @@ pub fn adjust_deposit_decimals(msg_val: b256) -> Result<u64, BridgeFungibleToken
 
         let result = shift_decimals_left(adjusted, decimal_diff);
         if result.is_err() {
-            return Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability)
+            return Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability);
         };
 
         if result.unwrap() == value
