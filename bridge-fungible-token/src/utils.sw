@@ -213,7 +213,7 @@ fn bn_mult(bn: U256, factor: u64) -> (U256, u64) {
         0x0000000000000000000000000000000000000000000000000000000000000000,
         0,
     );
-    let result = asm(bn: __addr_of(bn), factor: factor, carry_0, carry_1, value, product, sum, result: result) {
+    let result = asm(bn: __addr_of(bn), factor: factor, carry_0, carry_1, value, product, sum, result: __addr_of(result)) {
         // Run multiplication on the lower 64bit word
         lw value bn i3; // load the word in (bn + 3 words) into value
         mul product value factor; // mult value * factor and save in product
