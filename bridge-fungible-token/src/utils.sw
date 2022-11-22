@@ -14,6 +14,7 @@ use std::{
     u256::U256,
     vec::Vec,
 };
+use std::logging::log;
 
 use errors::BridgeFungibleTokenError;
 use data::MessageData;
@@ -63,7 +64,39 @@ fn shift_decimals_left(bn: U256, d: u8) -> Result<U256, BridgeFungibleTokenError
     Result::Ok(bn_clone)
 }
 
-fn shift_decimals_right(bn: U256, d: u32) -> Result<U256, BridgeFungibleTokenError> {}
+fn shift_decimals_right(bn: U256, d: u8) -> Result<(U256, u32), BridgeFungibleTokenError> {
+    let mut bn_clone = bn;
+    let mut decimals_to_shift: u32 = asm(r1: d) { r1: u32 };
+    let mut r = 0u32;
+
+    // the zero case
+    if (decimals_to_shift == 0u32) {
+        return Result::Ok((bn, 0u32));
+    };
+
+    // the too large case
+    // (there are only 78 decimal digits in a 256bit number)
+    if (decimals_to_shift > 77u32) {
+        return Result::Err(BridgeFungibleTokenError::OverflowError);
+    };
+
+    // math time
+    while (decimals_to_shift > 0u32) {
+        if (decimals_to_shift < 20u32) {
+            log(1212);
+            let (adjusted, remainder) = bn_div(bn_clone, 10u32.pow(decimals_to_shift));
+            log(decimals_to_shift); // 9
+            log(remainder); // 8
+            return Result::Ok((adjusted, remainder));
+        } else {
+            let (adjusted, remainder) = bn_div(bn_clone, 10u32.pow(19u32));
+            decimals_to_shift = decimals_to_shift - 19u32;
+            bn_clone -= adjusted;
+            r = remainder;
+        };
+    };
+    Result::Ok((bn_clone, r))
+}
 
 /// Make any necessary adjustments to decimals(precision) on the amount
 /// to be withdrawn. This amount needs to be passed via message.data as a b256
@@ -83,8 +116,10 @@ pub fn adjust_withdrawal_decimals(val: u64) -> b256 {
 /// Make any necessary adjustments to decimals(precision) on the deposited value, and return either a converted u64 or an error if the conversion can't be achieved without overflow or loss of precision.
 pub fn adjust_deposit_decimals(msg_val: b256) -> Result<u64, BridgeFungibleTokenError> {
     let value = U256::from(decompose(msg_val));
+    log(111);
 
     if LAYER_1_DECIMALS > DECIMALS {
+        log(222);
         let decimal_diff = LAYER_1_DECIMALS - DECIMALS;
         //10.pow(19) fits in a u64, but 10.pow(20) would overflow when
         // calculating adjustment_factor below.
@@ -92,24 +127,30 @@ pub fn adjust_deposit_decimals(msg_val: b256) -> Result<u64, BridgeFungibleToken
         // if an overflow is going to occur when calculating adjustment_factor,
         // it will be caught here first.
         if decimal_diff > 19u8 {
+            log(444);
             return Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability);
         };
         let adjustment_factor = 10u32.pow(LAYER_1_DECIMALS - DECIMALS);
         // let adjustment_factor = 10.pow(LAYER_1_DECIMALS - DECIMALS);
         let bn_factor = U256::from((0, 0, 0, adjustment_factor));
-        // let adjusted = value.divide(bn_factor);
-        // @todo add a shift_decimals_right function which wraps bn_div
-        let (adjusted, _remainder) = bn_div(value, adjustment_factor);
+        // let (adjusted, _remainder) = bn_div(value, adjustment_factor);
+        let result = shift_decimals_right(value, decimal_diff);
 
-        let result = shift_decimals_left(adjusted, decimal_diff);
         if result.is_err() {
+            log(555);
             return Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability);
         };
 
-        if result.unwrap() == value
-            && (value > bn_factor
-            || value == bn_factor)
-        {
+        let (adjusted, remainder) = result.unwrap();
+        // ensure that the value does not use higher precision than is bridgeable by this contract
+        if remainder != 0u32 {
+            log(666);
+            return Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability);
+        }
+
+        // ensure that the value is large enough to be bridged
+        if (value > bn_factor || value == bn_factor) {
+            log(333);
             let val_result = adjusted.as_u64();
             match val_result {
                 Result::Err(e) => {
