@@ -63,6 +63,8 @@ fn shift_decimals_left(bn: U256, d: u8) -> Result<U256, BridgeFungibleTokenError
     Result::Ok(bn_clone)
 }
 
+fn shift_decimals_right(bn: U256, d: u32) -> Result<U256, BridgeFungibleTokenError> {}
+
 /// Make any necessary adjustments to decimals(precision) on the amount
 /// to be withdrawn. This amount needs to be passed via message.data as a b256
 pub fn adjust_withdrawal_decimals(val: u64) -> b256 {
@@ -92,9 +94,12 @@ pub fn adjust_deposit_decimals(msg_val: b256) -> Result<u64, BridgeFungibleToken
         if decimal_diff > 19u8 {
             return Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability);
         };
-        let adjustment_factor = 10.pow(LAYER_1_DECIMALS - DECIMALS);
+        let adjustment_factor = 10u32.pow(LAYER_1_DECIMALS - DECIMALS);
+        // let adjustment_factor = 10.pow(LAYER_1_DECIMALS - DECIMALS);
         let bn_factor = U256::from((0, 0, 0, adjustment_factor));
-        let adjusted = value.divide(bn_factor);
+        // let adjusted = value.divide(bn_factor);
+        // @todo add a shift_decimals_right function which wraps bn_div
+        let (adjusted, _remainder) = bn_div(value, adjustment_factor);
 
         let result = shift_decimals_left(adjusted, decimal_diff);
         if result.is_err() {
@@ -251,4 +256,68 @@ fn bn_mult(bn: U256, factor: u64) -> (U256, u64) {
 
     enable_panic_on_overflow();
     result
+}
+
+// TODO: [std-lib] replace when added as a method to U128/U256
+fn bn_div(bn: U256, d: u32) -> (U256, u32) {
+    let m: u64 = 4294967295;
+    let result = (U256::new(), 0u32);
+    asm(bn: __addr_of(bn), d: d, m: m, r0, r1, r2, r3, v0, v1, sum_1, sum_2, q, result: __addr_of(result)) {
+		// The upper 64bits can just be divided normal
+        lw v0 bn i0;
+        mod r0 v0 d; // record the remainder
+        div q v0 d;
+        sw result q i0;
+
+		// The next 64bits are broken into 2 32bit numbers
+        lw v0 bn i1;
+        and v1 v0 m;
+        srli v0 v0 i32;
+        slli r1 r0 i32; // the previous remainder is shifted up and added before next division
+        add v0 r1 v0;
+        mod r2 v0 d; // record the remainder
+        div v0 v0 d;
+        slli r3 r2 i32; // the previous remainder is shifted up and added before next division
+        add sum_1 r3 v1;
+        mod r0 sum_1 d; // record the remainder
+        div q sum_1 d;
+        slli v0 v0 i32; // re-combine the 2 32bit numbers
+        add sum_2 v0 q;
+        sw result sum_2 i1;
+
+		// The next 64bits are broken into 2 32bit numbers
+        lw v0 bn i2;
+        and v1 v0 m;
+        srli v0 v0 i32;
+        slli r1 r0 i32; // the previous remainder is shifted up and added before next division
+        add v0 r1 v0;
+        mod r2 v0 d; // record the remainder
+        div v0 v0 d;
+        slli r3 r2 i32; // the previous remainder is shifted up and added before next division
+        add v1 r3 v1;
+        mod r0 v1 d; // record the remainder
+        div v1 v1 d;
+        slli v0 v0 i32; // re-combine the 2 32bit numbers
+        add v0 v0 v1;
+        sw result v0 i2;
+
+		// The next 64bits are broken into 2 32bit numbers
+        lw v0 bn i3;
+        and v1 v0 m;
+        srli v0 v0 i32;
+        slli r1 r0 i32; // the previous remainder is shifted up and added before next division
+        add v0 r1 v0;
+        mod r2 v0 d; // record the remainder
+        div v0 v0 d;
+        slli r3 r2 i32; // the previous remainder is shifted up and added before next division
+        add v1 r3 v1;
+        mod r0 v1 d; // record the remainder
+        div v1 v1 d;
+        slli v0 v0 i32; // re-combine the 2 32bit numbers
+        add v0 v0 v1;
+        sw result v0 i3;
+        sw result r0 i4;
+
+        result: (U256, u32)
+    }
 }
