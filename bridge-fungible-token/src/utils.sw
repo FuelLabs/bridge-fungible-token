@@ -124,7 +124,6 @@ pub fn adjust_deposit_decimals(msg_val: b256) -> Result<u64, BridgeFungibleToken
         };
 
         let adjustment_factor = U256::from((0, 0, 0, 10u32.pow(LAYER_1_DECIMALS - DECIMALS)));
-        // let (adjusted, _remainder) = bn_div(value, adjustment_factor);
         let result = shift_decimals_right(value, decimal_diff);
 
         if result.is_err() {
