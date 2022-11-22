@@ -14,7 +14,6 @@ use std::{
     u256::U256,
     vec::Vec,
 };
-use std::logging::log;
 
 use errors::BridgeFungibleTokenError;
 use data::MessageData;
@@ -83,10 +82,7 @@ fn shift_decimals_right(bn: U256, d: u8) -> Result<(U256, u32), BridgeFungibleTo
     // math time
     while (decimals_to_shift > 0u32) {
         if (decimals_to_shift < 20u32) {
-            log(1212);
             let (adjusted, remainder) = bn_div(bn_clone, 10u32.pow(decimals_to_shift));
-            log(decimals_to_shift); // 9
-            log(remainder); // 8
             return Result::Ok((adjusted, remainder));
         } else {
             let (adjusted, remainder) = bn_div(bn_clone, 10u32.pow(19u32));
@@ -102,8 +98,7 @@ fn shift_decimals_right(bn: U256, d: u8) -> Result<(U256, u32), BridgeFungibleTo
 /// to be withdrawn. This amount needs to be passed via message.data as a b256
 pub fn adjust_withdrawal_decimals(val: u64) -> b256 {
     if DECIMALS < LAYER_1_DECIMALS {
-        let amount = U256::from((0, 0, 0, val));
-        let result = shift_decimals_left(amount, LAYER_1_DECIMALS - DECIMALS);
+        let result = shift_decimals_left(U256::from((0, 0, 0, val)), LAYER_1_DECIMALS - DECIMALS);
         compose(result.unwrap().into())
     } else {
         // Either decimals are the same, or decimals are negative.
@@ -116,10 +111,8 @@ pub fn adjust_withdrawal_decimals(val: u64) -> b256 {
 /// Make any necessary adjustments to decimals(precision) on the deposited value, and return either a converted u64 or an error if the conversion can't be achieved without overflow or loss of precision.
 pub fn adjust_deposit_decimals(msg_val: b256) -> Result<u64, BridgeFungibleTokenError> {
     let value = U256::from(decompose(msg_val));
-    log(111);
 
     if LAYER_1_DECIMALS > DECIMALS {
-        log(222);
         let decimal_diff = LAYER_1_DECIMALS - DECIMALS;
         //10.pow(19) fits in a u64, but 10.pow(20) would overflow when
         // calculating adjustment_factor below.
@@ -127,30 +120,27 @@ pub fn adjust_deposit_decimals(msg_val: b256) -> Result<u64, BridgeFungibleToken
         // if an overflow is going to occur when calculating adjustment_factor,
         // it will be caught here first.
         if decimal_diff > 19u8 {
-            log(444);
             return Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability);
         };
-        let adjustment_factor = 10u32.pow(LAYER_1_DECIMALS - DECIMALS);
-        // let adjustment_factor = 10.pow(LAYER_1_DECIMALS - DECIMALS);
-        let bn_factor = U256::from((0, 0, 0, adjustment_factor));
+
+        let adjustment_factor = U256::from((0, 0, 0, 10u32.pow(LAYER_1_DECIMALS - DECIMALS)));
         // let (adjusted, _remainder) = bn_div(value, adjustment_factor);
         let result = shift_decimals_right(value, decimal_diff);
 
         if result.is_err() {
-            log(555);
             return Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability);
         };
 
         let (adjusted, remainder) = result.unwrap();
         // ensure that the value does not use higher precision than is bridgeable by this contract
         if remainder != 0u32 {
-            log(666);
             return Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability);
         }
 
         // ensure that the value is large enough to be bridged
-        if (value > bn_factor || value == bn_factor) {
-            log(333);
+        if (value > adjustment_factor
+            || value == adjustment_factor)
+        {
             let val_result = adjusted.as_u64();
             match val_result {
                 Result::Err(e) => {
@@ -294,7 +284,6 @@ fn bn_mult(bn: U256, factor: u64) -> (U256, u64) {
 
         result: (U256, u64)
     };
-
     enable_panic_on_overflow();
     result
 }
