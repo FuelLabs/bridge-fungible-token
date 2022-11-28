@@ -63,14 +63,14 @@ fn shift_decimals_left(bn: U256, d: u8) -> Result<U256, BridgeFungibleTokenError
     Result::Ok(bn_clone)
 }
 
-fn shift_decimals_right(bn: U256, d: u8) -> Result<(U256, u32), BridgeFungibleTokenError> {
+fn shift_decimals_right(bn: U256, d: u8) -> Result<U256, BridgeFungibleTokenError> {
     let mut bn_clone = bn;
     let mut decimals_to_shift: u32 = asm(r1: d) { r1: u32 };
     let mut r = 0u32;
 
     // the zero case
     if (decimals_to_shift == 0u32) {
-        return Result::Ok((bn, 0u32));
+        return Result::Ok(bn);
     };
 
     // the too large case
@@ -81,17 +81,23 @@ fn shift_decimals_right(bn: U256, d: u8) -> Result<(U256, u32), BridgeFungibleTo
 
     // math time
     while (decimals_to_shift > 0u32) {
-        if (decimals_to_shift < 20u32) {
+        if (decimals_to_shift < 9u32) {
             let (adjusted, remainder) = bn_div(bn_clone, 10u32.pow(decimals_to_shift));
-            return Result::Ok((adjusted, remainder));
+            if remainder != 0u32 {
+                return Result::Err(BridgeFungibleTokenError::OverflowError)
+            };
+            return Result::Ok(adjusted);
         } else {
-            let (adjusted, remainder) = bn_div(bn_clone, 10u32.pow(19u32));
-            decimals_to_shift = decimals_to_shift - 19u32;
-            bn_clone -= adjusted;
-            r = remainder;
-        };
+            // Note: 1_000_000_000u32 = 10u32.pow(9u32)
+            let (adjusted, remainder) = bn_div(bn_clone, 1_000_000_000u32);
+            decimals_to_shift = decimals_to_shift - 9u32;
+            bn_clone = adjusted;
+            if remainder != 0u32 {
+                return Result::Err(BridgeFungibleTokenError::OverflowError)
+            };
+            return Result::Ok(adjusted);
+        }
     };
-    Result::Ok((bn_clone, r))
 }
 
 /// Make any necessary adjustments to decimals(precision) on the amount
@@ -114,47 +120,25 @@ pub fn adjust_deposit_decimals(msg_val: b256) -> Result<u64, BridgeFungibleToken
 
     if LAYER_1_DECIMALS > DECIMALS {
         let decimal_diff = LAYER_1_DECIMALS - DECIMALS;
-        //10.pow(19) fits in a u64, but 10.pow(20) would overflow when
-        // calculating adjustment_factor below.
-        // There's no need to check this in adjust_withdrawal_decimals();
-        // if an overflow is going to occur when calculating adjustment_factor,
-        // it will be caught here first.
-        if decimal_diff > 19u8 {
-            return Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability);
-        };
-
-        let adjustment_factor = U256::from((0, 0, 0, 10u32.pow(LAYER_1_DECIMALS - DECIMALS)));
         let result = shift_decimals_right(value, decimal_diff);
 
+        // ensure that the value does not use higher precision than is bridgeable by this contract
         if result.is_err() {
             return Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability);
         };
 
-        let (adjusted, remainder) = result.unwrap();
-        // ensure that the value does not use higher precision than is bridgeable by this contract
-        if remainder != 0u32 {
-            return Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability);
-        }
-
-        // ensure that the value is large enough to be bridged
-        if (value > adjustment_factor
-            || value == adjustment_factor)
-        {
-            let val_result = adjusted.as_u64();
-            match val_result {
-                Result::Err(e) => {
-                    Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability)
-                },
-                Result::Ok(val) => {
-                    Result::Ok(val)
-                },
-            }
-        } else {
-            Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability)
+        let val_result = result.unwrap().as_u64();
+        match val_result {
+            Result::Err(e) => {
+                Result::Err(BridgeFungibleTokenError::BridgedValueIncompatability)
+            },
+            Result::Ok(val) => {
+                Result::Ok(val)
+            },
         }
     } else {
-        // Either decimals are the same, or decimals are negative.
-        // TODO: Decide how to handle negative decimals before mainnet.
+        // Either decimals are the same, or L2 decimals > L1 Decimals.
+        // TODO: Decide how to handle cases where L2 decimals > L1 Decimals before mainnet.
         // For now we make no decimal adjustment for either case.
         let val_result = value.as_u64();
         match val_result {
@@ -244,10 +228,7 @@ pub fn input_message_sender(index: u64) -> Address {
 // TODO: [std-lib] replace when added as a method to U128/U256
 fn bn_mult(bn: U256, factor: u64) -> (U256, u64) {
     disable_panic_on_overflow();
-    let result = (
-        0x0000000000000000000000000000000000000000000000000000000000000000,
-        0,
-    );
+    let result = U256::new();
     let result = asm(bn: __addr_of(bn), factor: factor, carry_0, carry_1, value, product, sum, result: __addr_of(result)) {
         // Run multiplication on the lower 64bit word
         lw value bn i3; // load the word in (bn + 3 words) into value
@@ -289,16 +270,17 @@ fn bn_mult(bn: U256, factor: u64) -> (U256, u64) {
 
 // TODO: [std-lib] replace when added as a method to U128/U256
 fn bn_div(bn: U256, d: u32) -> (U256, u32) {
-    let m: u64 = 4294967295;
+    // bit mask to isolate the lower 32 bits of each word
+    let mask: u64 = 0x00000000FFFFFFFF;
     let result = (U256::new(), 0u32);
-    asm(bn: __addr_of(bn), d: d, m: m, r0, r1, r2, r3, v0, v1, sum_1, sum_2, q, result: __addr_of(result)) {
+    asm(bn: __addr_of(bn), d: d, m: mask, r0, r1, r2, r3, v0, v1, sum_1, sum_2, q, result: __addr_of(result)) {
 		// The upper 64bits can just be divided normal
         lw v0 bn i0;
         mod r0 v0 d; // record the remainder
         div q v0 d;
         sw result q i0;
 
-		// The next 64bits are broken into 2 32bit numbers
+        // The next 64bits are broken into 2 32bit numbers
         lw v0 bn i1;
         and v1 v0 m;
         srli v0 v0 i32;
@@ -314,7 +296,7 @@ fn bn_div(bn: U256, d: u32) -> (U256, u32) {
         add sum_2 v0 q;
         sw result sum_2 i1;
 
-		// The next 64bits are broken into 2 32bit numbers
+        // The next 64bits are broken into 2 32bit numbers
         lw v0 bn i2;
         and v1 v0 m;
         srli v0 v0 i32;
@@ -330,7 +312,7 @@ fn bn_div(bn: U256, d: u32) -> (U256, u32) {
         add v0 v0 v1;
         sw result v0 i2;
 
-		// The next 64bits are broken into 2 32bit numbers
+        // The next 64bits are broken into 2 32bit numbers
         lw v0 bn i3;
         and v1 v0 m;
         srli v0 v0 i32;
