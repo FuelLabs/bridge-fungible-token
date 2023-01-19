@@ -10,6 +10,10 @@ use std::{
         disable_panic_on_overflow,
         enable_panic_on_overflow,
     },
+    inputs::{
+        input_message_data,
+        input_message_sender,
+    },
     math::*,
     u256::U256,
     vec::Vec,
@@ -173,11 +177,11 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
     };
 
     // Parse the message data
-    msg_data.fuel_token = ContractId::from(input_message_data::<b256>(msg_idx, 0));
-    msg_data.l1_asset = input_message_data::<b256>(msg_idx, 8);
-    msg_data.from = input_message_data::<b256>(msg_idx, 8 + 8);
-    msg_data.to = Address::from(input_message_data::<b256>(msg_idx, 8 + 8 + 8));
-    msg_data.amount = input_message_data::<b256>(msg_idx, 8 + 8 + 8 + 8);
+    msg_data.fuel_token = ContractId::from(b256::from(input_message_data::<b256>(msg_idx, 0)));
+    msg_data.l1_asset = b256::from(input_message_data(msg_idx, 8));
+    msg_data.from = b256::from(input_message_data(msg_idx, 8 + 8));
+    msg_data.to = Address::from(b256::from(input_message_data(msg_idx, 8 + 8 + 8)));
+    msg_data.amount = b256::from(input_message_data(msg_idx, 8 + 8 + 8 + 8));
     msg_data
 }
 
@@ -209,20 +213,6 @@ pub fn encode_data(to: b256, amount: b256) -> Vec<u64> {
     data.push((amount_3 << 32) + (amount_4 >> 32));
     data.push(amount_4 << 32);
     data
-}
-
-/// Get the data of a message input
-// TODO: [std-lib] replace with 'input_message_data'
-pub fn input_message_data<T>(index: u64, offset: u64) -> T {
-    let data = __gtf::<raw_ptr>(index, GTF_INPUT_MESSAGE_DATA);
-    let data_with_offset = data.add(offset / 8);
-    data_with_offset.read::<T>()
-}
-
-/// Get the sender of the input message at `index`.
-// TODO: [std-lib] replace with 'input_message_sender'
-pub fn input_message_sender(index: u64) -> Address {
-    Address::from(__gtf::<b256>(index, GTF_INPUT_MESSAGE_SENDER))
 }
 
 // TODO: [std-lib] replace when added as a method to U128/U256
