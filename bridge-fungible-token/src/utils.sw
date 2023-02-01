@@ -5,11 +5,13 @@ dep events;
 dep data;
 
 use std::{
+    bytes::Bytes,
     constants::ZERO_B256,
     flags::{
         disable_panic_on_overflow,
         enable_panic_on_overflow,
     },
+    inputs::input_message_data,
     math::*,
     u256::U256,
     vec::Vec,
@@ -17,16 +19,6 @@ use std::{
 
 use errors::BridgeFungibleTokenError;
 use data::MessageData;
-
-// the function selector for finalizeWithdrawal on the L1ERC20Gateway contract:
-// finalizeWithdrawal(address,address,uint256)
-const FINALIZE_WITHDRAWAL_SELECTOR: u64 = 0x53ef146100000000;
-
-// TODO: [std-lib] remove once standard library functions have been added
-const GTF_INPUT_MESSAGE_DATA_LENGTH = 0x11B;
-const GTF_INPUT_MESSAGE_DATA = 0x11E;
-const GTF_INPUT_MESSAGE_SENDER = 0x115;
-const GTF_INPUT_MESSAGE_RECIPIENT = 0x116;
 
 fn shift_decimals_left(bn: U256, d: u8) -> Result<U256, BridgeFungibleTokenError> {
     let mut bn_clone = bn;
@@ -84,7 +76,7 @@ fn shift_decimals_right(bn: U256, d: u8) -> Result<U256, BridgeFungibleTokenErro
         if (decimals_to_shift < 9u32) {
             let (adjusted, remainder) = bn_div(bn_clone, 10u32.pow(decimals_to_shift));
             if remainder != 0u32 {
-                return Result::Err(BridgeFungibleTokenError::OverflowError)
+                return Result::Err(BridgeFungibleTokenError::OverflowError);
             };
             return Result::Ok(adjusted);
         } else {
@@ -93,11 +85,13 @@ fn shift_decimals_right(bn: U256, d: u8) -> Result<U256, BridgeFungibleTokenErro
             decimals_to_shift = decimals_to_shift - 9u32;
             bn_clone = adjusted;
             if remainder != 0u32 {
-                return Result::Err(BridgeFungibleTokenError::OverflowError)
+                return Result::Err(BridgeFungibleTokenError::OverflowError);
             };
             return Result::Ok(adjusted);
         }
     };
+
+    return Result::Err(BridgeFungibleTokenError::OverflowError);
 }
 
 /// Make any necessary adjustments to decimals(precision) on the amount
@@ -173,56 +167,47 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
     };
 
     // Parse the message data
-    msg_data.fuel_token = ContractId::from(input_message_data::<b256>(msg_idx, 0));
-    msg_data.l1_asset = input_message_data::<b256>(msg_idx, 8);
-    msg_data.from = input_message_data::<b256>(msg_idx, 8 + 8);
-    msg_data.to = Address::from(input_message_data::<b256>(msg_idx, 8 + 8 + 8));
-    msg_data.amount = input_message_data::<b256>(msg_idx, 8 + 8 + 8 + 8);
+    msg_data.fuel_token = ContractId::from(input_message_data(msg_idx, 0).into());
+    msg_data.l1_asset = input_message_data(msg_idx, 8).into();
+    msg_data.from = input_message_data(msg_idx, 8 + 8).into();
+    msg_data.to = Address::from(input_message_data(msg_idx, 8 + 8 + 8).into());
+    msg_data.amount = input_message_data(msg_idx, 8 + 8 + 8 + 8).into();
     msg_data
 }
 
+fn copy_bytes(dest: raw_ptr, src: raw_ptr, len: u64, offset: u64) {
+
+    asm(dst: dest, src: src, len: len) {
+            mcp dst src len;
+        };
+}
+
 /// Encode the data to be passed out of the contract when sending a message
-pub fn encode_data(to: b256, amount: b256) -> Vec<u64> {
-    let mut data = Vec::with_capacity(13);
-    let (recip_1, recip_2, recip_3, recip_4) = decompose(to);
-    let (token_1, token_2, token_3, token_4) = decompose(LAYER_1_TOKEN);
-    let (amount_1, amount_2, amount_3, amount_4) = decompose(amount);
+pub fn encode_data(to: b256, amount: b256) -> Bytes {
+    // cap is 4 + 20 + 20 + 32 = 76
+    let mut data = Bytes::with_capacity(76);
+    let padded_to_bytes = Bytes::from(to);
+    let padded_token_bytes = Bytes::from(LAYER_1_TOKEN);
+    let amount_bytes = Bytes::from(amount);
 
-    // start with the function selector
-    data.push(FINALIZE_WITHDRAWAL_SELECTOR + (recip_1 >> 32));
+    // first, we push the selector 1 byte at a time
+    // the function selector for finalizeWithdrawal on the L1ERC20Gateway contract:
+    // finalizeWithdrawal(address,address,uint256) = 0x53ef1461
+    data.push(0x53u8);
+    data.push(0xefu8);
+    data.push(0x14u8);
+    data.push(0x61u8);
 
-    // add the address to recieve coins
-    data.push((recip_1 << 32) + (recip_2 >> 32));
-    data.push((recip_2 << 32) + (recip_3 >> 32));
-    data.push((recip_3 << 32) + (recip_4 >> 32));
-    data.push((recip_4 << 32) + (token_1 >> 32));
+    // next, we copy the least significant 20 bytes of the `to` address:
+    copy_bytes(data.buf.ptr.add_uint_offset(4), padded_to_bytes.buf.ptr, 20, 12);
 
-    // add the address of the L1 token contract
-    data.push((token_1 << 32) + (token_2 >> 32));
-    data.push((token_2 << 32) + (token_3 >> 32));
-    data.push((token_3 << 32) + (token_4 >> 32));
-    data.push((token_4 << 32) + (amount_1 >> 32));
+    // next, we copy the least significant 20 bytes of the `LAYER_1_TOKEN` address:
+    copy_bytes(data.buf.ptr.add_uint_offset(24), padded_token_bytes.buf.ptr, 20, 12);
 
-    // add the amount of tokens
-    data.push((amount_1 << 32) + (amount_2 >> 32));
-    data.push((amount_2 << 32) + (amount_3 >> 32));
-    data.push((amount_3 << 32) + (amount_4 >> 32));
-    data.push(amount_4 << 32);
+    // next, we copy the `amount` to `data`
+    copy_bytes(data.buf.ptr.add_uint_offset(44), __addr_of(amount), 32, 0);
+
     data
-}
-
-/// Get the data of a message input
-// TODO: [std-lib] replace with 'input_message_data'
-pub fn input_message_data<T>(index: u64, offset: u64) -> T {
-    let data = __gtf::<raw_ptr>(index, GTF_INPUT_MESSAGE_DATA);
-    let data_with_offset = data.add(offset / 8);
-    data_with_offset.read::<T>()
-}
-
-/// Get the sender of the input message at `index`.
-// TODO: [std-lib] replace with 'input_message_sender'
-pub fn input_message_sender(index: u64) -> Address {
-    Address::from(__gtf::<b256>(index, GTF_INPUT_MESSAGE_SENDER))
 }
 
 // TODO: [std-lib] replace when added as a method to U128/U256

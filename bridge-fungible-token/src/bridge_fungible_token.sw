@@ -20,6 +20,7 @@ use std::{
     constants::ZERO_B256,
     context::msg_amount,
     convert::From,
+    inputs::input_message_sender,
     logging::log,
     message::send_message,
     storage::StorageMap,
@@ -35,7 +36,6 @@ use utils::{
     compose,
     decompose,
     encode_data,
-    input_message_sender,
     parse_message_data,
 };
 
@@ -45,7 +45,7 @@ storage {
 }
 
 // Storage-dependant private functions
-#[storage(read, write)]
+#[storage(write)]
 fn register_refund(from: b256, asset: b256, amount: b256) {
     storage.refund_amounts.insert((from, asset), amount);
     log(RefundRegisteredEvent {
@@ -91,13 +91,13 @@ impl BridgeFungibleToken for Contract {
     #[storage(read, write)]
     fn claim_refund(originator: b256, asset: b256) {
         let stored_amount = storage.refund_amounts.get((originator, asset));
-        require(stored_amount != ZERO_B256, BridgeFungibleTokenError::NoRefundAvailable);
+        require(stored_amount.unwrap() != ZERO_B256, BridgeFungibleTokenError::NoRefundAvailable);
 
         // reset the refund amount to 0
         storage.refund_amounts.insert((originator, asset), ZERO_B256);
 
         // send a message to unlock this amount on the ethereum (L1) bridge contract
-        send_message(LAYER_1_ERC20_GATEWAY, encode_data(originator, stored_amount), 0);
+        send_message(LAYER_1_ERC20_GATEWAY, encode_data(originator, stored_amount.unwrap()), 0);
     }
     fn withdraw_to(to: b256) {
         let amount = msg_amount();
