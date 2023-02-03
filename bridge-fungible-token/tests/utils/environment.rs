@@ -4,8 +4,7 @@ use std::mem::size_of;
 use std::num::ParseIntError;
 use std::str::FromStr;
 
-use fuel_core_interfaces::model::Message;
-use fuels::prelude::*;
+use fuels::{prelude::*, types::{Bits256, message::Message}};
 use fuels::signers::fuel_crypto::SecretKey;
 use fuels::test_helpers::{setup_single_message, setup_test_client, Config, DEFAULT_COIN_AMOUNT};
 use fuels::tx::{
@@ -60,10 +59,10 @@ pub fn l2_equivalent_amount(test_amount: U256, config: &TestConfig) -> u64 {
     (test_amount / config.adjustment_factor).as_u64()
 }
 
-abigen!(
-    BridgeFungibleTokenContract,
-    "../bridge-fungible-token/out/debug/bridge_fungible_token-abi.json"
-);
+abigen!(Contract(
+    name = "BridgeFungibleTokenContract",
+    abi = "../bridge-fungible-token/out/debug/bridge_fungible_token-abi.json",
+));
 
 pub const MESSAGE_SENDER_ADDRESS: &str =
     "0xca400d3e7710eee293786830755278e6d2b9278b4177b8b1a896ebd5f55c10bc";
@@ -163,10 +162,10 @@ pub async fn setup_environment(
     let coin_inputs: Vec<Input> = all_coins
         .into_iter()
         .map(|coin| Input::CoinSigned {
-            utxo_id: UtxoId::from(coin.0.clone()),
-            owner: Address::from(coin.1.owner.clone()),
-            amount: coin.1.amount.clone().into(),
-            asset_id: AssetId::from(coin.1.asset_id.clone()),
+            utxo_id: UtxoId::from(coin.utxo_id.clone()),
+            owner: Address::from(coin.owner.clone()),
+            amount: coin.amount.clone().into(),
+            asset_id: AssetId::from(coin.asset_id.clone()),
             tx_pointer: TxPointer::default(),
             witness_index: 0,
             maturity: 0,
