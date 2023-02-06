@@ -176,7 +176,7 @@ pub async fn setup_environment(
     let message_inputs: Vec<Input> = all_messages
         .iter()
         .map(|message| Input::MessagePredicate {
-            message_id: message.id(),
+            message_id: message.message_id(),
             sender: Address::from(message.sender.clone()),
             recipient: Address::from(message.recipient.clone()),
             amount: message.amount,

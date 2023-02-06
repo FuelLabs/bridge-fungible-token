@@ -480,7 +480,7 @@ mod success {
         let refund_registered_event = receipts
             .get_logs_with_type::<utils::environment::BridgeFungibleTokenContract::RefundRegisteredEvent>(
             &receipts,
-        )?;
+        ).unwrap();
 
         // Verify the message value was received by the test contract
         let test_contract_balance = provider
