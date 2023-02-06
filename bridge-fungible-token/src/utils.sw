@@ -198,11 +198,11 @@ pub fn encode_data(to: b256, amount: b256) -> Bytes {
     data.push(0x14u8);
     data.push(0x61u8);
 
-    // next, we copy the least significant 20 bytes of the `to` address:
-    copy_bytes(data.buf.ptr.add_uint_offset(4), padded_to_bytes.buf.ptr, 20, 12);
+    // next, we append the `to` address including padding:
+    data.append(padded_to_bytes);
 
-    // next, we copy the least significant 20 bytes of the `LAYER_1_TOKEN` address:
-    copy_bytes(data.buf.ptr.add_uint_offset(24), padded_token_bytes.buf.ptr, 20, 12);
+    // next, we append the `LAYER_1_TOKEN` address including padding:
+    data.append(padded_token_bytes);
 
     // next, we copy the `amount` to `data`
     copy_bytes(data.buf.ptr.add_uint_offset(44), __addr_of(amount), 32, 0);
