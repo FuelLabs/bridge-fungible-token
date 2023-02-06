@@ -90,14 +90,14 @@ impl MessageReceiver for Contract {
 impl BridgeFungibleToken for Contract {
     #[storage(read, write)]
     fn claim_refund(originator: b256, asset: b256) {
-        let stored_amount = storage.refund_amounts.get((originator, asset));
-        require(stored_amount.unwrap() != ZERO_B256, BridgeFungibleTokenError::NoRefundAvailable);
+        let stored_amount = storage.refund_amounts.get((originator, asset)).unwrap();
+        require(stored_amount != ZERO_B256, BridgeFungibleTokenError::NoRefundAvailable);
 
         // reset the refund amount to 0
         storage.refund_amounts.insert((originator, asset), ZERO_B256);
 
         // send a message to unlock this amount on the ethereum (L1) bridge contract
-        send_message(LAYER_1_ERC20_GATEWAY, encode_data(originator, stored_amount.unwrap()), 0);
+        send_message(LAYER_1_ERC20_GATEWAY, encode_data(originator, stored_amount), 0);
     }
     fn withdraw_to(to: b256) {
         let amount = msg_amount();
