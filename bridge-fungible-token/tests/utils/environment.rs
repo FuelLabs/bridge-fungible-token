@@ -2,6 +2,7 @@ use crate::builder;
 
 use std::mem::size_of;
 use std::num::ParseIntError;
+use std::result::Result as StdResult;
 use std::str::FromStr;
 
 use fuels::{prelude::*, types::{Bits256, message::Message}};
@@ -260,7 +261,7 @@ pub async fn prefix_contract_id(data: Vec<u8>) -> Vec<u8> {
 
 /// Quickly converts the given hex string into a u8 vector
 pub fn decode_hex(s: &str) -> Vec<u8> {
-    let data: Result<Vec<u8>, ParseIntError> = (2..s.len())
+    let data: StdResult<Vec<u8>, ParseIntError> = (2..s.len())
         .step_by(2)
         .map(|i| u8::from_str_radix(&s[i..i + 2], 16))
         .collect();
