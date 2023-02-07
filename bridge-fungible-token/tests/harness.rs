@@ -169,10 +169,13 @@ mod success {
         )
         .await;
 
-        let refund_registered_event = test_contract
-            .get_logs_with_type::<utils::environment::BridgeFungibleTokenContract::RefundRegisteredEvent>(
-            &receipts,
-        ).unwrap();
+        let log_decoder = test_contract.log_decoder();
+        let refund_registered_event = log_decoder.get_logs_with_type::<BridgeFungibleTokenContract::<RefundRegisteredEvent>>(&receipts).unwrap();
+
+        // let refund_registered_event = test_contract
+        //     .get_logs_with_type::<utils::environment::BridgeFungibleTokenContract::RefundRegisteredEvent>(
+        //     &receipts,
+        // ).unwrap();
 
         // Verify the message value was received by the test contract
         let test_contract_balance = provider
