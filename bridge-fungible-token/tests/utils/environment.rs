@@ -1,4 +1,4 @@
-use crate::builder;
+use crate::utils::builder;
 
 use std::mem::size_of;
 use std::num::ParseIntError;
@@ -13,6 +13,9 @@ use fuels::tx::{
     UtxoId, Word,
 };
 use primitive_types::U256;
+
+const CONTRACT_MESSAGE_PREDICATE_BINARY: &str =
+    "../bridge-message-predicates/contract_message_predicate.bin";
 
 pub struct TestConfig {
     pub adjustment_factor: U256,
@@ -60,10 +63,21 @@ pub fn l2_equivalent_amount(test_amount: U256, config: &TestConfig) -> u64 {
     (test_amount / config.adjustment_factor).as_u64()
 }
 
-abigen!(Contract(
-    name = "BridgeFungibleTokenContract",
-    abi = "../bridge-fungible-token/out/debug/bridge_fungible_token-abi.json",
-));
+abigen!(
+    Contract(
+        name = "BridgeFungibleTokenContract",
+        abi = "../bridge-fungible-token/out/debug/bridge_fungible_token-abi.json",
+    ),
+    Predicate(
+        name = "ContractMessagePredicate",
+        abi = "../bridge-message-predicates/contract_message_predicate-abi.json"
+    ),
+    Script(
+        name = "ContractMessageScript",
+        abi = "../bridge-message-predicates/contract_message_script-abi.json",
+    ),
+);
+
 
 pub const MESSAGE_SENDER_ADDRESS: &str =
     "0xca400d3e7710eee293786830755278e6d2b9278b4177b8b1a896ebd5f55c10bc";
@@ -117,13 +131,17 @@ pub async fn setup_environment(
         Some(v) => Address::from_str(v).unwrap(),
         None => Address::from_str(MESSAGE_SENDER_ADDRESS).unwrap(),
     };
-    let (predicate_bytecode, predicate_root) = builder::get_contract_message_predicate().await;
+
+    let predicate =
+    ContractMessagePredicate::load_from(CONTRACT_MESSAGE_PREDICATE_BINARY).unwrap();
+    let predicate_root = predicate.address();
+
     let all_messages: Vec<Message> = messages
         .iter()
         .flat_map(|message| {
             setup_single_message(
                 &message_sender.into(),
-                &predicate_root.into(),
+                &predicate_root,
                 message.0,
                 message_nonce,
                 message.1.clone(),
@@ -183,7 +201,7 @@ pub async fn setup_environment(
             amount: message.amount,
             nonce: message.nonce,
             data: message.data.clone(),
-            predicate: predicate_bytecode.clone(),
+            predicate: predicate.code().clone(),
             predicate_data: vec![],
         })
         .collect();

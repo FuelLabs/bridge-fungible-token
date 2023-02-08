@@ -1,11 +1,11 @@
 mod utils {
-    pub mod builder;
     pub mod environment;
+    pub mod builder;
 }
+use crate::env::RefundRegisteredEvent;
 
 use primitive_types::U256;
 use std::str::FromStr;
-use utils::builder;
 use utils::environment as env;
 
 use fuels::{prelude::*, types::Bits256};
@@ -170,12 +170,7 @@ mod success {
         .await;
 
         let log_decoder = test_contract.log_decoder();
-        let refund_registered_event = log_decoder.get_logs_with_type::<BridgeFungibleTokenContract::<RefundRegisteredEvent>>(&receipts).unwrap();
-
-        // let refund_registered_event = test_contract
-        //     .get_logs_with_type::<utils::environment::BridgeFungibleTokenContract::RefundRegisteredEvent>(
-        //     &receipts,
-        // ).unwrap();
+        let refund_registered_event = log_decoder.get_logs_with_type::<RefundRegisteredEvent>(&receipts).unwrap();
 
         // Verify the message value was received by the test contract
         let test_contract_balance = provider
@@ -480,10 +475,8 @@ mod success {
         )
         .await;
 
-        let refund_registered_event = receipts
-            .get_logs_with_type::<utils::environment::BridgeFungibleTokenContract::RefundRegisteredEvent>(
-            &receipts,
-        ).unwrap();
+        let log_decoder = test_contract.log_decoder();
+        let refund_registered_event = log_decoder.get_logs_with_type::<RefundRegisteredEvent>(&receipts).unwrap();
 
         // Verify the message value was received by the test contract
         let test_contract_balance = provider
@@ -545,10 +538,8 @@ mod success {
         )
         .await;
 
-        let refund_registered_event = test_contract
-            .get_logs_with_type::<utils::environment::BridgeFungibleTokenContract::RefundRegisteredEvent>(
-            &receipts,
-        ).unwrap();
+        let log_decoder = test_contract.log_decoder();
+        let refund_registered_event = log_decoder.get_logs_with_type::<RefundRegisteredEvent>(&receipts).unwrap();
 
         let test_contract_balance = provider
             .get_contract_asset_balance(test_contract.contract_id(), AssetId::default())
@@ -614,10 +605,8 @@ mod success {
         )
         .await;
 
-        let refund_registered_event = test_contract
-            .get_logs_with_type::<utils::environment::BridgeFungibleTokenContract::RefundRegisteredEvent>(
-            &receipts,
-        ).unwrap();
+        let log_decoder = test_contract.log_decoder();
+        let refund_registered_event = log_decoder.get_logs_with_type::<RefundRegisteredEvent>(&receipts).unwrap();
 
         let test_contract_balance = provider
             .get_contract_asset_balance(test_contract.contract_id(), AssetId::default())
@@ -683,10 +672,8 @@ mod success {
         )
         .await;
 
-        let refund_registered_event = test_contract
-            .get_logs_with_type::<utils::environment::BridgeFungibleTokenContract::RefundRegisteredEvent>(
-            &receipts,
-        ).unwrap();
+        let log_decoder = test_contract.log_decoder();
+        let refund_registered_event = log_decoder.get_logs_with_type::<RefundRegisteredEvent>(&receipts).unwrap();
 
         let test_contract_balance = provider
             .get_contract_asset_balance(test_contract.contract_id(), AssetId::default())
@@ -810,10 +797,8 @@ mod revert {
         )
         .await;
 
-        let refund_registered_event = test_contract
-            .get_logs_with_type::<utils::environment::BridgeFungibleTokenContract::RefundRegisteredEvent>(
-            &receipts,
-        ).unwrap();
+        let log_decoder = test_contract.log_decoder();
+        let refund_registered_event = log_decoder.get_logs_with_type::<RefundRegisteredEvent>(&receipts).unwrap();
 
         // Verify the message value was received by the test contract
         let test_contract_balance = provider
@@ -912,10 +897,8 @@ async fn delta_decimals_too_big_registers_refund() {
     .await;
 
     if LAYER_1_DECIMALS - LAYER_2_DECIMALS > 19 {
-        let refund_registered_event = test_contract
-            .get_logs_with_type::<utils::environment::BridgeFungibleTokenContract::RefundRegisteredEvent>(
-            &receipts,
-        ).unwrap();
+        let log_decoder = test_contract.log_decoder();
+        let refund_registered_event = log_decoder.get_logs_with_type::<RefundRegisteredEvent>(&receipts).unwrap();
 
         // Verify the message value was received by the test contract
         let test_contract_balance = provider
