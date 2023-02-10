@@ -14,7 +14,6 @@ use std::{
     inputs::input_message_data,
     math::*,
     u256::U256,
-    vec::Vec,
 };
 
 use errors::BridgeFungibleTokenError;

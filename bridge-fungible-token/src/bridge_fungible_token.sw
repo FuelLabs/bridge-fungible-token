@@ -19,11 +19,8 @@ use std::{
     },
     constants::ZERO_B256,
     context::msg_amount,
-    convert::From,
     inputs::input_message_sender,
-    logging::log,
     message::send_message,
-    storage::StorageMap,
     token::{
         burn,
         mint_to_address,
@@ -100,6 +97,8 @@ impl BridgeFungibleToken for Contract {
         // send a message to unlock this amount on the ethereum (L1) bridge contract
         send_message(LAYER_1_ERC20_GATEWAY, encode_data(originator, stored_amount), 0);
     }
+
+    #[payable]
     fn withdraw_to(to: b256) {
         let amount = msg_amount();
         require(amount != 0, BridgeFungibleTokenError::NoCoinsSent);

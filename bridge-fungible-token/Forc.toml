@@ -10,7 +10,6 @@ contract_message_receiver = { path = "../bridge-message-predicates/contract-mess
 
 [constants]
 LAYER_1_ERC20_GATEWAY = { type = "b256", value = "0x00000000000000000000000096c53cd98B7297564716a8f2E1de2C83928Af2fe" }
-# TODO: Set actual value here instead of placeholder
 DECIMALS = { type = "u8", value = "9u8" }
 LAYER_1_DECIMALS = { type = "u8", value = "18u8" }
 LAYER_1_TOKEN = { type = "b256", value = "0x00000000000000000000000000000000000000000000000000000000deadbeef" }

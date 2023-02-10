@@ -269,7 +269,6 @@ pub async fn prefix_contract_id(data: Vec<u8>) -> Vec<u8> {
     )
     .unwrap();
     let (test_contract_id, _) = Contract::compute_contract_id_and_state_root(&compiled_contract);
-    println!("contract id in prefix: {:#?}", test_contract_id);
 
     // Turn contract id into array with the given data appended to it
     let test_contract_id: [u8; 32] = test_contract_id.into();
@@ -302,8 +301,6 @@ pub async fn get_fungible_token_instance(
 
     let fungible_token_instance =
         BridgeFungibleTokenContract::new(fungible_token_contract_id.clone(), wallet);
-
-    println!("contract id in env: {:#?}", fungible_token_contract_id);
 
     (fungible_token_instance, fungible_token_contract_id.into())
 }
