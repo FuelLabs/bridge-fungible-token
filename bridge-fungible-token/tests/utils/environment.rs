@@ -5,12 +5,15 @@ use std::num::ParseIntError;
 use std::result::Result as StdResult;
 use std::str::FromStr;
 
-use fuels::{prelude::*, types::{Bits256, message::Message}};
 use fuels::signers::fuel_crypto::SecretKey;
 use fuels::test_helpers::{setup_single_message, setup_test_client, Config, DEFAULT_COIN_AMOUNT};
 use fuels::tx::{
     Address, AssetId, Bytes32, ConsensusParameters, Input, Output, Receipt, Script, TxPointer,
     UtxoId, Word,
+};
+use fuels::{
+    prelude::*,
+    types::{message::Message, Bits256},
 };
 use primitive_types::U256;
 
@@ -78,7 +81,6 @@ abigen!(
     ),
 );
 
-
 pub const MESSAGE_SENDER_ADDRESS: &str =
     "0xca400d3e7710eee293786830755278e6d2b9278b4177b8b1a896ebd5f55c10bc";
 pub const TEST_BRIDGE_FUNGIBLE_TOKEN_CONTRACT_BINARY: &str =
@@ -132,8 +134,7 @@ pub async fn setup_environment(
         None => Address::from_str(MESSAGE_SENDER_ADDRESS).unwrap(),
     };
 
-    let predicate =
-    ContractMessagePredicate::load_from(CONTRACT_MESSAGE_PREDICATE_BINARY).unwrap();
+    let predicate = ContractMessagePredicate::load_from(CONTRACT_MESSAGE_PREDICATE_BINARY).unwrap();
     let predicate_root = predicate.address();
 
     let all_messages: Vec<Message> = messages

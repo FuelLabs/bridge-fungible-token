@@ -1,6 +1,6 @@
 mod utils {
-    pub mod environment;
     pub mod builder;
+    pub mod environment;
 }
 use crate::env::RefundRegisteredEvent;
 
@@ -8,8 +8,8 @@ use primitive_types::U256;
 use std::str::FromStr;
 use utils::environment as env;
 
-use fuels::{prelude::*, types::Bits256};
 use fuels::tx::{Address, AssetId, Receipt};
+use fuels::{prelude::*, types::Bits256};
 
 pub const L1_TOKEN: &str = "0x00000000000000000000000000000000000000000000000000000000deadbeef";
 pub const LAYER_1_ERC20_GATEWAY: &str =
@@ -68,7 +68,8 @@ mod success {
 
         let balance = wallet
             .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
-            .await.unwrap();
+            .await
+            .unwrap();
 
         // Verify the message value was received by the test contract
         assert_eq!(test_contract_base_asset_balance, 100);
@@ -125,7 +126,8 @@ mod success {
 
         let balance = wallet
             .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
-            .await.unwrap();
+            .await
+            .unwrap();
 
         // Verify the message value was received by the test contract
         assert_eq!(test_contract_base_asset_balance, 100);
@@ -174,7 +176,9 @@ mod success {
         .await;
 
         let log_decoder = test_contract.log_decoder();
-        let refund_registered_event = log_decoder.get_logs_with_type::<RefundRegisteredEvent>(&receipts).unwrap();
+        let refund_registered_event = log_decoder
+            .get_logs_with_type::<RefundRegisteredEvent>(&receipts)
+            .unwrap();
 
         // Verify the message value was received by the test contract
         let test_contract_balance = provider
@@ -183,7 +187,8 @@ mod success {
             .unwrap();
         let balance = wallet
             .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
-            .await.unwrap();
+            .await
+            .unwrap();
 
         assert_eq!(test_contract_balance, 100);
         assert_eq!(
@@ -238,7 +243,6 @@ mod success {
         assert_eq!(l1_token, Bits256::from_hex_str(&L1_TOKEN).unwrap());
         // Compare the value output in the message with the original value sent
         assert_eq!(amount, config.overflow_2);
-
     }
 
     #[tokio::test]
@@ -282,7 +286,8 @@ mod success {
 
         let balance = wallet
             .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
-            .await.unwrap();
+            .await
+            .unwrap();
 
         // Verify the message value was received by the test contract
         assert_eq!(test_contract_base_asset_balance, 100);
@@ -306,7 +311,8 @@ mod success {
             .methods()
             .withdraw_to(Bits256(*wallet.address().hash()))
             .tx_params(custom_tx_params)
-            .call_params(call_params).expect("Call param Error")
+            .call_params(call_params)
+            .expect("Call param Error")
             .append_message_outputs(1)
             .call()
             .await
@@ -339,7 +345,6 @@ mod success {
             amount,
             U256::from(withdrawal_amount) * &config.adjustment_factor
         );
-
     }
 
     #[tokio::test]
@@ -388,7 +393,8 @@ mod success {
 
         let balance = wallet
             .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
-            .await.unwrap();
+            .await
+            .unwrap();
 
         // Verify the message value was received by the test contract
         assert_eq!(test_contract_base_asset_balance, 100);
@@ -410,7 +416,8 @@ mod success {
             .methods()
             .withdraw_to(Bits256(*wallet.address().hash()))
             .tx_params(custom_tx_params)
-            .call_params(call_params).expect("Call param Error")
+            .call_params(call_params)
+            .expect("Call param Error")
             .append_message_outputs(1)
             .call()
             .await
@@ -442,7 +449,6 @@ mod success {
 
         // now verify that the initial amount == the final amount
         assert_eq!(msg_data_amount, config.min_amount);
-
     }
 
     #[tokio::test]
@@ -480,7 +486,9 @@ mod success {
         .await;
 
         let log_decoder = test_contract.log_decoder();
-        let refund_registered_event = log_decoder.get_logs_with_type::<RefundRegisteredEvent>(&receipts).unwrap();
+        let refund_registered_event = log_decoder
+            .get_logs_with_type::<RefundRegisteredEvent>(&receipts)
+            .unwrap();
 
         // Verify the message value was received by the test contract
         let test_contract_balance = provider
@@ -489,7 +497,8 @@ mod success {
             .unwrap();
         let balance = wallet
             .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
-            .await.unwrap();
+            .await
+            .unwrap();
 
         assert_eq!(test_contract_balance, 100);
         assert_eq!(
@@ -543,7 +552,9 @@ mod success {
         .await;
 
         let log_decoder = test_contract.log_decoder();
-        let refund_registered_event = log_decoder.get_logs_with_type::<RefundRegisteredEvent>(&receipts).unwrap();
+        let refund_registered_event = log_decoder
+            .get_logs_with_type::<RefundRegisteredEvent>(&receipts)
+            .unwrap();
 
         let test_contract_balance = provider
             .get_contract_asset_balance(test_contract.contract_id(), AssetId::default())
@@ -551,7 +562,8 @@ mod success {
             .unwrap();
         let balance = wallet
             .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
-            .await.unwrap();
+            .await
+            .unwrap();
 
         // Verify the message value was received by the test contract
         assert_eq!(test_contract_balance, 100);
@@ -572,7 +584,6 @@ mod success {
 
         // verify that no tokens were minted for message.data.to
         assert_eq!(balance, 0);
-
     }
 
     #[tokio::test]
@@ -610,7 +621,9 @@ mod success {
         .await;
 
         let log_decoder = test_contract.log_decoder();
-        let refund_registered_event = log_decoder.get_logs_with_type::<RefundRegisteredEvent>(&receipts).unwrap();
+        let refund_registered_event = log_decoder
+            .get_logs_with_type::<RefundRegisteredEvent>(&receipts)
+            .unwrap();
 
         let test_contract_balance = provider
             .get_contract_asset_balance(test_contract.contract_id(), AssetId::default())
@@ -618,7 +631,8 @@ mod success {
             .unwrap();
         let balance = wallet
             .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
-            .await.unwrap();
+            .await
+            .unwrap();
 
         // Verify the message value was received by the test contract
         assert_eq!(test_contract_balance, 100);
@@ -639,7 +653,6 @@ mod success {
 
         // verify that no tokens were minted for message.data.to
         assert_eq!(balance, 0);
-
     }
 
     #[tokio::test]
@@ -677,7 +690,9 @@ mod success {
         .await;
 
         let log_decoder = test_contract.log_decoder();
-        let refund_registered_event = log_decoder.get_logs_with_type::<RefundRegisteredEvent>(&receipts).unwrap();
+        let refund_registered_event = log_decoder
+            .get_logs_with_type::<RefundRegisteredEvent>(&receipts)
+            .unwrap();
 
         let test_contract_balance = provider
             .get_contract_asset_balance(test_contract.contract_id(), AssetId::default())
@@ -685,7 +700,8 @@ mod success {
             .unwrap();
         let balance = wallet
             .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
-            .await.unwrap();
+            .await
+            .unwrap();
 
         // Verify the message value was received by the test contract
         assert_eq!(test_contract_balance, 100);
@@ -706,7 +722,6 @@ mod success {
 
         // verify that no tokens were minted for message.data.to
         assert_eq!(balance, 0);
-
     }
 
     #[tokio::test]
@@ -802,7 +817,9 @@ mod revert {
         .await;
 
         let log_decoder = test_contract.log_decoder();
-        let refund_registered_event = log_decoder.get_logs_with_type::<RefundRegisteredEvent>(&receipts).unwrap();
+        let refund_registered_event = log_decoder
+            .get_logs_with_type::<RefundRegisteredEvent>(&receipts)
+            .unwrap();
 
         // Verify the message value was received by the test contract
         let test_contract_balance = provider
@@ -812,7 +829,8 @@ mod revert {
 
         let balance = wallet
             .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
-            .await.unwrap();
+            .await
+            .unwrap();
 
         // Verify the message value was received by the test contract
         assert_eq!(test_contract_balance, 100);
@@ -833,7 +851,6 @@ mod revert {
 
         // verify that no tokens were minted for message.data.to
         assert_eq!(balance, 0);
-
     }
 
     #[tokio::test]
@@ -902,7 +919,9 @@ async fn delta_decimals_too_big_registers_refund() {
 
     if LAYER_1_DECIMALS - LAYER_2_DECIMALS > 19 {
         let log_decoder = test_contract.log_decoder();
-        let refund_registered_event = log_decoder.get_logs_with_type::<RefundRegisteredEvent>(&receipts).unwrap();
+        let refund_registered_event = log_decoder
+            .get_logs_with_type::<RefundRegisteredEvent>(&receipts)
+            .unwrap();
 
         // Verify the message value was received by the test contract
         let test_contract_balance = provider
@@ -911,7 +930,8 @@ async fn delta_decimals_too_big_registers_refund() {
             .unwrap();
         let balance = wallet
             .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
-            .await.unwrap();
+            .await
+            .unwrap();
 
         assert_eq!(test_contract_balance, 100);
 
@@ -932,5 +952,4 @@ async fn delta_decimals_too_big_registers_refund() {
         // verify that no tokens were minted for message.data.to
         assert_eq!(balance, 0);
     }
-
 }

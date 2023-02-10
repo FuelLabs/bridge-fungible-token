@@ -6,14 +6,11 @@
 use fuels::signers::fuel_crypto::Hasher;
 
 use fuels::prelude::*;
-use fuels::tx::{
-    AssetId, Bytes32, Input, Output, Script, Transaction,
-};
+use fuels::tx::{AssetId, Bytes32, Input, Output, Script, Transaction};
 
 const CONTRACT_MESSAGE_MIN_GAS: u64 = 30_000_000;
 const CONTRACT_MESSAGE_SCRIPT_BINARY: &str =
     "../bridge-message-predicates/contract_message_script.bin";
-
 
 /// Gets the message to contract script
 pub async fn get_contract_message_script() -> (Vec<u8>, Bytes32) {
