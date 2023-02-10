@@ -7,7 +7,7 @@ use fuels::signers::fuel_crypto::Hasher;
 
 use fuels::prelude::*;
 use fuels::tx::{
-    Address, AssetId, Bytes32, Contract as tx_contract, Input, Output, Script, Transaction,
+    AssetId, Bytes32, Input, Output, Script, Transaction,
 };
 
 const CONTRACT_MESSAGE_MIN_GAS: u64 = 30_000_000;

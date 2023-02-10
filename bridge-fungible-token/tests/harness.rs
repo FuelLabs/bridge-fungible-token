@@ -13,7 +13,7 @@ use fuels::tx::{Address, AssetId, Receipt};
 
 pub const L1_TOKEN: &str = "0x00000000000000000000000000000000000000000000000000000000deadbeef";
 pub const LAYER_1_ERC20_GATEWAY: &str =
-    "0xca400d3e7710eee293786830755278e6d2b9278b4177b8b1a896ebd5f55c10bc";
+    "0x00000000000000000000000096c53cd98B7297564716a8f2E1de2C83928Af2fe";
 pub const TO: &str = "0x0000000000000000000000000000000000000000000000000000000000000777";
 pub const FROM: &str = "0x0000000000000000000000008888888888888888888888888888888888888888";
 // In the case where (LAYER_1_DECIMALS - LAYER_2_DECIMALS) > 19, some tests
@@ -93,6 +93,9 @@ mod success {
         )
         .await;
 
+        println!("message: {:#?}", message);
+        println!("coin: {:#?}", coin);
+
         // Set up the environment
         let (
             test_contract,
@@ -102,6 +105,7 @@ mod success {
             test_contract_id,
             provider,
         ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None).await;
+        // println!("message_inputs: {:#?}", message_inputs);
 
         // Relay the test message to the test contract
         let _receipts = env::relay_message_to_contract(
@@ -302,7 +306,7 @@ mod success {
             .methods()
             .withdraw_to(Bits256(*wallet.address().hash()))
             .tx_params(custom_tx_params)
-            .call_params(call_params)
+            .call_params(call_params).expect("Call param Error")
             .append_message_outputs(1)
             .call()
             .await
@@ -406,7 +410,7 @@ mod success {
             .methods()
             .withdraw_to(Bits256(*wallet.address().hash()))
             .tx_params(custom_tx_params)
-            .call_params(call_params)
+            .call_params(call_params).expect("Call param Error")
             .append_message_outputs(1)
             .call()
             .await

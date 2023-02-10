@@ -59,7 +59,7 @@ fn register_refund(from: b256, asset: b256, amount: b256) {
 // Implement the process_message function required to be a message receiver
 impl MessageReceiver for Contract {
     #[storage(read, write)]
-    #[payable()]
+    #[payable]
     fn process_message(msg_idx: u8) {
         let input_sender = input_message_sender(1);
         require(input_sender.value == LAYER_1_ERC20_GATEWAY, BridgeFungibleTokenError::UnauthorizedSender);

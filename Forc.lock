@@ -9,7 +9,7 @@ dependencies = [
 
 [[package]]
 name = 'bridge_fungible_token_abi'
-source = 'path+from-root-0CFC8A61C9CDDC6E'
+source = 'member'
 dependencies = ['std']
 
 [[package]]

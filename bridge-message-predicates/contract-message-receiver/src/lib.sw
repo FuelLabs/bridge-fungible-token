@@ -11,6 +11,6 @@ abi MessageReceiver {
     ///
     /// * When the sender is not the LAYER_1_ERC20_GATEWAY
     #[storage(read, write)]
-    #[payable()]
+    #[payable]
     fn process_message(msg_idx: u8);
 }
