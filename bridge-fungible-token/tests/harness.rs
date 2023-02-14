@@ -57,7 +57,7 @@ mod success {
             contract_input,
             &coin_inputs[..],
             &vec![],
-            &env::generate_outputs(),
+            &env::generate_variable_output(),
         )
         .await;
 
@@ -111,7 +111,7 @@ mod success {
             contract_input,
             &coin_inputs[..],
             &vec![],
-            &env::generate_outputs(),
+            &env::generate_variable_output(),
         )
         .await;
 
@@ -167,7 +167,7 @@ mod success {
             contract_input,
             &coin_inputs[..],
             &vec![],
-            &env::generate_outputs(),
+            &env::generate_variable_output(),
         )
         .await;
 
@@ -271,7 +271,7 @@ mod success {
             contract_input,
             &coin_inputs[..],
             &vec![],
-            &env::generate_outputs(),
+            &env::generate_variable_output(),
         )
         .await;
 
@@ -378,7 +378,7 @@ mod success {
             contract_input,
             &coin_inputs[..],
             &vec![],
-            &env::generate_outputs(),
+            &env::generate_variable_output(),
         )
         .await;
 
@@ -477,7 +477,7 @@ mod success {
             contract_input,
             &coin_inputs[..],
             &vec![],
-            &env::generate_outputs(),
+            &env::generate_variable_output(),
         )
         .await;
 
@@ -543,7 +543,7 @@ mod success {
             contract_input,
             &coin_inputs[..],
             &vec![],
-            &env::generate_outputs(),
+            &env::generate_variable_output(),
         )
         .await;
 
@@ -612,7 +612,7 @@ mod success {
             contract_input,
             &coin_inputs[..],
             &vec![],
-            &env::generate_outputs(),
+            &env::generate_variable_output(),
         )
         .await;
 
@@ -681,7 +681,7 @@ mod success {
             contract_input,
             &coin_inputs[..],
             &vec![],
-            &env::generate_outputs(),
+            &env::generate_variable_output(),
         )
         .await;
 
@@ -808,7 +808,7 @@ mod revert {
             contract_input,
             &coin_inputs[..],
             &vec![],
-            &env::generate_outputs(),
+            &env::generate_variable_output(),
         )
         .await;
 
@@ -877,7 +877,7 @@ mod revert {
             contract_input,
             &coin_inputs[..],
             &vec![],
-            &env::generate_outputs(),
+            &env::generate_variable_output(),
         )
         .await;
     }
@@ -909,7 +909,7 @@ async fn delta_decimals_too_big_registers_refund() {
         contract_input,
         &coin_inputs[..],
         &vec![],
-        &env::generate_outputs(),
+        &env::generate_variable_output(),
     )
     .await;
 
