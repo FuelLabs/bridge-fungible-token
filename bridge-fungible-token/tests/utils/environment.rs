@@ -82,7 +82,7 @@ abigen!(
 );
 
 pub const MESSAGE_SENDER_ADDRESS: &str =
-    "0xca400d3e7710eee293786830755278e6d2b9278b4177b8b1a896ebd5f55c10bc";
+    "0x00000000000000000000000096c53cd98B7297564716a8f2E1de2C83928Af2fe";
 pub const TEST_BRIDGE_FUNGIBLE_TOKEN_CONTRACT_BINARY: &str =
     "../bridge-fungible-token/out/debug/bridge_fungible_token.bin";
 
