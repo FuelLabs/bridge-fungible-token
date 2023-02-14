@@ -94,9 +94,6 @@ mod success {
         )
         .await;
 
-        println!("message: {:#?}", message);
-        println!("coin: {:#?}", coin);
-
         // Set up the environment
         let (
             test_contract,
@@ -106,7 +103,6 @@ mod success {
             test_contract_id,
             provider,
         ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None).await;
-        // println!("message_inputs: {:#?}", message_inputs);
 
         // Relay the test message to the test contract
         let _receipts = env::relay_message_to_contract(

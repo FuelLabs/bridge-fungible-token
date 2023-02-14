@@ -182,8 +182,8 @@ fn copy_bytes(dest: raw_ptr, src: raw_ptr, len: u64, offset: u64) {
 
 /// Encode the data to be passed out of the contract when sending a message
 pub fn encode_data(to: b256, amount: b256) -> Bytes {
-    // cap is 4 + 20 + 20 + 32 = 76
-    let mut data = Bytes::with_capacity(76);
+    // capacity is 4 + 32 + 32 + 32 = 100
+    let mut data = Bytes::with_capacity(100);
     let padded_to_bytes = Bytes::from(to);
     let padded_token_bytes = Bytes::from(LAYER_1_TOKEN);
     let amount_bytes = Bytes::from(amount);
@@ -202,8 +202,8 @@ pub fn encode_data(to: b256, amount: b256) -> Bytes {
     // next, we append the `LAYER_1_TOKEN` address including padding:
     data.append(padded_token_bytes);
 
-    // next, we copy the `amount` to `data`
-    copy_bytes(data.buf.ptr.add_uint_offset(44), __addr_of(amount), 32, 0);
+    // next, we append the `amount`:
+    data.append(amount_bytes);
 
     data
 }
