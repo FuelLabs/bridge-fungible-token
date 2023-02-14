@@ -167,10 +167,10 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
 
     // Parse the message data
     msg_data.fuel_token = ContractId::from(input_message_data(msg_idx, 0).into());
-    msg_data.l1_asset = input_message_data(msg_idx, 8).into();
-    msg_data.from = input_message_data(msg_idx, 8 + 8).into();
-    msg_data.to = Address::from(input_message_data(msg_idx, 8 + 8 + 8).into());
-    msg_data.amount = input_message_data(msg_idx, 8 + 8 + 8 + 8).into();
+    msg_data.l1_asset = input_message_data(msg_idx, 32).into();
+    msg_data.from = input_message_data(msg_idx, 32 + 32).into();
+    msg_data.to = Address::from(input_message_data(msg_idx, 32 + 32 + 32).into());
+    msg_data.amount = input_message_data(msg_idx, 32 + 32 + 32 + 32).into();
     msg_data
 }
 
