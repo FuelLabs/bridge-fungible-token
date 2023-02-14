@@ -331,10 +331,8 @@ pub async fn construct_msg_data(
     (message, coin)
 }
 
-pub fn generate_outputs() -> Vec<Output> {
-    let mut v = vec![Output::variable(Address::zeroed(), 0, AssetId::default())];
-    v.push(Output::message(Address::zeroed(), 0));
-    v
+pub fn generate_variable_output() -> Vec<Output> {
+    vec![Output::variable(Address::zeroed(), 0, AssetId::default())]
 }
 
 pub fn parse_output_message_data(data: &[u8]) -> (Vec<u8>, Bits256, Bits256, U256) {
