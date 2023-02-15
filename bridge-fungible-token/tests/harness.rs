@@ -778,7 +778,12 @@ mod success {
         let (contract, _id) = env::get_fungible_token_instance(wallet.clone()).await;
         let erc20_gateway = Address::from_str(&LAYER_1_ERC20_GATEWAY).unwrap();
 
-        let call_response = contract.methods().layer1_erc20_gateway().call().await.unwrap();
+        let call_response = contract
+            .methods()
+            .layer1_erc20_gateway()
+            .call()
+            .await
+            .unwrap();
         assert_eq!(call_response.value, Bits256(*erc20_gateway))
     }
 }
