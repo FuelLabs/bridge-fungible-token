@@ -764,7 +764,12 @@ mod success {
         // Set up the environment
         let (contract, _id) = env::get_fungible_token_instance(wallet.clone()).await;
 
-        let call_response = contract.methods().bridged_token_decimals().call().await.unwrap();
+        let call_response = contract
+            .methods()
+            .bridged_token_decimals()
+            .call()
+            .await
+            .unwrap();
         assert_eq!(call_response.value, BRIDGED_TOKEN_DECIMALS)
     }
 
