@@ -4,7 +4,6 @@ mod utils {
 }
 use crate::env::RefundRegisteredEvent;
 
-use primitive_types::U256;
 use std::str::FromStr;
 use utils::environment as env;
 
@@ -292,10 +291,10 @@ mod success {
         );
 
         // Now try to withdraw
+        let withdrawal_amount = config.test_amount;
         let custom_tx_params = TxParameters::new(None, Some(30_000_000), None);
-        let withdrawal_amount = 3000;
         let call_params = CallParameters::new(
-            Some(withdrawal_amount),
+            Some(env::fuel_side_equivalent_amount(withdrawal_amount, &config)),
             Some(AssetId::new(*test_contract_id.hash())),
             None,
         );
@@ -334,10 +333,7 @@ mod success {
         assert_eq!(selector, env::decode_hex("0x53ef1461").to_vec());
         assert_eq!(to, Bits256(*wallet.address().hash()));
         assert_eq!(token, Bits256::from_hex_str(&BRIDGED_TOKEN).unwrap());
-        assert_eq!(
-            amount,
-            U256::from(withdrawal_amount) * &config.adjustment_factor
-        );
+        assert_eq!(amount, withdrawal_amount);
     }
 
     #[tokio::test]
@@ -447,6 +443,11 @@ mod success {
     #[tokio::test]
     async fn depositing_amount_too_small_registers_refund() {
         // In cases where BRIDGED_TOKEN_DECIMALS == PROXY_TOKEN_DECIMALS or BRIDGED_TOKEN_DECIMALS < PROXY_TOKEN_DECIMALS, this test will fail because it will attempt to bridge 0 coins which will always revert.
+        if BRIDGED_TOKEN_DECIMALS <= PROXY_TOKEN_DECIMALS {
+            return ();
+        }
+
+        // Create start test message
         let mut wallet = env::setup_wallet();
         let config = env::generate_test_config((BRIDGED_TOKEN_DECIMALS, PROXY_TOKEN_DECIMALS));
         let (message, coin) = env::construct_msg_data(
@@ -794,18 +795,21 @@ mod revert {
     use super::*;
 
     #[tokio::test]
-    async fn deposit_with_wrong_token_registers_refund() {
+    #[should_panic(expected = "Revert(0)")]
+    async fn withdraw_fails_with_too_small_value() {
+        // In cases where BRIDGED_TOKEN_DECIMALS == PROXY_TOKEN_DECIMALS or BRIDGED_TOKEN_DECIMALS > PROXY_TOKEN_DECIMALS, this test won't fail because it will attempt to withdraw only 1 coin.
+        if BRIDGED_TOKEN_DECIMALS >= PROXY_TOKEN_DECIMALS {
+            panic!("Revert(0)");
+        }
+
+        // perform successful deposit first, verify it, then withdraw and verify balances
         let mut wallet = env::setup_wallet();
-        let wrong_token_value: &str =
-            "0x1111110000000000000000000000000000000000000000000000000000111111";
-
         let config = env::generate_test_config((BRIDGED_TOKEN_DECIMALS, PROXY_TOKEN_DECIMALS));
-
         let (message, coin) = env::construct_msg_data(
-            wrong_token_value,
+            BRIDGED_TOKEN,
             FROM,
-            env::decode_hex(TO),
-            config.min_amount,
+            wallet.address().hash().to_vec(),
+            config.max_amount,
         )
         .await;
 
@@ -820,7 +824,7 @@ mod revert {
         ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None).await;
 
         // Relay the test message to the test contract
-        let receipts = env::relay_message_to_contract(
+        let _receipts = env::relay_message_to_contract(
             &wallet,
             message_inputs[0].clone(),
             contract_input,
@@ -830,13 +834,7 @@ mod revert {
         )
         .await;
 
-        let log_decoder = test_contract.log_decoder();
-        let refund_registered_event = log_decoder
-            .get_logs_with_type::<RefundRegisteredEvent>(&receipts)
-            .unwrap();
-
-        // Verify the message value was received by the test contract
-        let test_contract_balance = provider
+        let test_contract_base_asset_balance = provider
             .get_contract_asset_balance(test_contract.contract_id(), AssetId::default())
             .await
             .unwrap();
@@ -847,24 +845,34 @@ mod revert {
             .unwrap();
 
         // Verify the message value was received by the test contract
-        assert_eq!(test_contract_balance, 100);
+        assert_eq!(test_contract_base_asset_balance, 100);
 
-        // check that the RefundRegisteredEvent receipt is populated correctly
+        // Check that wallet now has bridged coins
         assert_eq!(
-            refund_registered_event[0].amount,
-            Bits256(env::encode_hex(config.min_amount))
-        );
-        assert_eq!(
-            refund_registered_event[0].asset,
-            Bits256::from_hex_str(&wrong_token_value).unwrap()
-        );
-        assert_eq!(
-            refund_registered_event[0].from,
-            Bits256::from_hex_str(&FROM).unwrap()
+            balance,
+            env::fuel_side_equivalent_amount(config.max_amount, &config)
         );
 
-        // verify that no tokens were minted for message.data.to
-        assert_eq!(balance, 0);
+        // Now try to withdraw
+        let withdrawal_amount = 999999999;
+        let custom_tx_params = TxParameters::new(None, Some(30_000_000), None);
+        let call_params = CallParameters::new(
+            Some(withdrawal_amount),
+            Some(AssetId::new(*test_contract_id.hash())),
+            None,
+        );
+
+        // The following withdraw should fail since it doesn't meet the minimum withdraw (underflow error)
+        test_contract
+            .methods()
+            .withdraw_to(Bits256(*wallet.address().hash()))
+            .tx_params(custom_tx_params)
+            .call_params(call_params)
+            .expect("Call param Error")
+            .append_message_outputs(1)
+            .call()
+            .await
+            .unwrap();
     }
 
     #[tokio::test]
@@ -937,7 +945,7 @@ mod revert {
         )
         .await;
 
-        if BRIDGED_TOKEN_DECIMALS - PROXY_TOKEN_DECIMALS > 19 {
+        if BRIDGED_TOKEN_DECIMALS > PROXY_TOKEN_DECIMALS + 19 {
             let log_decoder = test_contract.log_decoder();
             let refund_registered_event = log_decoder
                 .get_logs_with_type::<RefundRegisteredEvent>(&receipts)
@@ -972,5 +980,79 @@ mod revert {
             // verify that no tokens were minted for message.data.to
             assert_eq!(balance, 0);
         }
+    }
+
+    #[tokio::test]
+    async fn deposit_with_wrong_token_registers_refund() {
+        let mut wallet = env::setup_wallet();
+        let wrong_token_value: &str =
+            "0x1111110000000000000000000000000000000000000000000000000000111111";
+
+        let config = env::generate_test_config((BRIDGED_TOKEN_DECIMALS, PROXY_TOKEN_DECIMALS));
+
+        let (message, coin) = env::construct_msg_data(
+            wrong_token_value,
+            FROM,
+            env::decode_hex(TO),
+            config.min_amount,
+        )
+        .await;
+
+        // Set up the environment
+        let (
+            test_contract,
+            contract_input,
+            coin_inputs,
+            message_inputs,
+            test_contract_id,
+            provider,
+        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None).await;
+
+        // Relay the test message to the test contract
+        let receipts = env::relay_message_to_contract(
+            &wallet,
+            message_inputs[0].clone(),
+            contract_input,
+            &coin_inputs[..],
+            &vec![],
+            &env::generate_variable_output(),
+        )
+        .await;
+
+        let log_decoder = test_contract.log_decoder();
+        let refund_registered_event = log_decoder
+            .get_logs_with_type::<RefundRegisteredEvent>(&receipts)
+            .unwrap();
+
+        // Verify the message value was received by the test contract
+        let test_contract_balance = provider
+            .get_contract_asset_balance(test_contract.contract_id(), AssetId::default())
+            .await
+            .unwrap();
+
+        let balance = wallet
+            .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
+            .await
+            .unwrap();
+
+        // Verify the message value was received by the test contract
+        assert_eq!(test_contract_balance, 100);
+
+        // check that the RefundRegisteredEvent receipt is populated correctly
+        assert_eq!(
+            refund_registered_event[0].amount,
+            Bits256(env::encode_hex(config.min_amount))
+        );
+        assert_eq!(
+            refund_registered_event[0].asset,
+            Bits256::from_hex_str(&wrong_token_value).unwrap()
+        );
+        assert_eq!(
+            refund_registered_event[0].from,
+            Bits256::from_hex_str(&FROM).unwrap()
+        );
+
+        // verify that no tokens were minted for message.data.to
+        assert_eq!(balance, 0);
     }
 }
