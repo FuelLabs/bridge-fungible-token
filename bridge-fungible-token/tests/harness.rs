@@ -900,71 +900,77 @@ mod revert {
         )
         .await;
     }
-}
 
-#[tokio::test]
-async fn delta_decimals_too_big_registers_refund() {
-    // In cases where BRIDGED_TOKEN_DECIMALS - PROXY_TOKEN_DECIMALS > 19,
-    // there would be arithmetic overflow and possibly tokens lost.
-    // We want to catch these cases eraly and register a refund.
-    let mut wallet = env::setup_wallet();
-    let config = env::generate_test_config((BRIDGED_TOKEN_DECIMALS, PROXY_TOKEN_DECIMALS));
-    let (message, coin) = env::construct_msg_data(
-        BRIDGED_TOKEN,
-        FROM,
-        wallet.address().hash().to_vec(),
-        config.test_amount,
-    )
-    .await;
+    #[tokio::test]
+    async fn delta_decimals_too_big_registers_refund() {
+        // In cases where BRIDGED_TOKEN_DECIMALS - PROXY_TOKEN_DECIMALS > 19,
+        // there would be arithmetic overflow and possibly tokens lost.
+        // We want to catch these cases eraly and register a refund.
+        let mut wallet = env::setup_wallet();
+        let config = env::generate_test_config((BRIDGED_TOKEN_DECIMALS, PROXY_TOKEN_DECIMALS));
+        let (message, coin) = env::construct_msg_data(
+            BRIDGED_TOKEN,
+            FROM,
+            wallet.address().hash().to_vec(),
+            config.test_amount,
+        )
+        .await;
 
-    // Set up the environment
-    let (test_contract, contract_input, coin_inputs, message_inputs, test_contract_id, provider) =
-        env::setup_environment(&mut wallet, vec![coin], vec![message], None).await;
+        // Set up the environment
+        let (
+            test_contract,
+            contract_input,
+            coin_inputs,
+            message_inputs,
+            test_contract_id,
+            provider,
+        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None).await;
 
-    // Relay the test message to the test contract
-    let receipts = env::relay_message_to_contract(
-        &wallet,
-        message_inputs[0].clone(),
-        contract_input,
-        &coin_inputs[..],
-        &vec![],
-        &env::generate_variable_output(),
-    )
-    .await;
+        // Relay the test message to the test contract
+        let receipts = env::relay_message_to_contract(
+            &wallet,
+            message_inputs[0].clone(),
+            contract_input,
+            &coin_inputs[..],
+            &vec![],
+            &env::generate_variable_output(),
+        )
+        .await;
 
-    if BRIDGED_TOKEN_DECIMALS - PROXY_TOKEN_DECIMALS > 19 {
-        let log_decoder = test_contract.log_decoder();
-        let refund_registered_event = log_decoder
-            .get_logs_with_type::<RefundRegisteredEvent>(&receipts)
-            .unwrap();
+        if BRIDGED_TOKEN_DECIMALS - PROXY_TOKEN_DECIMALS > 19 {
+            let log_decoder = test_contract.log_decoder();
+            let refund_registered_event = log_decoder
+                .get_logs_with_type::<RefundRegisteredEvent>(&receipts)
+                .unwrap();
 
-        // Verify the message value was received by the test contract
-        let test_contract_balance = provider
-            .get_contract_asset_balance(test_contract.contract_id(), AssetId::default())
-            .await
-            .unwrap();
-        let balance = wallet
-            .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
-            .await
-            .unwrap();
+            // Verify the message value was received by the test contract
+            let test_contract_balance = provider
+                .get_contract_asset_balance(test_contract.contract_id(), AssetId::default())
+                .await
+                .unwrap();
+            let balance = wallet
+                .get_asset_balance(&AssetId::new(*test_contract_id.hash()))
+                .await
+                .unwrap();
 
-        assert_eq!(test_contract_balance, 100);
+            assert_eq!(test_contract_balance, 100);
 
-        assert_eq!(
-            refund_registered_event[0].amount,
-            Bits256(env::encode_hex(config.test_amount))
-        );
+            assert_eq!(
+                refund_registered_event[0].amount,
+                Bits256(env::encode_hex(config.test_amount))
+            );
 
-        assert_eq!(
-            refund_registered_event[0].asset,
-            Bits256::from_hex_str(&BRIDGED_TOKEN).unwrap()
-        );
-        assert_eq!(
-            refund_registered_event[0].from,
-            Bits256::from_hex_str(&FROM).unwrap()
-        );
+            assert_eq!(
+                refund_registered_event[0].asset,
+                Bits256::from_hex_str(&BRIDGED_TOKEN).unwrap()
+            );
+            assert_eq!(
+                refund_registered_event[0].from,
+                Bits256::from_hex_str(&FROM).unwrap()
+            );
 
-        // verify that no tokens were minted for message.data.to
-        assert_eq!(balance, 0);
+            // verify that no tokens were minted for message.data.to
+            assert_eq!(balance, 0);
+        }
     }
 }
