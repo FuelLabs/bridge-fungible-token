@@ -34,7 +34,7 @@ fn shift_decimals_left(bn: U256, d: u8) -> Result<U256, BridgeFungibleTokenError
         return Result::Err(BridgeFungibleTokenError::OverflowError);
     }
 
-    // shift decimals in incriments of the max power of 10 that bn_mult will allow (10^19)
+    // shift decimals in increments of the max power of 10 that bn_mult will allow (10^19)
     while (decimals_to_shift > 19) {
         // note: 10_000_000_000_000_000_000 = 10.pow(19)
         let (adjusted, overflow) = bn_mult(bn_clone, 10_000_000_000_000_000_000);
@@ -66,7 +66,7 @@ fn shift_decimals_right(bn: U256, d: u8) -> Result<U256, BridgeFungibleTokenErro
         return Result::Err(BridgeFungibleTokenError::UnderflowError);
     }
 
-    // shift decimals in incriments of the max power of 10 that bn_div will allow (10^9)
+    // shift decimals in increments of the max power of 10 that bn_div will allow (10^9)
     while (decimals_to_shift > 9u32) {
         // note: 1_000_000_000 = 10.pow(9)
         let (adjusted, remainder) = bn_div(bn_clone, 1_000_000_000u32);
