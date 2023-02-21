@@ -40,7 +40,7 @@ The ERC-20 bridge facilitates the transfer of ERC-20 tokens from Ethereum to be 
 1. The `FuelERC20Gateway` transfers tokens to itself to custody while they are bridged
 1. The `FuelERC20Gateway` creates a message in the `FuelMessagePortal` to be relayed on Fuel with the `MessageToFungibleTokenPredicate` as the recipient so that anyone can spend the `InputMessage` on the user's behalf but with guarantees that the spending transaction correctly relays the message data
 1. The Fuel client sees an outgoing message event emitted on the `FuelMessagePortal` and adds a corresponding `InputMessage` to the UTXO set with the designated recipient predicate
-1. A transaction is built and submitted by either the user or third party that meets the requirements of the `MessageToFungibleTokenPredicate` recipient
+1. A transaction is built and submitted by either the user or a third party that meets the requirements of the `MessageToFungibleTokenPredicate` recipient
 1. A single call is made from the transaction script to the intended target Fuel token contract specified in the messages data field. This function verifies the sender of the `InputMessage`, parses the data from the `InputMessage` data field and mints the appropriate amount of tokens
 
 ![ERC20 Deposit Diagram](/docs/imgs/FuelMessagingERC20Deposit.png)
