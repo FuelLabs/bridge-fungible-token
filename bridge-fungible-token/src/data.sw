@@ -7,4 +7,5 @@ pub struct MessageData {
     from: b256,
     to: Address,
     amount: b256,
+    deposit_to_contract: bool,
 }
