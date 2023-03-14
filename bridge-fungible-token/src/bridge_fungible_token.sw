@@ -41,15 +41,14 @@ storage {
     refund_amounts: StorageMap<(b256, b256), b256> = StorageMap {},
 }
 
-// Storage-dependant private functions
-#[storage(write)]
-fn register_refund(from: b256, asset: b256, amount: b256) {
-    storage.refund_amounts.insert((from, asset), amount);
-    log(RefundRegisteredEvent {
-        from,
-        asset,
-        amount,
-    });
+// Configurable Consts
+configurable {
+    DECIMALS: u8 = 9u8,
+    LAYER_1_DECIMALS: u8 =18u8,
+    LAYER_1_ERC20_GATEWAY: b256 = 0x00000000000000000000000096c53cd98B7297564716a8f2E1de2C83928Af2fe,
+    LAYER_1_TOKEN: b256 = 0x00000000000000000000000000000000000000000000000000000000deadbeef,
+    NAME: str[32] = "MY_TOKEN_00000000000000000000000",
+    SYMBOL: str[32] = "___________________________MYTKN",
 }
 
 // ABI Implementations
@@ -68,7 +67,7 @@ impl MessageReceiver for Contract {
             register_refund(message_data.from, message_data.l1_asset, message_data.amount);
             return;
         };
-        let res_amount = adjust_deposit_decimals(message_data.amount);
+        let res_amount = adjust_deposit_decimals(message_data.amount, DECIMALS, LAYER_1_DECIMALS);
         match res_amount {
             Result::Err(e) => {
                 // Register a refund if value can't be adjusted
@@ -95,7 +94,7 @@ impl BridgeFungibleToken for Contract {
         storage.refund_amounts.insert((originator, asset), ZERO_B256);
 
         // send a message to unlock this amount on the ethereum (L1) bridge contract
-        send_message(LAYER_1_ERC20_GATEWAY, encode_data(originator, stored_amount), 0);
+        send_message(LAYER_1_ERC20_GATEWAY, encode_data(originator, stored_amount, LAYER_1_TOKEN), 0);
     }
 
     #[payable]
@@ -108,8 +107,8 @@ impl BridgeFungibleToken for Contract {
         // check that the correct asset was sent with call
         require(contract_id() == origin_contract_id, BridgeFungibleTokenError::IncorrectAssetDeposited);
         burn(amount);
-        let adjusted_amount = adjust_withdrawal_decimals(amount);
-        send_message(LAYER_1_ERC20_GATEWAY, encode_data(to, adjusted_amount), 0);
+        let adjusted_amount = adjust_withdrawal_decimals(amount, DECIMALS, LAYER_1_DECIMALS);
+        send_message(LAYER_1_ERC20_GATEWAY, encode_data(to, adjusted_amount, LAYER_1_TOKEN), 0);
         log(WithdrawalEvent {
             to: to,
             from: sender,
@@ -131,4 +130,15 @@ impl BridgeFungibleToken for Contract {
     fn layer1_decimals() -> u8 {
         LAYER_1_DECIMALS
     }
+}
+
+// Storage dependent private functions
+#[storage(write)]
+fn register_refund(from: b256, asset: b256, amount: b256) {
+    storage.refund_amounts.insert((from, asset), amount);
+    log(RefundRegisteredEvent {
+        from,
+        asset,
+        amount,
+    });
 }

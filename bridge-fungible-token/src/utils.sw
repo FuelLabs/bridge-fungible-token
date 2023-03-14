@@ -95,9 +95,9 @@ fn shift_decimals_right(bn: U256, d: u8) -> Result<U256, BridgeFungibleTokenErro
 
 /// Make any necessary adjustments to decimals(precision) on the amount
 /// to be withdrawn. This amount needs to be passed via message.data as a b256
-pub fn adjust_withdrawal_decimals(val: u64) -> b256 {
-    if DECIMALS < LAYER_1_DECIMALS {
-        let result = shift_decimals_left(U256::from((0, 0, 0, val)), LAYER_1_DECIMALS - DECIMALS);
+pub fn adjust_withdrawal_decimals(val: u64, decimals: u8, l1_decimals: u8) -> b256 {
+    if decimals < l1_decimals {
+        let result = shift_decimals_left(U256::from((0, 0, 0, val)), l1_decimals - decimals);
         compose(result.unwrap().into())
     } else {
         // Either decimals are the same, or decimals are negative.
@@ -108,11 +108,11 @@ pub fn adjust_withdrawal_decimals(val: u64) -> b256 {
 }
 
 /// Make any necessary adjustments to decimals(precision) on the deposited value, and return either a converted u64 or an error if the conversion can't be achieved without overflow or loss of precision.
-pub fn adjust_deposit_decimals(msg_val: b256) -> Result<u64, BridgeFungibleTokenError> {
+pub fn adjust_deposit_decimals(msg_val: b256, decimals: u8, l1_decimals: u8) -> Result<u64, BridgeFungibleTokenError> {
     let value = U256::from(decompose(msg_val));
 
-    if LAYER_1_DECIMALS > DECIMALS {
-        let decimal_diff = LAYER_1_DECIMALS - DECIMALS;
+    if l1_decimals > decimals {
+        let decimal_diff = l1_decimals - decimals;
         let result = shift_decimals_right(value, decimal_diff);
 
         // ensure that the value does not use higher precision than is bridgeable by this contract
@@ -181,11 +181,11 @@ fn copy_bytes(dest: raw_ptr, src: raw_ptr, len: u64, offset: u64) {
 }
 
 /// Encode the data to be passed out of the contract when sending a message
-pub fn encode_data(to: b256, amount: b256) -> Bytes {
+pub fn encode_data(to: b256, amount: b256, l1_token: b256) -> Bytes {
     // capacity is 4 + 32 + 32 + 32 = 100
     let mut data = Bytes::with_capacity(100);
     let padded_to_bytes = Bytes::from(to);
-    let padded_token_bytes = Bytes::from(LAYER_1_TOKEN);
+    let padded_token_bytes = Bytes::from(l1_token);
     let amount_bytes = Bytes::from(amount);
 
     // first, we push the selector 1 byte at a time
