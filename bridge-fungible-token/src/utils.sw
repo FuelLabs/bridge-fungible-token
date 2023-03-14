@@ -85,7 +85,11 @@ fn shift_decimals_right(bn: U256, d: u8) -> Result<U256, BridgeFungibleTokenErro
 
 /// Adjust decimals(precision) on a withdrawal amount to match the originating token decimals
 /// or return an error if the conversion can't be achieved without overflow/underflow.
-pub fn adjust_withdrawal_decimals(val: u64, decimals: u8, bridged_token_decimals: u8) -> Result<b256, BridgeFungibleTokenError> {
+pub fn adjust_withdrawal_decimals(
+    val: u64,
+    decimals: u8,
+    bridged_token_decimals: u8,
+) -> Result<b256, BridgeFungibleTokenError> {
     let value = U256::from((0, 0, 0, val));
     let adjusted = if bridged_token_decimals > decimals {
         match shift_decimals_left(value, bridged_token_decimals - decimals) {
@@ -106,7 +110,11 @@ pub fn adjust_withdrawal_decimals(val: u64, decimals: u8, bridged_token_decimals
 
 /// Adjust decimals(precision) on a deposit amount to match this proxy tokens decimals
 /// or return an error if the conversion can't be achieved without overflow/underflow.
-pub fn adjust_deposit_decimals(val: b256, decimals: u8, bridged_token_decimals: u8) -> Result<u64, BridgeFungibleTokenError> {
+pub fn adjust_deposit_decimals(
+    val: b256,
+    decimals: u8,
+    bridged_token_decimals: u8,
+) -> Result<u64, BridgeFungibleTokenError> {
     let value = U256::from(decompose(val));
     let adjusted = if bridged_token_decimals > decimals {
         let result = shift_decimals_right(value, bridged_token_decimals - decimals);
