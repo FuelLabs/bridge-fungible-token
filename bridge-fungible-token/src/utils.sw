@@ -108,7 +108,11 @@ pub fn adjust_withdrawal_decimals(val: u64, decimals: u8, l1_decimals: u8) -> b2
 }
 
 /// Make any necessary adjustments to decimals(precision) on the deposited value, and return either a converted u64 or an error if the conversion can't be achieved without overflow or loss of precision.
-pub fn adjust_deposit_decimals(msg_val: b256, decimals: u8, l1_decimals: u8) -> Result<u64, BridgeFungibleTokenError> {
+pub fn adjust_deposit_decimals(
+    msg_val: b256,
+    decimals: u8,
+    l1_decimals: u8,
+) -> Result<u64, BridgeFungibleTokenError> {
     let value = U256::from(decompose(msg_val));
 
     if l1_decimals > decimals {
