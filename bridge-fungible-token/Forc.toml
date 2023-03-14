@@ -7,6 +7,7 @@ name = "bridge_fungible_token"
 [dependencies]
 bridge_fungible_token_abi = { path = "../bridge-fungible-token-abi" }
 contract_message_receiver = { path = "../bridge-message-predicates/contract-message-receiver" }
+reentrancy = { git = "https://github.com/FuelLabs/sway-libs"}
 
 [constants]
 BRIDGED_TOKEN = { type = "b256", value = "0x00000000000000000000000000000000000000000000000000000000deadbeef" }

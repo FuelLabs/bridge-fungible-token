@@ -7,6 +7,7 @@ dep utils;
 
 use bridge_fungible_token_abi::BridgeFungibleToken;
 use contract_message_receiver::MessageReceiver;
+use reentrancy::reentrancy_guard;
 use errors::BridgeFungibleTokenError;
 use events::{DepositEvent, RefundRegisteredEvent, WithdrawalEvent};
 use std::{
@@ -58,6 +59,8 @@ impl MessageReceiver for Contract {
     #[storage(read, write)]
     #[payable]
     fn process_message(msg_idx: u8) {
+        // Protect against reantract attacks that could allow replaying messages
+        reentrancy_guard();
         let input_sender = input_message_sender(1);
         require(input_sender.value == BRIDGED_TOKEN_GATEWAY, BridgeFungibleTokenError::UnauthorizedSender);
         let message_data = parse_message_data(msg_idx);
