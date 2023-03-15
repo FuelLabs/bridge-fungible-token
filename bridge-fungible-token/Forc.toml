@@ -3,9 +3,8 @@ authors = ["Fuel Labs <contact@fuel.sh>"]
 entry = "bridge_fungible_token.sw"
 license = "Apache-2.0"
 name = "bridge_fungible_token"
-
+S
 [dependencies]
 bridge_fungible_token_abi = { path = "../bridge-fungible-token-abi" }
 contract_message_receiver = { path = "../bridge-message-predicates/contract-message-receiver" }
 
-[constants]
