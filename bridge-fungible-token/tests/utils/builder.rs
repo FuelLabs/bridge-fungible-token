@@ -78,6 +78,6 @@ pub async fn build_contract_message_tx(
         tx_inputs,
         tx_outputs,
         vec![],
-    ).into()
-
+    )
+    .into()
 }

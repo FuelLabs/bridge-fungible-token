@@ -895,7 +895,14 @@ mod revert {
             message_inputs,
             _test_contract_id,
             _provider,
-        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], Some(bad_sender), None).await;
+        ) = env::setup_environment(
+            &mut wallet,
+            vec![coin],
+            vec![message],
+            Some(bad_sender),
+            None,
+        )
+        .await;
 
         // Relay the test message to the test contract
         let _receipts = env::relay_message_to_contract(
