@@ -27,7 +27,7 @@ use std::{
     message::send_message,
     token::{
         burn,
-        mint_to_address,
+        mint_to,
     },
     u256::U256,
 };
@@ -81,7 +81,7 @@ impl MessageReceiver for Contract {
                 register_refund(message_data.from, message_data.token, message_data.amount);
             },
             Result::Ok(a) => {
-                mint_to_address(a, message_data.to);
+                mint_to(a, message_data.to);
                 log(DepositEvent {
                     to: message_data.to,
                     from: message_data.from,

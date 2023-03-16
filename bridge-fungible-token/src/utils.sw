@@ -156,7 +156,7 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
     let mut msg_data = MessageData {
         token: ZERO_B256,
         from: ZERO_B256,
-        to: Address::from(ZERO_B256),
+        to: Identity::Address(Address::from(ZERO_B256)),
         amount: ZERO_B256,
         deposit_to_contract: false,
     };
@@ -164,11 +164,15 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
     // Parse the message data
     msg_data.token = input_message_data(msg_idx, 32).into();
     msg_data.from = input_message_data(msg_idx, 32 + 32).into();
-    msg_data.to = Address::from(input_message_data(msg_idx, 32 + 32 + 32).into());
     msg_data.amount = input_message_data(msg_idx, 32 + 32 + 32 + 32).into();
 
     if input_message_data_length(msg_idx) > 128 {
         msg_data.deposit_to_contract = true;
+    };
+
+    msg_data.to = match msg_data.deposit_to_contract {
+        true => Identity::ContractId(ContractId::from(input_message_data(msg_idx, 32 + 32 + 32).into())),
+        false => Identity::Address(Address::from(input_message_data(msg_idx, 32 + 32 + 32).into())),
     };
 
     msg_data

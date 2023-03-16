@@ -9,7 +9,7 @@ pub struct RefundRegisteredEvent {
 }
 
 pub struct DepositEvent {
-    to: Address,
+    to: Identity,
     from: b256,
     amount: u64,
 }
