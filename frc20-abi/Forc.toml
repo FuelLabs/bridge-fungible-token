@@ -1,0 +1,5 @@
+[project]
+authors = ["Fuel Labs <contact@fuel.sh>"]
+entry = "frc20_abi.sw"
+license = "Apache-2.0"
+name = "frc20_abi"
