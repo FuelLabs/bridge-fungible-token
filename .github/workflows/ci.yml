@@ -42,7 +42,8 @@ jobs:
       matrix:
         project: [
           'bridge-fungible-token',
-          'bridge-fungible-token-abi'
+          'bridge-abi',
+          'frc20-abi'
           ]
 
     steps:
