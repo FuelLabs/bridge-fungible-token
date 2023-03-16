@@ -11,7 +11,10 @@ use std::{
         disable_panic_on_overflow,
         enable_panic_on_overflow,
     },
-    inputs::input_message_data,
+    inputs::{
+        input_message_data,
+        input_message_data_length,
+    },
     math::*,
     u256::U256,
 };
@@ -165,7 +168,7 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
     msg_data.amount = input_message_data(msg_idx, 32 + 32 + 32 + 32).into();
 
     if input_message_data_length(msg_idx) > 128 {
-        message_data.deposit_to_contract = true;
+        msg_data.deposit_to_contract = true;
     };
 
     msg_data

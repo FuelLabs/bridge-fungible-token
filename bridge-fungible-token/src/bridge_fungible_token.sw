@@ -20,7 +20,10 @@ use std::{
     },
     constants::ZERO_B256,
     context::msg_amount,
-    inputs::input_message_sender,
+    inputs::{
+        input_message_sender,
+        input_message_data_length,
+    },
     message::send_message,
     token::{
         burn,
