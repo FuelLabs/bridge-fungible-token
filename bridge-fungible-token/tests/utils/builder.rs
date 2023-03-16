@@ -28,7 +28,7 @@ pub async fn build_contract_message_tx(
     optional_inputs: &[Input],
     optional_outputs: &[Output],
     params: TxParameters,
-) -> Script {
+) -> ScriptTransaction {
     // Get the script and predicate for contract messages
     let (script_bytecode, _) = get_contract_message_script().await;
 
@@ -68,8 +68,9 @@ pub async fn build_contract_message_tx(
     tx_inputs.append(&mut optional_inputs.to_vec());
     tx_outputs.append(&mut optional_outputs.to_vec());
 
-    // Create the transaction
-    Transaction::script(
+    // Create a new transaction
+    let mut script_tx = ScriptTransaction::new(tx_inputs, tx_outputs, params);
+    let tx = Transaction::script(
         params.gas_price,
         CONTRACT_MESSAGE_MIN_GAS * 10,
         params.maturity,
@@ -78,5 +79,6 @@ pub async fn build_contract_message_tx(
         tx_inputs,
         tx_outputs,
         vec![],
-    )
+    );
+    script_tx.with_script(tx)
 }
