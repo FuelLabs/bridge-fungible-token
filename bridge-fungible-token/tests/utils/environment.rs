@@ -191,12 +191,12 @@ pub async fn setup_environment(
     wallet.set_provider(provider.clone());
 
     let test_contract_id = match configurables {
-        Some(c) => Contract::deploy_with_parameters(
+        Some(config) => Contract::deploy_with_parameters(
             TEST_BRIDGE_FUNGIBLE_TOKEN_CONTRACT_BINARY,
             &wallet,
             TxParameters::default(),
             StorageConfiguration::default(),
-            c.into(),
+            config.into(),
             Salt::default(),
         )
         .await
