@@ -69,8 +69,7 @@ pub async fn build_contract_message_tx(
     tx_outputs.append(&mut optional_outputs.to_vec());
 
     // Create a new transaction
-    let mut script_tx = ScriptTransaction::new(tx_inputs, tx_outputs, params);
-    let tx = Transaction::script(
+    Transaction::script(
         params.gas_price,
         CONTRACT_MESSAGE_MIN_GAS * 10,
         params.maturity,
@@ -79,6 +78,6 @@ pub async fn build_contract_message_tx(
         tx_inputs,
         tx_outputs,
         vec![],
-    );
-    script_tx.with_script(tx)
+    ).into()
+
 }
