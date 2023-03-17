@@ -90,7 +90,6 @@ pub fn adjust_withdrawal_decimals(
     decimals: u8,
     bridged_token_decimals: u8,
 ) -> Result<b256, BridgeFungibleTokenError> {
-    log(111);
     let value = U256::from((0, 0, 0, val));
     let adjusted = if bridged_token_decimals > decimals {
         match shift_decimals_left(value, bridged_token_decimals - decimals) {
