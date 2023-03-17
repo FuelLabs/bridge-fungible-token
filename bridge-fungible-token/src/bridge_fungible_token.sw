@@ -6,7 +6,7 @@ dep events;
 dep utils;
 
 use fungible_bridge_abi::FungibleBridge;
-use frc20_abi::FRC20;
+use FRC20_abi::FRC20;
 use contract_message_receiver::MessageReceiver;
 use errors::BridgeFungibleTokenError;
 use events::{DepositEvent, RefundRegisteredEvent, WithdrawalEvent};
