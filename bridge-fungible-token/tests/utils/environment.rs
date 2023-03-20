@@ -8,8 +8,7 @@ use std::str::FromStr;
 use fuels::signers::fuel_crypto::SecretKey;
 use fuels::test_helpers::{setup_single_message, setup_test_client, Config, DEFAULT_COIN_AMOUNT};
 use fuels::tx::{
-    Address, AssetId, Bytes32, ConsensusParameters, Input, Output, Receipt, TxPointer,
-    UtxoId, Word,
+    Address, AssetId, Bytes32, ConsensusParameters, Input, Output, Receipt, TxPointer, UtxoId, Word,
 };
 use fuels::{
     prelude::*,
@@ -192,8 +191,7 @@ pub async fn setup_environment(
         Some(config) => Contract::deploy(
             TEST_BRIDGE_FUNGIBLE_TOKEN_CONTRACT_BINARY,
             &wallet,
-            DeployConfiguration::default()
-                .set_configurables(config),
+            DeployConfiguration::default().set_configurables(config),
         )
         .await
         .unwrap(),
@@ -311,7 +309,6 @@ pub async fn prefix_contract_id(data: Vec<u8>) -> Vec<u8> {
         DeployConfiguration::default(),
     )
     .unwrap();
-
 
     let (test_contract_id, _) = Contract::compute_contract_id_and_state_root(&compiled_contract);
 

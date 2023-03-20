@@ -856,11 +856,8 @@ mod revert {
         // Now try to withdraw
         let withdrawal_amount = 999999999;
         let custom_tx_params = TxParameters::new(0, 30_000_000, 0);
-        let call_params = CallParameters::new(
-            withdrawal_amount,
-            AssetId::new(*test_contract_id.hash()),
-            0,
-        );
+        let call_params =
+            CallParameters::new(withdrawal_amount, AssetId::new(*test_contract_id.hash()), 0);
 
         // The following withdraw should fail since it doesn't meet the minimum withdraw (underflow error)
         test_contract
