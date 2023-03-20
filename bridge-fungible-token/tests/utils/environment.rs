@@ -288,22 +288,9 @@ pub async fn sign_and_call_tx(wallet: &WalletUnlocked, tx: &mut ScriptTransactio
     provider.send_transaction(tx).await.unwrap()
 }
 
-// fn compute_contract_id(
-//     binary: Vec<u8, Global>
-// ) -> ContractId {
-//     let contract = Contract::from(binary.as_slice());
-//     let root = contract.root();
-//     let state_root = Contract::initial_state_root(compiled_contract.storage_slots.iter());
-
-//     let contract_id = fuel_contract.id(&compiled_contract.salt, &root, &state_root);
-
-//     contract_id
-// }
-
 /// Prefixes the given bytes with the test contract ID
 pub async fn prefix_contract_id(data: Vec<u8>) -> Vec<u8> {
     // Compute the test contract ID
-    let storage_configuration = StorageConfiguration::default();
     let compiled_contract = Contract::load_contract(
         TEST_BRIDGE_FUNGIBLE_TOKEN_CONTRACT_BINARY,
         DeployConfiguration::default(),
