@@ -2,7 +2,7 @@ mod utils {
     pub mod builder;
     pub mod environment;
 }
-use crate::env::RefundRegisteredEvent;
+use crate::env::{RefundRegisteredEvent, BridgeFungibleTokenContractConfigurables};
 
 use std::str::FromStr;
 use utils::environment as env;
@@ -25,7 +25,7 @@ mod success {
     #[tokio::test]
     async fn relay_message_with_predicate_and_script_constraint() {
         let mut wallet = env::setup_wallet();
-
+        let configurables: Option<BridgeFungibleTokenContractConfigurables> = None;
         // generate the test config struct based on the decimals
         let config = env::generate_test_config((BRIDGED_TOKEN_DECIMALS, PROXY_TOKEN_DECIMALS));
         let (message, coin) = env::construct_msg_data(
@@ -33,6 +33,7 @@ mod success {
             FROM,
             wallet.address().hash().to_vec(),
             config.test_amount,
+            configurables.clone(),
         )
         .await;
 
@@ -44,7 +45,7 @@ mod success {
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None, None).await;
+        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None, configurables).await;
 
         // Relay the test message to the test contract
         let _receipts = env::relay_message_to_contract(
@@ -79,7 +80,7 @@ mod success {
     #[tokio::test]
     async fn depositing_max_amount_ok() {
         let mut wallet = env::setup_wallet();
-
+        let configurables: Option<BridgeFungibleTokenContractConfigurables> = None;
         let config = env::generate_test_config((BRIDGED_TOKEN_DECIMALS, PROXY_TOKEN_DECIMALS));
 
         let (message, coin) = env::construct_msg_data(
@@ -87,6 +88,7 @@ mod success {
             FROM,
             wallet.address().hash().to_vec(),
             config.max_amount,
+            configurables.clone(),
         )
         .await;
 
@@ -98,7 +100,7 @@ mod success {
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None, None).await;
+        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None, configurables).await;
 
         // Relay the test message to the test contract
         let _receipts = env::relay_message_to_contract(
@@ -136,6 +138,7 @@ mod success {
         // perform a failing deposit first to register a refund & verify it, then claim and verify output message is created as expected
         let mut wallet = env::setup_wallet();
 
+        let configurables: Option<BridgeFungibleTokenContractConfigurables> = None;
         let config = env::generate_test_config((BRIDGED_TOKEN_DECIMALS, PROXY_TOKEN_DECIMALS));
 
         let (message, coin) = env::construct_msg_data(
@@ -143,6 +146,7 @@ mod success {
             FROM,
             wallet.address().hash().to_vec(),
             config.overflow_2,
+            configurables.clone(),
         )
         .await;
 
@@ -154,7 +158,7 @@ mod success {
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None, None).await;
+        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None, configurables).await;
 
         // Relay the test message to the test contract
         let receipts = env::relay_message_to_contract(
@@ -241,12 +245,16 @@ mod success {
     async fn withdraw_from_bridge() {
         // perform successful deposit first, verify it, then withdraw and verify balances
         let mut wallet = env::setup_wallet();
+        let configurables: Option<BridgeFungibleTokenContractConfigurables> = None;
         let config = env::generate_test_config((BRIDGED_TOKEN_DECIMALS, PROXY_TOKEN_DECIMALS));
+
         let (message, coin) = env::construct_msg_data(
             BRIDGED_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
             config.max_amount,
+            configurables.clone(),
+
         )
         .await;
 
@@ -258,7 +266,7 @@ mod success {
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None, None).await;
+        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None, configurables).await;
 
         // Relay the test message to the test contract
         let _receipts = env::relay_message_to_contract(
@@ -346,11 +354,13 @@ mod success {
         // first make a deposit
         let mut wallet = env::setup_wallet();
         let config = env::generate_test_config((BRIDGED_TOKEN_DECIMALS, PROXY_TOKEN_DECIMALS));
+        let configurables: Option<BridgeFungibleTokenContractConfigurables> = None;
         let (message, coin) = env::construct_msg_data(
             BRIDGED_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
             config.min_amount,
+            configurables.clone(),
         )
         .await;
 
@@ -362,7 +372,7 @@ mod success {
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None, None).await;
+        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None, configurables).await;
 
         // Relay the test message to the test contract
         let _receipts = env::relay_message_to_contract(
@@ -446,6 +456,7 @@ mod success {
         if BRIDGED_TOKEN_DECIMALS <= PROXY_TOKEN_DECIMALS {
             return ();
         }
+        let configurables: Option<BridgeFungibleTokenContractConfigurables> = None;
 
         // Create start test message
         let mut wallet = env::setup_wallet();
@@ -455,6 +466,7 @@ mod success {
             FROM,
             wallet.address().hash().to_vec(),
             config.not_enough,
+            configurables.clone(),
         )
         .await;
 
@@ -466,7 +478,7 @@ mod success {
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None, None).await;
+        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None, configurables).await;
 
         // Relay the test message to the test contract
         let receipts = env::relay_message_to_contract(
@@ -515,12 +527,14 @@ mod success {
     #[tokio::test]
     async fn depositing_amount_too_large_registers_refund() {
         let mut wallet = env::setup_wallet();
+        let configurables: Option<BridgeFungibleTokenContractConfigurables> = None;
         let config = env::generate_test_config((BRIDGED_TOKEN_DECIMALS, PROXY_TOKEN_DECIMALS));
         let (message, coin) = env::construct_msg_data(
             BRIDGED_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
             config.overflow_1,
+            configurables.clone(),
         )
         .await;
 
@@ -532,7 +546,7 @@ mod success {
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None, None).await;
+        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None, configurables).await;
 
         // Relay the test message to the test contract
         let receipts = env::relay_message_to_contract(
@@ -583,6 +597,7 @@ mod success {
     #[tokio::test]
     async fn depositing_amount_too_large_registers_refund_2() {
         let mut wallet = env::setup_wallet();
+        let configurables: Option<BridgeFungibleTokenContractConfigurables> = None;
         let config = env::generate_test_config((BRIDGED_TOKEN_DECIMALS, PROXY_TOKEN_DECIMALS));
 
         let (message, coin) = env::construct_msg_data(
@@ -590,6 +605,7 @@ mod success {
             FROM,
             wallet.address().hash().to_vec(),
             config.overflow_2,
+            configurables.clone(),
         )
         .await;
 
@@ -601,7 +617,7 @@ mod success {
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None, None).await;
+        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None, configurables).await;
 
         // Relay the test message to the test contract
         let receipts = env::relay_message_to_contract(
@@ -652,6 +668,7 @@ mod success {
     #[tokio::test]
     async fn depositing_amount_too_large_registers_refund_3() {
         let mut wallet = env::setup_wallet();
+        let configurables: Option<BridgeFungibleTokenContractConfigurables> = None;
         let config = env::generate_test_config((BRIDGED_TOKEN_DECIMALS, PROXY_TOKEN_DECIMALS));
 
         let (message, coin) = env::construct_msg_data(
@@ -659,6 +676,7 @@ mod success {
             FROM,
             wallet.address().hash().to_vec(),
             config.overflow_3,
+            configurables.clone(),
         )
         .await;
 
@@ -670,7 +688,7 @@ mod success {
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None, None).await;
+        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None, configurables).await;
 
         // Relay the test message to the test contract
         let receipts = env::relay_message_to_contract(
@@ -801,6 +819,7 @@ mod revert {
         if BRIDGED_TOKEN_DECIMALS >= PROXY_TOKEN_DECIMALS {
             panic!("Revert(0)");
         }
+        let configurables: Option<BridgeFungibleTokenContractConfigurables> = None;
 
         // perform successful deposit first, verify it, then withdraw and verify balances
         let mut wallet = env::setup_wallet();
@@ -810,6 +829,7 @@ mod revert {
             FROM,
             wallet.address().hash().to_vec(),
             config.max_amount,
+            configurables.clone(),
         )
         .await;
 
@@ -821,7 +841,7 @@ mod revert {
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None, None).await;
+        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None, configurables).await;
 
         // Relay the test message to the test contract
         let _receipts = env::relay_message_to_contract(
@@ -876,9 +896,10 @@ mod revert {
     #[should_panic(expected = "Revert(18446744073709486080)")]
     async fn verification_fails_with_wrong_sender() {
         let mut wallet = env::setup_wallet();
+        let configurables: Option<BridgeFungibleTokenContractConfigurables> = None;
         let config = env::generate_test_config((BRIDGED_TOKEN_DECIMALS, PROXY_TOKEN_DECIMALS));
         let (message, coin) =
-            env::construct_msg_data(BRIDGED_TOKEN, FROM, env::decode_hex(TO), config.min_amount)
+            env::construct_msg_data(BRIDGED_TOKEN, FROM, env::decode_hex(TO), config.min_amount, configurables.clone(),)
                 .await;
 
         let bad_sender: &str =
@@ -897,7 +918,7 @@ mod revert {
             vec![coin],
             vec![message],
             Some(bad_sender),
-            None,
+            configurables,
         )
         .await;
 
@@ -917,14 +938,16 @@ mod revert {
     async fn delta_decimals_too_big_registers_refund() {
         // In cases where BRIDGED_TOKEN_DECIMALS - PROXY_TOKEN_DECIMALS > 19,
         // there would be arithmetic overflow and possibly tokens lost.
-        // We want to catch these cases eraly and register a refund.
+        // We want to catch these cases early and register a refund.
         let mut wallet = env::setup_wallet();
+        let configurables: Option<BridgeFungibleTokenContractConfigurables> = None;
         let config = env::generate_test_config((BRIDGED_TOKEN_DECIMALS, PROXY_TOKEN_DECIMALS));
         let (message, coin) = env::construct_msg_data(
             BRIDGED_TOKEN,
             FROM,
             wallet.address().hash().to_vec(),
             config.test_amount,
+            configurables.clone(),
         )
         .await;
 
@@ -936,7 +959,7 @@ mod revert {
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None, None).await;
+        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None, configurables).await;
 
         // Relay the test message to the test contract
         let receipts = env::relay_message_to_contract(
@@ -989,6 +1012,7 @@ mod revert {
     #[tokio::test]
     async fn deposit_with_wrong_token_registers_refund() {
         let mut wallet = env::setup_wallet();
+        let configurables: Option<BridgeFungibleTokenContractConfigurables> = None;
         let wrong_token_value: &str =
             "0x1111110000000000000000000000000000000000000000000000000000111111";
 
@@ -999,6 +1023,7 @@ mod revert {
             FROM,
             env::decode_hex(TO),
             config.min_amount,
+            configurables.clone(),
         )
         .await;
 
@@ -1010,7 +1035,7 @@ mod revert {
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None, None).await;
+        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None, configurables).await;
 
         // Relay the test message to the test contract
         let receipts = env::relay_message_to_contract(

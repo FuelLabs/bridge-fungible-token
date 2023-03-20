@@ -97,12 +97,12 @@ pub fn adjust_withdrawal_decimals(
     let adjusted = if bridged_token_decimals > decimals {
         match shift_decimals_left(value, bridged_token_decimals - decimals) {
             Result::Err(e) => return Result::Err(e),
-            Result::Ok(v) => (v.a, v.b, v.c, v.d), //v.into(),
+            Result::Ok(v) => v.into(),
         }
     } else if bridged_token_decimals < decimals {
         match shift_decimals_right(value, decimals - bridged_token_decimals) {
             Result::Err(e) => return Result::Err(e),
-            Result::Ok(v) => (v.a, v.b, v.c, v.d), //v.into(),
+            Result::Ok(v) => v.into(),
         }
     } else {
         (0, 0, 0, val)
@@ -166,14 +166,16 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
     msg_data.from = input_message_data(msg_idx, 32 + 32).into();
     msg_data.amount = input_message_data(msg_idx, 32 + 32 + 32 + 32).into();
 
-    if input_message_data_length(msg_idx) > 128 {
+    if input_message_data_length(msg_idx) > 128u16 {
         msg_data.deposit_to_contract = true;
     };
 
-    msg_data.to = match msg_data.deposit_to_contract {
-        true => Identity::ContractId(ContractId::from(input_message_data(msg_idx, 32 + 32 + 32).into())),
-        false => Identity::Address(Address::from(input_message_data(msg_idx, 32 + 32 + 32).into())),
-    };
+    msg_data.to = Identity::Address(Address::from(input_message_data(msg_idx, 32 + 32 + 32).into()));
+
+    // msg_data.to = match msg_data.deposit_to_contract {
+    //     true => Identity::ContractId(ContractId::from(input_message_data(msg_idx, 32 + 32 + 32).into())),
+    //     false => Identity::Address(Address::from(input_message_data(msg_idx, 32 + 32 + 32).into())),
+    // };
 
     msg_data
 }

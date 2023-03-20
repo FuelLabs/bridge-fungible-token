@@ -289,13 +289,24 @@ pub async fn sign_and_call_tx(wallet: &WalletUnlocked, tx: &mut ScriptTransactio
 }
 
 /// Prefixes the given bytes with the test contract ID
-pub async fn prefix_contract_id(data: Vec<u8>) -> Vec<u8> {
+pub async fn prefix_contract_id(data: Vec<u8>, config: Option<BridgeFungibleTokenContractConfigurables>) -> Vec<u8> {
     // Compute the test contract ID
-    let compiled_contract = Contract::load_contract(
-        TEST_BRIDGE_FUNGIBLE_TOKEN_CONTRACT_BINARY,
-        DeployConfiguration::default(),
-    )
-    .unwrap();
+    let compiled_contract = match config {
+        Some(c) => {
+            Contract::load_contract(
+                TEST_BRIDGE_FUNGIBLE_TOKEN_CONTRACT_BINARY,
+                DeployConfiguration::default().set_configurables(c),
+            )
+            .unwrap()
+        },
+        None => {
+            Contract::load_contract(
+                TEST_BRIDGE_FUNGIBLE_TOKEN_CONTRACT_BINARY,
+                DeployConfiguration::default(),
+            )
+            .unwrap()
+        }
+    };
 
     let (test_contract_id, _) = Contract::compute_contract_id_and_state_root(&compiled_contract);
 
@@ -344,6 +355,7 @@ pub async fn construct_msg_data(
     from: &str,
     mut to: Vec<u8>,
     amount: U256,
+    config: Option<BridgeFungibleTokenContractConfigurables>,
 ) -> ((u64, Vec<u8>), (u64, AssetId)) {
     let mut message_data = Vec::with_capacity(5);
     message_data.append(&mut decode_hex(&token));
@@ -351,7 +363,7 @@ pub async fn construct_msg_data(
     message_data.append(&mut to);
     message_data.append(&mut encode_hex(amount).to_vec());
 
-    let message_data = prefix_contract_id(message_data).await;
+    let message_data = prefix_contract_id(message_data, config).await;
     let message = (100, message_data);
     let coin = (DEFAULT_COIN_AMOUNT, AssetId::default());
 
@@ -360,6 +372,17 @@ pub async fn construct_msg_data(
 
 pub fn generate_variable_output() -> Vec<Output> {
     vec![Output::variable(Address::zeroed(), 0, AssetId::default())]
+}
+
+pub fn generate_optional_contract_input() -> Vec<Input> {
+    // Build contract input
+    vec![Input::Contract {
+        utxo_id: UtxoId::new(Bytes32::zeroed(), 0u8),
+        balance_root: Bytes32::zeroed(),
+        state_root: Bytes32::zeroed(),
+        tx_pointer: TxPointer::default(),
+        contract_id: ContractId::default(),
+    }]
 }
 
 pub fn parse_output_message_data(data: &[u8]) -> (Vec<u8>, Bits256, Bits256, U256) {
