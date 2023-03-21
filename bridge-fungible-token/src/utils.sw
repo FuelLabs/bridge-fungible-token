@@ -40,14 +40,14 @@ fn shift_decimals_left(bn: U256, d: u8) -> Result<U256, BridgeFungibleTokenError
     // shift decimals in increments of the max power of 10 that bn_mult will allow (10^19)
     while (decimals_to_shift > 19) {
         // note: 10_000_000_000_000_000_000 = 10.pow(19)
-        let (adjusted, overflow) = bn_mult(bn_clone, 10_000_000_000_000_000_000);
+        let (adjusted, overflow) = bn_mult(bn, 10_000_000_000_000_000_000);
         if (overflow != 0) {
             return Result::Err(BridgeFungibleTokenError::OverflowError);
         };
         decimals_to_shift = decimals_to_shift - 19;
         bn_clone = adjusted;
     }
-    let (adjusted, overflow) = bn_mult(bn_clone, 10.pow(decimals_to_shift));
+    let (adjusted, overflow) = bn_mult(bn, 10.pow(decimals_to_shift));
     if (overflow != 0) {
         return Result::Err(BridgeFungibleTokenError::OverflowError);
     }
@@ -72,8 +72,7 @@ fn shift_decimals_right(bn: U256, d: u8) -> Result<U256, BridgeFungibleTokenErro
     // shift decimals in increments of the max power of 10 that bn_div will allow (10^9)
     while (decimals_to_shift > 9u32) {
         // note: 1_000_000_000 = 10.pow(9)
-        let (adjusted, remainder) = bn_div(bn_clone, 1_000_000_000u32);
-        // let (adjusted, remainder) = (bn_clone, 0u32);
+        let (adjusted, remainder) = bn_div(bn, 1_000_000_000u32);
         if remainder != 0u32 {
             return Result::Err(BridgeFungibleTokenError::UnderflowError);
         };
@@ -95,7 +94,6 @@ pub fn adjust_withdrawal_decimals(
     bridged_token_decimals: u8,
 ) -> Result<b256, BridgeFungibleTokenError> {
     let value = U256::from((0, 0, 0, val));
-    // log(1);
     let adjusted = if bridged_token_decimals > decimals {
         match shift_decimals_left(value, bridged_token_decimals - decimals) {
             Result::Err(e) => return Result::Err(e),
@@ -168,16 +166,14 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
     msg_data.from = input_message_data(msg_idx, 32 + 32).into();
     msg_data.amount = input_message_data(msg_idx, 32 + 32 + 32 + 32).into();
 
-    if input_message_data_length(msg_idx) > 128u16 {
+    if input_message_data_length(msg_idx) > 160u16 {
         msg_data.deposit_to_contract = true;
     };
 
-    msg_data.to = Identity::Address(Address::from(input_message_data(msg_idx, 32 + 32 + 32).into()));
-
-    // msg_data.to = match msg_data.deposit_to_contract {
-    //     true => Identity::ContractId(ContractId::from(input_message_data(msg_idx, 32 + 32 + 32).into())),
-    //     false => Identity::Address(Address::from(input_message_data(msg_idx, 32 + 32 + 32).into())),
-    // };
+    msg_data.to = match msg_data.deposit_to_contract {
+        false => Identity::Address(Address::from(input_message_data(msg_idx, 32 + 32 + 32).into())),
+        true => Identity::ContractId(ContractId::from(input_message_data(msg_idx, 32 + 32 + 32).into())),
+    };
 
     msg_data
 }
@@ -212,6 +208,7 @@ pub fn encode_data(to: b256, amount: b256, bridged_token: b256) -> Bytes {
 
 // TODO: [std-lib] replace when added as a method to U128/U256
 fn bn_mult(bn: U256, factor: u64) -> (U256, u64) {
+    let unused_var = 42;
     disable_panic_on_overflow();
     let result = U256::new();
     let result = asm(bn: __addr_of(bn), factor: factor, carry_0, carry_1, value, product, sum, result: __addr_of(result)) {
@@ -255,11 +252,10 @@ fn bn_mult(bn: U256, factor: u64) -> (U256, u64) {
 
 // TODO: [std-lib] replace when added as a method to U128/U256
 fn bn_div(bn: U256, d: u32) -> (U256, u32) {
-    let bn_clone = bn;
     // bit mask to isolate the lower 32 bits of each word
     let mask: u64 = 0x00000000FFFFFFFF;
     let result = (U256::new(), 0u32);
-    asm(bn: __addr_of(bn_clone), d: d, m: mask, r0, r1, r2, r3, v0, v1, sum_1, sum_2, q, result: __addr_of(result)) {
+    asm(bn: __addr_of(bn), d: d, m: mask, r0, r1, r2, r3, v0, v1, sum_1, sum_2, q, result: __addr_of(result)) {
 		// The upper 64bits can just be divided normal
         lw   v0 bn i0;
         mod  r0 v0 d; // record the remainder

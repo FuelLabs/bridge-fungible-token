@@ -29,7 +29,6 @@ use std::{
         burn,
         mint_to,
     },
-    u256::U256,
 };
 use utils::{
     adjust_deposit_decimals,
