@@ -8,8 +8,7 @@ use std::str::FromStr;
 use fuels::signers::fuel_crypto::SecretKey;
 use fuels::test_helpers::{setup_single_message, setup_test_client, Config, DEFAULT_COIN_AMOUNT};
 use fuels::tx::{
-    Address, AssetId, Bytes32, ConsensusParameters, Input, Output, Receipt, TxPointer,
-    UtxoId, Word,
+    Address, AssetId, Bytes32, ConsensusParameters, Input, Output, Receipt, TxPointer, UtxoId, Word,
 };
 use fuels::{
     prelude::*,
