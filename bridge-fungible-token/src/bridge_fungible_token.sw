@@ -5,7 +5,8 @@ dep errors;
 dep events;
 dep utils;
 
-use bridge_fungible_token_abi::BridgeFungibleToken;
+use fungible_bridge_abi::FungibleBridge;
+use FRC20_abi::FRC20;
 use contract_message_receiver::MessageReceiver;
 use reentrancy::reentrancy_guard;
 use errors::BridgeFungibleTokenError;
@@ -42,6 +43,7 @@ use utils::{
 // Storage declarations
 storage {
     refund_amounts: StorageMap<(b256, b256), b256> = StorageMap {},
+    tokens_minted: u64 = 0,
 }
 
 // Configurable Consts
@@ -50,8 +52,8 @@ configurable {
     BRIDGED_TOKEN_DECIMALS: u8 = 18u8,
     BRIDGED_TOKEN_GATEWAY: b256 = 0x00000000000000000000000096c53cd98B7297564716a8f2E1de2C83928Af2fe,
     BRIDGED_TOKEN: b256 = 0x00000000000000000000000000000000000000000000000000000000deadbeef,
-    NAME: str[32] = "________________________MY_TOKEN",
-    SYMBOL: str[32] = "___________________________MYTKN",
+    NAME: str[64] = "MY_TOKEN                                                        ",
+    SYMBOL: str[32] = "MYTKN                           ",
 }
 
 // ABI Implementations
@@ -90,7 +92,7 @@ impl MessageReceiver for Contract {
         }
     }
 }
-impl BridgeFungibleToken for Contract {
+impl FungibleBridge for Contract {
     #[storage(read, write)]
     fn claim_refund(originator: b256, asset: b256) {
         let stored_amount = storage.refund_amounts.get((originator, asset)).unwrap();
@@ -103,6 +105,7 @@ impl BridgeFungibleToken for Contract {
         send_message(BRIDGED_TOKEN_GATEWAY, encode_data(originator, stored_amount, BRIDGED_TOKEN), 0);
     }
 
+    #[storage(read, write)]
     #[payable]
     fn withdraw(to: b256) {
         let amount = msg_amount();
@@ -112,6 +115,7 @@ impl BridgeFungibleToken for Contract {
 
         // attempt to adjust amount into base layer decimals and burn the sent tokens
         let adjusted_amount = adjust_withdrawal_decimals(amount, DECIMALS, BRIDGED_TOKEN_DECIMALS).unwrap();
+        storage.tokens_minted -= amount;
         burn(amount);
 
         // send a message to unlock this amount on the base layer gateway contract
@@ -124,18 +128,6 @@ impl BridgeFungibleToken for Contract {
         });
     }
 
-    fn name() -> str[32] {
-        NAME
-    }
-
-    fn symbol() -> str[32] {
-        SYMBOL
-    }
-
-    fn decimals() -> u8 {
-        DECIMALS
-    }
-
     fn bridged_token() -> b256 {
         BRIDGED_TOKEN
     }
@@ -146,6 +138,25 @@ impl BridgeFungibleToken for Contract {
 
     fn bridged_token_gateway() -> b256 {
         BRIDGED_TOKEN_GATEWAY
+    }
+}
+
+impl FRC20 for Contract {
+    #[storage(read)]
+    fn total_supply() -> U256 {
+        U256::from((0, 0, 0, storage.tokens_minted))
+    }
+
+    fn name() -> str[64] {
+        NAME
+    }
+
+    fn symbol() -> str[32] {
+        SYMBOL
+    }
+
+    fn decimals() -> u8 {
+        DECIMALS
     }
 }
 

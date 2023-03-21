@@ -1,17 +1,17 @@
 [[package]]
+name = 'FRC20_abi'
+source = 'member'
+dependencies = ['std']
+
+[[package]]
 name = 'bridge_fungible_token'
 source = 'member'
 dependencies = [
-    'bridge_fungible_token_abi',
+    'FRC20_abi',
     'contract_message_receiver',
     'reentrancy',
     'std',
 ]
-
-[[package]]
-name = 'bridge_fungible_token_abi'
-source = 'member'
-dependencies = ['std']
 
 [[package]]
 name = 'contract_message_receiver'
