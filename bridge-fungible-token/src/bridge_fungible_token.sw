@@ -30,6 +30,7 @@ use std::{
         burn,
         mint_to,
     },
+    u256::U256,
 };
 use utils::{
     adjust_deposit_decimals,
@@ -39,6 +40,7 @@ use utils::{
     encode_data,
     parse_message_data,
 };
+
 
 // Storage declarations
 storage {
@@ -82,6 +84,7 @@ impl MessageReceiver for Contract {
                 register_refund(message_data.from, message_data.token, message_data.amount);
             },
             Result::Ok(a) => {
+                storage.tokens_minted += a;
                 mint_to(a, message_data.to);
                 log(DepositEvent {
                     to: message_data.to,

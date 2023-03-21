@@ -47,6 +47,7 @@ fn shift_decimals_left(bn: U256, d: u8) -> Result<U256, BridgeFungibleTokenError
         decimals_to_shift = decimals_to_shift - 19;
         bn_clone = adjusted;
     }
+
     let (adjusted, overflow) = bn_mult(bn, 10.pow(decimals_to_shift));
     if (overflow != 0) {
         return Result::Err(BridgeFungibleTokenError::OverflowError);
@@ -208,7 +209,6 @@ pub fn encode_data(to: b256, amount: b256, bridged_token: b256) -> Bytes {
 
 // TODO: [std-lib] replace when added as a method to U128/U256
 fn bn_mult(bn: U256, factor: u64) -> (U256, u64) {
-    let unused_var = 42;
     disable_panic_on_overflow();
     let result = U256::new();
     let result = asm(bn: __addr_of(bn), factor: factor, carry_0, carry_1, value, product, sum, result: __addr_of(result)) {
