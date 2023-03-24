@@ -43,7 +43,8 @@ jobs:
         project: [
           'bridge-fungible-token',
           'fungible-bridge-abi',
-          'FRC20-abi'
+          'FRC20-abi',
+          'test-deposit-recipient-contract'
           ]
 
     steps:

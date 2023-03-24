@@ -100,11 +100,11 @@ pub fn adjust_withdrawal_decimals(
             Result::Err(e) => return Result::Err(e),
             Result::Ok(v) => v.into(),
         }
-    } else if bridged_token_decimals < decimals {
-        match shift_decimals_right(value, decimals - bridged_token_decimals) {
-            Result::Err(e) => return Result::Err(e),
-            Result::Ok(v) => v.into(),
-        }
+    // } else if bridged_token_decimals < decimals {
+    //     match shift_decimals_right(value, decimals - bridged_token_decimals) {
+    //         Result::Err(e) => return Result::Err(e),
+    //         Result::Ok(v) => v.into(),
+    //     }
     } else {
         (0, 0, 0, val)
     };

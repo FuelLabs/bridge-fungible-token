@@ -37,3 +37,11 @@ dependencies = ['std']
 name = 'std'
 source = 'git+https://github.com/fuellabs/sway?tag=v0.35.5#49eae2dd93a1957e2a2c2fb3f51b11eb3791fc24'
 dependencies = ['core']
+
+[[package]]
+name = 'test_deposit_recipient_contract'
+source = 'member'
+dependencies = [
+    'contract_message_receiver',
+    'std',
+]

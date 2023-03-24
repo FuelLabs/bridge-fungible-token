@@ -23,7 +23,7 @@ pub async fn get_contract_message_script() -> (Vec<u8>, Bytes32) {
 /// note: unspent gas is returned to the owner of the first given gas input
 pub async fn build_contract_message_tx(
     message: Input,
-    contract: Input,
+    contracts: Vec<Input>,
     gas_coins: &[Input],
     optional_inputs: &[Input],
     optional_outputs: &[Output],
@@ -34,7 +34,9 @@ pub async fn build_contract_message_tx(
 
     // Start building tx list of inputs
     let mut tx_inputs: Vec<Input> = Vec::new();
-    tx_inputs.push(contract);
+    for contract in contracts {
+        tx_inputs.push(contract);
+    }
     tx_inputs.push(message);
 
     // Start building tx list of outputs
