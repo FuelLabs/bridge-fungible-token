@@ -15,6 +15,23 @@ use fuels::{
     types::{message::Message, Bits256},
 };
 use primitive_types::U256 as Unsigned256;
+use sha3::{Digest, Keccak256};
+
+fn keccak_hash<B>(data: B) -> Bytes32
+where
+    B: AsRef<[u8]>,
+{
+    let mut hasher = Keccak256::new();
+    hasher.update(data);
+    <[u8; Bytes32::LEN]>::from(hasher.finalize()).into()
+}
+
+fn clear_12_bytes(bytes: [u8; 32]) -> [u8; 32] {
+    let mut bytes = bytes;
+    bytes[..12].copy_from_slice(&[0u8; 12]);
+
+    bytes
+}
 
 const CONTRACT_MESSAGE_PREDICATE_BINARY: &str =
     "../bridge-message-predicates/contract_message_predicate.bin";
@@ -100,12 +117,17 @@ abigen!(
         name = "ContractMessageScript",
         abi = "./bridge-message-predicates/contract_message_script-abi.json",
     ),
+    Contract(
+        name = "DepositRecipientContract",
+        abi = "./bridge-fungible-token/out/debug/bridge_fungible_token-abi.json",
+    ),
 );
 
 pub const MESSAGE_SENDER_ADDRESS: &str =
     "0x00000000000000000000000096c53cd98B7297564716a8f2E1de2C83928Af2fe";
 pub const TEST_BRIDGE_FUNGIBLE_TOKEN_CONTRACT_BINARY: &str =
     "../bridge-fungible-token/out/debug/bridge_fungible_token.bin";
+pub const DEPOSIT_RECIPIENT_CONTRACT_BINARY: &str = "";
 
 pub fn setup_wallet() -> WalletUnlocked {
     // Create secret for wallet
@@ -344,6 +366,24 @@ pub async fn get_fungible_token_instance(
     (fungible_token_instance, fungible_token_contract_id.into())
 }
 
+pub async fn get_deposit_recipient_contract_instance(
+    wallet: WalletUnlocked,
+) -> (BridgeFungibleTokenContract, ContractId) {
+    // Deploy the target contract used for testing processing messages
+    let deposit_recipient_contract_id = Contract::deploy(
+        DEPOSIT_RECIPIENT_CONTRACT_BINARY,
+        &wallet,
+        DeployConfiguration::default(),
+    )
+    .await
+    .unwrap();
+
+    let deposit_recipient_contract =
+        BridgeFungibleTokenContract::new(deposit_recipient_contract_id.clone(), wallet);
+
+    (deposit_recipient_contract, deposit_recipient_contract_id.into())
+}
+
 pub fn encode_hex(val: Unsigned256) -> [u8; 32] {
     let mut arr = [0u8; 32];
     val.to_big_endian(&mut arr);
@@ -356,12 +396,21 @@ pub async fn construct_msg_data(
     mut to: Vec<u8>,
     amount: Unsigned256,
     config: Option<BridgeFungibleTokenContractConfigurables>,
+    deposit_to_contract: bool,
+    data: Option<Vec<u8>>,
 ) -> ((u64, Vec<u8>), (u64, AssetId)) {
     let mut message_data = Vec::with_capacity(5);
     message_data.append(&mut decode_hex(&token));
     message_data.append(&mut decode_hex(&from));
     message_data.append(&mut to);
     message_data.append(&mut encode_hex(amount).to_vec());
+
+    if deposit_to_contract {
+        let hash = keccak_hash("DEPOSIT_TO_CONTRACT");
+        let mut byte: Vec<u8> = vec![0u8];
+        byte[..1].copy_from_slice(&*hash);
+        message_data.append(&mut byte);
+    };
 
     let message_data = prefix_contract_id(message_data, config).await;
     let message = (100, message_data);
@@ -372,17 +421,6 @@ pub async fn construct_msg_data(
 
 pub fn generate_variable_output() -> Vec<Output> {
     vec![Output::variable(Address::zeroed(), 0, AssetId::default())]
-}
-
-pub fn generate_optional_contract_input() -> Vec<Input> {
-    // Build contract input
-    vec![Input::Contract {
-        utxo_id: UtxoId::new(Bytes32::zeroed(), 0u8),
-        balance_root: Bytes32::zeroed(),
-        state_root: Bytes32::zeroed(),
-        tx_pointer: TxPointer::default(),
-        contract_id: ContractId::default(),
-    }]
 }
 
 pub fn parse_output_message_data(data: &[u8]) -> (Vec<u8>, Bits256, Bits256, Unsigned256) {

@@ -419,6 +419,7 @@ dependencies = [
  "fuel-core-interfaces",
  "fuels",
  "primitive-types",
+ "sha3 0.10.6",
  "tokio",
 ]
 

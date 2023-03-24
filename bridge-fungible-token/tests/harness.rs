@@ -34,6 +34,8 @@ mod success {
             wallet.address().hash().to_vec(),
             config.test_amount,
             configurables.clone(),
+            false,
+            None,
         )
         .await;
 
@@ -89,6 +91,8 @@ mod success {
             wallet.address().hash().to_vec(),
             config.max_amount,
             configurables.clone(),
+            false,
+            None,
         )
         .await;
 
@@ -147,6 +151,8 @@ mod success {
             wallet.address().hash().to_vec(),
             config.overflow_2,
             configurables.clone(),
+            false,
+            None,
         )
         .await;
 
@@ -254,7 +260,8 @@ mod success {
             wallet.address().hash().to_vec(),
             config.max_amount,
             configurables.clone(),
-
+            false,
+            None,
         )
         .await;
 
@@ -361,6 +368,8 @@ mod success {
             wallet.address().hash().to_vec(),
             config.min_amount,
             configurables.clone(),
+            false,
+            None,
         )
         .await;
 
@@ -467,6 +476,8 @@ mod success {
             wallet.address().hash().to_vec(),
             config.not_enough,
             configurables.clone(),
+            false,
+            None,
         )
         .await;
 
@@ -535,6 +546,8 @@ mod success {
             wallet.address().hash().to_vec(),
             config.overflow_1,
             configurables.clone(),
+            false,
+            None,
         )
         .await;
 
@@ -606,6 +619,8 @@ mod success {
             wallet.address().hash().to_vec(),
             config.overflow_2,
             configurables.clone(),
+            false,
+            None,
         )
         .await;
 
@@ -677,6 +692,8 @@ mod success {
             wallet.address().hash().to_vec(),
             config.overflow_3,
             configurables.clone(),
+            false,
+            None,
         )
         .await;
 
@@ -810,6 +827,48 @@ mod success {
             .unwrap();
         assert_eq!(call_response.value, Bits256(*token_gateway))
     }
+
+    #[tokio::test]
+    async fn can_deposit_to_contract() {
+        let mut wallet = env::setup_wallet();
+        let configurables: Option<BridgeFungibleTokenContractConfigurables> = None;
+        let config = env::generate_test_config((BRIDGED_TOKEN_DECIMALS, PROXY_TOKEN_DECIMALS));
+
+        let (_deposit_contract, deposit_contract_id) = env::get_deposit_recipient_contract_instance(wallet.clone()).await;
+
+        let (message, coin) = env::construct_msg_data(
+            BRIDGED_TOKEN,
+            FROM,
+            deposit_contract_id.to_vec(),
+            config.overflow_3,
+            configurables.clone(),
+            true,
+            None,
+        )
+        .await;
+
+        // Set up the environment
+        let (
+            test_contract,
+            contract_input,
+            coin_inputs,
+            message_inputs,
+            test_contract_id,
+            provider,
+        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], None, configurables).await;
+
+        // Relay the test message to the test contract
+        let _receipts = env::relay_message_to_contract(
+            &wallet,
+            message_inputs[0].clone(),
+            contract_input,
+            &coin_inputs[..],
+            &vec![],
+            &env::generate_variable_output(),
+        )
+        .await;
+    }
+    // TODO test reentrancy_guard() !!!
 }
 
 mod revert {
@@ -833,6 +892,8 @@ mod revert {
             wallet.address().hash().to_vec(),
             config.max_amount,
             configurables.clone(),
+            false,
+            None,
         )
         .await;
 
@@ -902,7 +963,8 @@ mod revert {
         let configurables: Option<BridgeFungibleTokenContractConfigurables> = None;
         let config = env::generate_test_config((BRIDGED_TOKEN_DECIMALS, PROXY_TOKEN_DECIMALS));
         let (message, coin) =
-            env::construct_msg_data(BRIDGED_TOKEN, FROM, env::decode_hex(TO), config.min_amount, configurables.clone(),)
+            env::construct_msg_data(BRIDGED_TOKEN, FROM, env::decode_hex(TO), config.min_amount, configurables.clone(), false,
+            None,)
                 .await;
 
         let bad_sender: &str =
@@ -951,6 +1013,8 @@ mod revert {
             wallet.address().hash().to_vec(),
             config.test_amount,
             configurables.clone(),
+            false,
+            None,
         )
         .await;
 
@@ -1027,6 +1091,8 @@ mod revert {
             env::decode_hex(TO),
             config.min_amount,
             configurables.clone(),
+            false,
+            None,
         )
         .await;
 
