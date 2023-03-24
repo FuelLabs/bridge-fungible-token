@@ -429,7 +429,7 @@ pub async fn construct_msg_data(
     if deposit_to_contract {
         let hash = keccak_hash("DEPOSIT_TO_CONTRACT");
         let mut byte: Vec<u8> = vec![0u8];
-        byte[..1].copy_from_slice(&*hash);
+        byte.copy_from_slice(&hash[..1]);
         message_data.append(&mut byte);
         deposit_recipient = Option::Some(ContractId::new(to));
     };
