@@ -46,6 +46,13 @@ pub async fn build_contract_message_tx(
         balance_root: Bytes32::zeroed(),
         state_root: Bytes32::zeroed(),
     });
+    // TODO: make this conditional on deposit to contract?
+    // Need the new predicate for this to work.
+        tx_outputs.push(Output::Contract {
+        input_index: 1u8,
+        balance_root: Bytes32::zeroed(),
+        state_root: Bytes32::zeroed(),
+    });
 
     // Build a change output for the owner of the first provided coin input
     if !gas_coins.is_empty() {

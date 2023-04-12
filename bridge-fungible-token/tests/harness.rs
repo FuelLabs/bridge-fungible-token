@@ -832,6 +832,7 @@ mod success {
     async fn can_deposit_to_contract() {
         let mut wallet = env::setup_wallet();
         let deposit_contract_id = env::precalculate_id().await;
+        println!("dep id 1: {:#?}", deposit_contract_id);
 
         let configurables: Option<BridgeFungibleTokenContractConfigurables> = None;
         let config = env::generate_test_config((BRIDGED_TOKEN_DECIMALS, PROXY_TOKEN_DECIMALS));

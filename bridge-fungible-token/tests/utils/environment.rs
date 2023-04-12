@@ -219,6 +219,7 @@ pub async fn setup_environment(
         .await
         .unwrap(),
     };
+    println!("test id 1: {:#?}", test_contract_id);
 
     let test_contract = BridgeFungibleTokenContract::new(test_contract_id.clone(), wallet.clone());
 
@@ -263,7 +264,10 @@ pub async fn setup_environment(
         }
     );
 
+    println!("test contract id: {:#?}", test_contract_id);
+
     if let Some(id) = deposit_contract {
+        println!("dep recip contract id: {:#?}", id);
         contract_inputs.push(
             Input::Contract {
                 utxo_id: UtxoId::new(Bytes32::zeroed(), 0u8),
@@ -321,7 +325,7 @@ pub async fn sign_and_call_tx(wallet: &WalletUnlocked, tx: &mut ScriptTransactio
 
 pub async fn precalculate_id() -> ContractId {
     let compiled = Contract::load_contract(
-        TEST_BRIDGE_FUNGIBLE_TOKEN_CONTRACT_BINARY,
+        DEPOSIT_RECIPIENT_CONTRACT_BINARY,
         DeployConfiguration::default(),
     )
     .unwrap();
@@ -432,6 +436,7 @@ pub async fn construct_msg_data(
         byte.copy_from_slice(&hash[..1]);
         message_data.append(&mut byte);
         deposit_recipient = Option::Some(ContractId::new(to));
+        println!("dep recip: {:#?}", deposit_recipient);
     };
 
     let message_data = prefix_contract_id(message_data, config).await;
