@@ -1,9 +1,9 @@
 contract;
 
-dep data;
-dep errors;
-dep events;
-dep utils;
+mod data;
+mod errors;
+mod events;
+mod utils;
 
 use fungible_bridge_abi::FungibleBridge;
 use FRC20_abi::FRC20;
@@ -67,12 +67,9 @@ impl MessageReceiver for Contract {
         // Protect against reentrancy attacks that could allow replaying messages
         reentrancy_guard();
         let input_sender = input_message_sender(1);
-        log(111);
         require(input_sender.value == BRIDGED_TOKEN_GATEWAY, BridgeFungibleTokenError::UnauthorizedSender);
-        log(222);
         let message_data = parse_message_data(msg_idx);
         require(message_data.amount != ZERO_B256, BridgeFungibleTokenError::NoCoinsSent);
-        log(333);
 
         // register a refund if tokens don't match
         if (message_data.token != BRIDGED_TOKEN) {
@@ -86,6 +83,7 @@ impl MessageReceiver for Contract {
                 // register a refund if value can't be adjusted
                 register_refund(message_data.from, message_data.token, message_data.amount);
             },
+            // TODO:  if message.deposit_to_contract == true && message has extra data, call message_data.to.process_message(msg_idx) 
             Result::Ok(a) => {
                 storage.tokens_minted += a;
                 mint_to(a, message_data.to);
@@ -94,6 +92,16 @@ impl MessageReceiver for Contract {
                     from: message_data.from,
                     amount: a,
                 });
+
+                if message_data.len > 161 {
+                    match message_data.to {
+                        Identity::ContractId(id) => {
+                            let dest_contract = abi(MessageReceiver, id.into());
+                            dest_contract.process_message(msg_idx);
+                        },
+                        Identity::Address(a) => revert(0),
+                    }
+                }
             }
         }
     }

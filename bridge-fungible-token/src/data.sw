@@ -1,4 +1,4 @@
-library data;
+library;
 
 use std::{address::Address, contract_id::ContractId};
 
@@ -8,4 +8,5 @@ pub struct MessageData {
     to: Identity,
     amount: b256,
     deposit_to_contract: bool,
+    len: u64,
 }
