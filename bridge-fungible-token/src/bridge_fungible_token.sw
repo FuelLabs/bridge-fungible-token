@@ -22,8 +22,8 @@ use std::{
     constants::ZERO_B256,
     context::msg_amount,
     inputs::{
-        input_message_sender,
         input_message_data_length,
+        input_message_sender,
     },
     message::send_message,
     token::{
@@ -40,7 +40,6 @@ use utils::{
     encode_data,
     parse_message_data,
 };
-
 
 // Storage declarations
 storage {
