@@ -112,7 +112,8 @@ abigen!(
     ),
     Contract(
         name = "DepositRecipientContract",
-        abi = "./test-deposit-recipient-contract/out/debug/test_deposit_recipient_contract-abi.json",
+        abi =
+            "./test-deposit-recipient-contract/out/debug/test_deposit_recipient_contract-abi.json",
     ),
 );
 
@@ -120,7 +121,8 @@ pub const MESSAGE_SENDER_ADDRESS: &str =
     "0x00000000000000000000000096c53cd98B7297564716a8f2E1de2C83928Af2fe";
 pub const TEST_BRIDGE_FUNGIBLE_TOKEN_CONTRACT_BINARY: &str =
     "../bridge-fungible-token/out/debug/bridge_fungible_token.bin";
-pub const DEPOSIT_RECIPIENT_CONTRACT_BINARY: &str = "../test-deposit-recipient-contract/out/debug/test_deposit_recipient_contract.bin";
+pub const DEPOSIT_RECIPIENT_CONTRACT_BINARY: &str =
+    "../test-deposit-recipient-contract/out/debug/test_deposit_recipient_contract.bin";
 
 pub fn setup_wallet() -> WalletUnlocked {
     // Create secret for wallet
@@ -219,7 +221,6 @@ pub async fn setup_environment(
         .await
         .unwrap(),
     };
-    println!("test id 1: {:#?}", test_contract_id);
 
     let test_contract = BridgeFungibleTokenContract::new(test_contract_id.clone(), wallet.clone());
 
@@ -254,29 +255,22 @@ pub async fn setup_environment(
 
     // Build contract inputs
     let mut contract_inputs: Vec<Input> = vec![];
-    contract_inputs.push(
-        Input::Contract {
+    contract_inputs.push(Input::Contract {
+        utxo_id: UtxoId::new(Bytes32::zeroed(), 0u8),
+        balance_root: Bytes32::zeroed(),
+        state_root: Bytes32::zeroed(),
+        tx_pointer: TxPointer::default(),
+        contract_id: test_contract_id.clone().into(),
+    });
+
+    if let Some(id) = deposit_contract {
+        contract_inputs.push(Input::Contract {
             utxo_id: UtxoId::new(Bytes32::zeroed(), 0u8),
             balance_root: Bytes32::zeroed(),
             state_root: Bytes32::zeroed(),
             tx_pointer: TxPointer::default(),
-            contract_id: test_contract_id.clone().into(),
-        }
-    );
-
-    println!("test contract id: {:#?}", test_contract_id);
-
-    if let Some(id) = deposit_contract {
-        println!("dep recip contract id: {:#?}", id);
-        contract_inputs.push(
-            Input::Contract {
-                utxo_id: UtxoId::new(Bytes32::zeroed(), 0u8),
-                balance_root: Bytes32::zeroed(),
-                state_root: Bytes32::zeroed(),
-                tx_pointer: TxPointer::default(),
-                contract_id: id.clone().into(),
-            }
-        );
+            contract_id: id.clone().into(),
+        });
     }
 
     (
@@ -295,7 +289,6 @@ pub async fn relay_message_to_contract(
     message: Input,
     contracts: Vec<Input>,
     gas_coins: &[Input],
-    optional_inputs: &[Input],
     optional_outputs: &[Output],
 ) -> Vec<Receipt> {
     // Build transaction
@@ -303,11 +296,12 @@ pub async fn relay_message_to_contract(
         message,
         contracts,
         gas_coins,
-        optional_inputs,
         optional_outputs,
         TxParameters::default(),
     )
     .await;
+
+    println!("tx: {:#?}", tx);
 
     // Sign transaction and call
     sign_and_call_tx(wallet, &mut tx).await
@@ -320,10 +314,11 @@ pub async fn sign_and_call_tx(wallet: &WalletUnlocked, tx: &mut ScriptTransactio
 
     // Sign transaction and call
     wallet.sign_transaction(tx).await.unwrap();
+    println!("Signed TX: {:#?}", tx);
     provider.send_transaction(tx).await.unwrap()
 }
 
-pub async fn precalculate_id() -> ContractId {
+pub async fn precalculate_deposit_id() -> ContractId {
     let compiled = Contract::load_contract(
         DEPOSIT_RECIPIENT_CONTRACT_BINARY,
         DeployConfiguration::default(),
@@ -334,23 +329,22 @@ pub async fn precalculate_id() -> ContractId {
 }
 
 /// Prefixes the given bytes with the test contract ID
-pub async fn prefix_contract_id(data: Vec<u8>, config: Option<BridgeFungibleTokenContractConfigurables>) -> Vec<u8> {
+pub async fn prefix_contract_id(
+    data: Vec<u8>,
+    config: Option<BridgeFungibleTokenContractConfigurables>,
+) -> Vec<u8> {
     // Compute the test contract ID
     let compiled_contract = match config {
-        Some(c) => {
-            Contract::load_contract(
-                TEST_BRIDGE_FUNGIBLE_TOKEN_CONTRACT_BINARY,
-                DeployConfiguration::default().set_configurables(c),
-            )
-            .unwrap()
-        },
-        None => {
-            Contract::load_contract(
-                TEST_BRIDGE_FUNGIBLE_TOKEN_CONTRACT_BINARY,
-                DeployConfiguration::default(),
-            )
-            .unwrap()
-        }
+        Some(c) => Contract::load_contract(
+            TEST_BRIDGE_FUNGIBLE_TOKEN_CONTRACT_BINARY,
+            DeployConfiguration::default().set_configurables(c),
+        )
+        .unwrap(),
+        None => Contract::load_contract(
+            TEST_BRIDGE_FUNGIBLE_TOKEN_CONTRACT_BINARY,
+            DeployConfiguration::default(),
+        )
+        .unwrap(),
     };
 
     let (test_contract_id, _) = Contract::compute_contract_id_and_state_root(&compiled_contract);
@@ -402,9 +396,12 @@ pub async fn get_deposit_recipient_contract_instance(
     .unwrap();
 
     let deposit_recipient_contract =
-    DepositRecipientContract::new(deposit_recipient_contract_id.clone(), wallet);
+        DepositRecipientContract::new(deposit_recipient_contract_id.clone(), wallet);
 
-    (deposit_recipient_contract, deposit_recipient_contract_id.into())
+    (
+        deposit_recipient_contract,
+        deposit_recipient_contract_id.into(),
+    )
 }
 
 pub fn encode_hex(val: Unsigned256) -> [u8; 32] {

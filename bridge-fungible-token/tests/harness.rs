@@ -2,7 +2,7 @@ mod utils {
     pub mod builder;
     pub mod environment;
 }
-use crate::env::{RefundRegisteredEvent, BridgeFungibleTokenContractConfigurables};
+use crate::env::{BridgeFungibleTokenContractConfigurables, RefundRegisteredEvent};
 
 use std::str::FromStr;
 use utils::environment as env;
@@ -47,7 +47,15 @@ mod success {
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], deposit_contract, None, configurables).await;
+        ) = env::setup_environment(
+            &mut wallet,
+            vec![coin],
+            vec![message],
+            deposit_contract,
+            None,
+            configurables,
+        )
+        .await;
 
         // Relay the test message to the test contract
         let _receipts = env::relay_message_to_contract(
@@ -55,7 +63,6 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &vec![],
             &env::generate_variable_output(),
         )
         .await;
@@ -104,7 +111,15 @@ mod success {
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], deposit_contract, None, configurables).await;
+        ) = env::setup_environment(
+            &mut wallet,
+            vec![coin],
+            vec![message],
+            deposit_contract,
+            None,
+            configurables,
+        )
+        .await;
 
         // Relay the test message to the test contract
         let _receipts = env::relay_message_to_contract(
@@ -112,7 +127,6 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &vec![],
             &env::generate_variable_output(),
         )
         .await;
@@ -164,7 +178,15 @@ mod success {
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], deposit_contract, None, configurables).await;
+        ) = env::setup_environment(
+            &mut wallet,
+            vec![coin],
+            vec![message],
+            deposit_contract,
+            None,
+            configurables,
+        )
+        .await;
 
         // Relay the test message to the test contract
         let receipts = env::relay_message_to_contract(
@@ -172,7 +194,6 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &vec![],
             &env::generate_variable_output(),
         )
         .await;
@@ -273,7 +294,15 @@ mod success {
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], deposit_contract, None, configurables).await;
+        ) = env::setup_environment(
+            &mut wallet,
+            vec![coin],
+            vec![message],
+            deposit_contract,
+            None,
+            configurables,
+        )
+        .await;
 
         // Relay the test message to the test contract
         let _receipts = env::relay_message_to_contract(
@@ -281,7 +310,6 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &vec![],
             &env::generate_variable_output(),
         )
         .await;
@@ -381,7 +409,15 @@ mod success {
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], deposit_contract, None, configurables).await;
+        ) = env::setup_environment(
+            &mut wallet,
+            vec![coin],
+            vec![message],
+            deposit_contract,
+            None,
+            configurables,
+        )
+        .await;
 
         // Relay the test message to the test contract
         let _receipts = env::relay_message_to_contract(
@@ -389,7 +425,6 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &vec![],
             &env::generate_variable_output(),
         )
         .await;
@@ -489,7 +524,15 @@ mod success {
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], deposit_contract, None, configurables).await;
+        ) = env::setup_environment(
+            &mut wallet,
+            vec![coin],
+            vec![message],
+            deposit_contract,
+            None,
+            configurables,
+        )
+        .await;
 
         // Relay the test message to the test contract
         let receipts = env::relay_message_to_contract(
@@ -497,7 +540,6 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &vec![],
             &env::generate_variable_output(),
         )
         .await;
@@ -559,7 +601,15 @@ mod success {
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], deposit_contract, None, configurables).await;
+        ) = env::setup_environment(
+            &mut wallet,
+            vec![coin],
+            vec![message],
+            deposit_contract,
+            None,
+            configurables,
+        )
+        .await;
 
         // Relay the test message to the test contract
         let receipts = env::relay_message_to_contract(
@@ -567,7 +617,6 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &vec![],
             &env::generate_variable_output(),
         )
         .await;
@@ -632,7 +681,15 @@ mod success {
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], deposit_contract, None, configurables).await;
+        ) = env::setup_environment(
+            &mut wallet,
+            vec![coin],
+            vec![message],
+            deposit_contract,
+            None,
+            configurables,
+        )
+        .await;
 
         // Relay the test message to the test contract
         let receipts = env::relay_message_to_contract(
@@ -640,7 +697,6 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &vec![],
             &env::generate_variable_output(),
         )
         .await;
@@ -705,7 +761,15 @@ mod success {
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], deposit_contract, None, configurables).await;
+        ) = env::setup_environment(
+            &mut wallet,
+            vec![coin],
+            vec![message],
+            deposit_contract,
+            None,
+            configurables,
+        )
+        .await;
 
         // Relay the test message to the test contract
         let receipts = env::relay_message_to_contract(
@@ -713,7 +777,6 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &vec![],
             &env::generate_variable_output(),
         )
         .await;
@@ -831,7 +894,7 @@ mod success {
     #[tokio::test]
     async fn can_deposit_to_contract() {
         let mut wallet = env::setup_wallet();
-        let deposit_contract_id = env::precalculate_id().await;
+        let deposit_contract_id = env::precalculate_deposit_id().await;
         println!("dep id 1: {:#?}", deposit_contract_id);
 
         let configurables: Option<BridgeFungibleTokenContractConfigurables> = None;
@@ -856,9 +919,18 @@ mod success {
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], deposit_contract, None, configurables).await;
+        ) = env::setup_environment(
+            &mut wallet,
+            vec![coin],
+            vec![message],
+            deposit_contract,
+            None,
+            configurables,
+        )
+        .await;
 
-        let (_deposit_contract, _) = env::get_deposit_recipient_contract_instance(wallet.clone()).await;
+        let (_deposit_contract, _) =
+            env::get_deposit_recipient_contract_instance(wallet.clone()).await;
 
         // Relay the test message to the test contract
         let _receipts = env::relay_message_to_contract(
@@ -866,10 +938,13 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &vec![],
             &env::generate_variable_output(),
         )
         .await;
+
+        for rec in _receipts {
+            println!("REceipt: {:#?}", rec);
+        }
     }
 
     // TODO test reentrancy_guard() !!!
@@ -909,7 +984,15 @@ mod revert {
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], deposit_contract, None, configurables).await;
+        ) = env::setup_environment(
+            &mut wallet,
+            vec![coin],
+            vec![message],
+            deposit_contract,
+            None,
+            configurables,
+        )
+        .await;
 
         // Relay the test message to the test contract
         let _receipts = env::relay_message_to_contract(
@@ -917,7 +1000,6 @@ mod revert {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &vec![],
             &env::generate_variable_output(),
         )
         .await;
@@ -966,10 +1048,16 @@ mod revert {
         let mut wallet = env::setup_wallet();
         let configurables: Option<BridgeFungibleTokenContractConfigurables> = None;
         let config = env::generate_test_config((BRIDGED_TOKEN_DECIMALS, PROXY_TOKEN_DECIMALS));
-        let (message, coin, deposit_contract) =
-            env::construct_msg_data(BRIDGED_TOKEN, FROM, *Address::from_str(TO).unwrap(), config.min_amount, configurables.clone(), false,
-            None,)
-                .await;
+        let (message, coin, deposit_contract) = env::construct_msg_data(
+            BRIDGED_TOKEN,
+            FROM,
+            *Address::from_str(TO).unwrap(),
+            config.min_amount,
+            configurables.clone(),
+            false,
+            None,
+        )
+        .await;
 
         let bad_sender: &str =
             "0x55555500000000000000000000000000000000000000000000000000005555555";
@@ -998,7 +1086,6 @@ mod revert {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &vec![],
             &env::generate_variable_output(),
         )
         .await;
@@ -1031,7 +1118,15 @@ mod revert {
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], deposit_contract, None, configurables).await;
+        ) = env::setup_environment(
+            &mut wallet,
+            vec![coin],
+            vec![message],
+            deposit_contract,
+            None,
+            configurables,
+        )
+        .await;
 
         // Relay the test message to the test contract
         let receipts = env::relay_message_to_contract(
@@ -1039,7 +1134,6 @@ mod revert {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &vec![],
             &env::generate_variable_output(),
         )
         .await;
@@ -1109,7 +1203,15 @@ mod revert {
             message_inputs,
             test_contract_id,
             provider,
-        ) = env::setup_environment(&mut wallet, vec![coin], vec![message], deposit_contract, None, configurables).await;
+        ) = env::setup_environment(
+            &mut wallet,
+            vec![coin],
+            vec![message],
+            deposit_contract,
+            None,
+            configurables,
+        )
+        .await;
 
         // Relay the test message to the test contract
         let receipts = env::relay_message_to_contract(
@@ -1117,7 +1219,6 @@ mod revert {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &vec![],
             &env::generate_variable_output(),
         )
         .await;

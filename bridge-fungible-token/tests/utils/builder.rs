@@ -25,34 +25,37 @@ pub async fn build_contract_message_tx(
     message: Input,
     contracts: Vec<Input>,
     gas_coins: &[Input],
-    optional_inputs: &[Input],
     optional_outputs: &[Output],
     params: TxParameters,
 ) -> ScriptTransaction {
     // Get the script and predicate for contract messages
     let (script_bytecode, _) = get_contract_message_script().await;
+    let length = contracts.len();
 
     // Start building tx list of inputs
     let mut tx_inputs: Vec<Input> = Vec::new();
+    tx_inputs.push(message);
     for contract in contracts {
         tx_inputs.push(contract);
     }
-    tx_inputs.push(message);
 
     // Start building tx list of outputs
     let mut tx_outputs: Vec<Output> = Vec::new();
     tx_outputs.push(Output::Contract {
-        input_index: 0u8,
-        balance_root: Bytes32::zeroed(),
-        state_root: Bytes32::zeroed(),
-    });
-    // TODO: make this conditional on deposit to contract?
-    // Need the new predicate for this to work.
-        tx_outputs.push(Output::Contract {
         input_index: 1u8,
         balance_root: Bytes32::zeroed(),
         state_root: Bytes32::zeroed(),
     });
+
+    // Need the new predicate for this to work.
+    // If there are more than 1 contract inputs, it means this is a deposit to contract.
+    if length > 1usize {
+        tx_outputs.push(Output::Contract {
+            input_index: 2u8,
+            balance_root: Bytes32::zeroed(),
+            state_root: Bytes32::zeroed(),
+        })
+    };
 
     // Build a change output for the owner of the first provided coin input
     if !gas_coins.is_empty() {
@@ -74,7 +77,7 @@ pub async fn build_contract_message_tx(
 
     // Append provided inputs and outputs
     tx_inputs.append(&mut gas_coins.to_vec());
-    tx_inputs.append(&mut optional_inputs.to_vec());
+    // TODO: remove this output; no longer needed with new predicate.
     tx_outputs.append(&mut optional_outputs.to_vec());
 
     // Create a new transaction
