@@ -25,7 +25,6 @@ pub async fn build_contract_message_tx(
     message: Input,
     contracts: Vec<Input>,
     gas_coins: &[Input],
-    optional_outputs: &[Output],
     params: TxParameters,
 ) -> ScriptTransaction {
     // Get the script and predicate for contract messages
@@ -78,7 +77,6 @@ pub async fn build_contract_message_tx(
     // Append provided inputs and outputs
     tx_inputs.append(&mut gas_coins.to_vec());
     // TODO: remove this output; no longer needed with new predicate.
-    tx_outputs.append(&mut optional_outputs.to_vec());
 
     // Create a new transaction
     Transaction::script(

@@ -289,17 +289,11 @@ pub async fn relay_message_to_contract(
     message: Input,
     contracts: Vec<Input>,
     gas_coins: &[Input],
-    optional_outputs: &[Output],
 ) -> Vec<Receipt> {
     // Build transaction
-    let mut tx = builder::build_contract_message_tx(
-        message,
-        contracts,
-        gas_coins,
-        optional_outputs,
-        TxParameters::default(),
-    )
-    .await;
+    let mut tx =
+        builder::build_contract_message_tx(message, contracts, gas_coins, TxParameters::default())
+            .await;
 
     println!("tx: {:#?}", tx);
 
@@ -441,10 +435,6 @@ pub async fn construct_msg_data(
     let coin = (DEFAULT_COIN_AMOUNT, AssetId::default());
 
     (message, coin, deposit_recipient)
-}
-
-pub fn generate_variable_output() -> Vec<Output> {
-    vec![Output::variable(Address::zeroed(), 0, AssetId::default())]
 }
 
 pub fn parse_output_message_data(data: &[u8]) -> (Vec<u8>, Bits256, Bits256, Unsigned256) {
