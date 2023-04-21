@@ -46,7 +46,6 @@ pub async fn build_contract_message_tx(
         state_root: Bytes32::zeroed(),
     });
 
-    // Need the new predicate for this to work.
     // If there are more than 1 contract inputs, it means this is a deposit to contract.
     if length > 1usize {
         tx_outputs.push(Output::Contract {
@@ -76,7 +75,6 @@ pub async fn build_contract_message_tx(
 
     // Append provided inputs and outputs
     tx_inputs.append(&mut gas_coins.to_vec());
-    // TODO: remove this output; no longer needed with new predicate.
 
     // Create a new transaction
     Transaction::script(

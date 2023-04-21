@@ -295,8 +295,6 @@ pub async fn relay_message_to_contract(
         builder::build_contract_message_tx(message, contracts, gas_coins, TxParameters::default())
             .await;
 
-    println!("tx: {:#?}", tx);
-
     // Sign transaction and call
     sign_and_call_tx(wallet, &mut tx).await
 }
@@ -308,7 +306,6 @@ pub async fn sign_and_call_tx(wallet: &WalletUnlocked, tx: &mut ScriptTransactio
 
     // Sign transaction and call
     wallet.sign_transaction(tx).await.unwrap();
-    println!("Signed TX: {:#?}", tx);
     provider.send_transaction(tx).await.unwrap()
 }
 
@@ -427,7 +424,6 @@ pub async fn construct_msg_data(
         byte.copy_from_slice(&hash[..1]);
         message_data.append(&mut byte);
         deposit_recipient = Option::Some(ContractId::new(to));
-        println!("dep recip: {:#?}", deposit_recipient);
     };
 
     let message_data = prefix_contract_id(message_data, config).await;
