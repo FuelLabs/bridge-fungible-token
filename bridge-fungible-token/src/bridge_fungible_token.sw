@@ -65,11 +65,8 @@ impl MessageReceiver for Contract {
     fn process_message(msg_idx: u8) {
         // Protect against reentrancy attacks that could allow replaying messages
         reentrancy_guard();
-        log(111);
         let input_sender = input_message_sender(msg_idx);
-        log(222);
         require(input_sender.value == BRIDGED_TOKEN_GATEWAY, BridgeFungibleTokenError::UnauthorizedSender);
-        log(333);
         let message_data = parse_message_data(msg_idx);
         require(message_data.amount != ZERO_B256, BridgeFungibleTokenError::NoCoinsSent);
          // register a refund if tokens don't match
