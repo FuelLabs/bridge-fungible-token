@@ -76,11 +76,7 @@ pub async fn build_contract_message_tx(
 
     // Append provided inputs and outputs
     tx_inputs.append(&mut gas_coins.to_vec());
-<<<<<<< HEAD
-=======
-    // TODO: remove this output; no longer needed with new predicate.
     tx_outputs.append(&mut optional_outputs.to_vec());
->>>>>>> parent of 682442d... test: remove uneeded variable output
 
     // Create a new transaction
     Transaction::script(
