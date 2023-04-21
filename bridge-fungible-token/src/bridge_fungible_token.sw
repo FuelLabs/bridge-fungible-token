@@ -69,7 +69,7 @@ impl MessageReceiver for Contract {
         require(input_sender.value == BRIDGED_TOKEN_GATEWAY, BridgeFungibleTokenError::UnauthorizedSender);
         let message_data = parse_message_data(msg_idx);
         require(message_data.amount != ZERO_B256, BridgeFungibleTokenError::NoCoinsSent);
-         // register a refund if tokens don't match
+        // register a refund if tokens don't match
         if (message_data.token != BRIDGED_TOKEN) {
             register_refund(message_data.from, message_data.token, message_data.amount);
             return;
