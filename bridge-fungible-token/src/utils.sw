@@ -159,12 +159,26 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
         deposit_to_contract: false,
         len: 160,
     };
-
+    log(msg_idx); // 0
+    log(444);
     // Parse the message data
-    msg_data.token = input_message_data(msg_idx, 32).into();
-    msg_data.from = input_message_data(msg_idx, 32 + 32).into();
-    msg_data.amount = input_message_data(msg_idx, 32 + 32 + 32 + 32).into();
+    let token = input_message_data(msg_idx, 32);
+    let ptr =  __addr_of(msg_data.token);
+    token.buf.ptr().copy_to::<b256>(ptr, 1);
+    // msg_data.token = input_message_data(msg_idx, 32).into();
 
+    log(555);
+    let from = input_message_data(msg_idx, 32 + 32);
+    let ptr_2 = __addr_of(msg_data.from);
+    from.buf.ptr().copy_to::<b256>(ptr_2, 1);
+    // msg_data.from = input_message_data(msg_idx, 32 + 32).into();
+
+    log(666);
+    let amount = input_message_data(msg_idx, 32 + 32 + 32 + 32);
+    let ptr_3 = __addr_of(msg_data.amount);
+    amount.buf.ptr().copy_to::<b256>(ptr_3, 1);
+    // msg_data.amount = input_message_data(msg_idx, 32 + 32 + 32 + 32).into();
+    log(777);
     // any data beyond 160 bytes means deposit is meant for a contract.
     // if data is > 161 bytes, then we also need to call process_message on the destination contract.
     msg_data.len = input_message_data_length(msg_idx); 
@@ -172,9 +186,16 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
         msg_data.deposit_to_contract = true;
     };
 
+    let mut raw_id = ZERO_B256;
+    let to = input_message_data(msg_idx, 32 + 32 + 32);
+    let ptr_4 = __addr_of(raw_id);
+    to.buf.ptr().copy_to::<b256>(ptr_4, 1);
+
     msg_data.to = match msg_data.deposit_to_contract {
-        false => Identity::Address(Address::from(input_message_data(msg_idx, 32 + 32 + 32).into())),
-        true => Identity::ContractId(ContractId::from(input_message_data(msg_idx, 32 + 32 + 32).into())),
+        // false => Identity::Address(Address::from(input_message_data(msg_idx, 32 + 32 + 32).into())),
+        false => Identity::Address(Address::from(raw_id)),
+        // true => Identity::ContractId(ContractId::from(input_message_data(msg_idx, 32 + 32 + 32).into())),
+        true => Identity::ContractId(ContractId::from(raw_id)),
     };
 
     msg_data 
@@ -316,3 +337,4 @@ fn bn_div(bn: U256, d: u32) -> (U256, u32) {
         result: (U256, u32)
     }
 }
+
