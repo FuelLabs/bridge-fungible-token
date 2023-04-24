@@ -30,7 +30,7 @@ dependencies = ['std']
 
 [[package]]
 name = 'reentrancy'
-source = 'git+https://github.com/FuelLabs/sway-libs?default-branch#ff949a7b2c2bd60a0269298ee996f60120b4341a'
+source = 'git+https://github.com/FuelLabs/sway-libs?default-branch#a122b9d467282d9400e7e25fb5a4e83f6703015b'
 dependencies = ['std']
 
 [[package]]
