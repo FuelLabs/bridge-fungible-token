@@ -23,4 +23,3 @@ impl DepositRecipient for Contract {
         storage.val.read()
     }
 }
-
