@@ -20,7 +20,7 @@ impl MessageReceiver for Contract {
 impl DepositRecipient for Contract {
     #[storage(read)]
     fn get_stored_val() -> bool {
-        storage.val
+        storage.val.read()
     }
 }
 

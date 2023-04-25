@@ -43,7 +43,7 @@ use utils::{
 
 // Storage declarations
 storage {
-    refund_amounts: StorageMap<(b256, b256), b256> = StorageMap {},
+    refund_amounts: StorageMap<b256, StorageMap<b256, b256>> = StorageMap {},
     tokens_minted: u64 = 0,
 }
 
@@ -63,14 +63,16 @@ impl MessageReceiver for Contract {
     #[storage(read, write)]
     #[payable]
     fn process_message(msg_idx: u8) {
+        log(111);
         // Protect against reentrancy attacks that could allow replaying messages
         reentrancy_guard();
         let input_sender = input_message_sender(msg_idx);
         require(input_sender.value == BRIDGED_TOKEN_GATEWAY, BridgeFungibleTokenError::UnauthorizedSender);
         let message_data = parse_message_data(msg_idx);
         require(message_data.amount != ZERO_B256, BridgeFungibleTokenError::NoCoinsSent);
-        // register a refund if tokens don't match
+         // register a refund if tokens don't match
         if (message_data.token != BRIDGED_TOKEN) {
+            log(222);
             register_refund(message_data.from, message_data.token, message_data.amount);
             return;
         };
@@ -81,9 +83,11 @@ impl MessageReceiver for Contract {
                 // register a refund if value can't be adjusted
                 register_refund(message_data.from, message_data.token, message_data.amount);
             },
-            // TODO:  if message.deposit_to_contract == true && message has extra data, call message_data.to.process_message(msg_idx) 
             Result::Ok(a) => {
-                storage.tokens_minted += a;
+                match storage.tokens_minted.try_read() {
+                    Option::Some(v) => storage.tokens_minted.write(v + a),
+                    Option::None => storage.tokens_minted.write(a),
+                };
                 mint_to(a, message_data.to);
                 log(DepositEvent {
                     to: message_data.to,
@@ -107,11 +111,11 @@ impl MessageReceiver for Contract {
 impl FungibleBridge for Contract {
     #[storage(read, write)]
     fn claim_refund(originator: b256, asset: b256) {
-        let stored_amount = storage.refund_amounts.get((originator, asset)).unwrap();
+        let stored_amount = storage.refund_amounts.get(originator).get(asset).read();
         require(stored_amount != ZERO_B256, BridgeFungibleTokenError::NoRefundAvailable);
 
         // reset the refund amount to 0
-        storage.refund_amounts.insert((originator, asset), ZERO_B256);
+        storage.refund_amounts.get(originator).insert(asset, ZERO_B256);
 
         // send a message to unlock this amount on the base layer gateway contract
         send_message(BRIDGED_TOKEN_GATEWAY, encode_data(originator, stored_amount, BRIDGED_TOKEN), 0);
@@ -127,7 +131,7 @@ impl FungibleBridge for Contract {
 
         // attempt to adjust amount into base layer decimals and burn the sent tokens
         let adjusted_amount = adjust_withdrawal_decimals(amount, DECIMALS, BRIDGED_TOKEN_DECIMALS).unwrap();
-        storage.tokens_minted -= amount;
+        storage.tokens_minted.write(storage.tokens_minted.read() - amount);
         burn(amount);
 
         // send a message to unlock this amount on the base layer gateway contract
@@ -156,7 +160,7 @@ impl FungibleBridge for Contract {
 impl FRC20 for Contract {
     #[storage(read)]
     fn total_supply() -> U256 {
-        U256::from((0, 0, 0, storage.tokens_minted))
+        U256::from((0, 0, 0, storage.tokens_minted.read()))
     }
 
     fn name() -> str[64] {
@@ -175,7 +179,7 @@ impl FRC20 for Contract {
 // Storage-dependant private functions
 #[storage(write)]
 fn register_refund(from: b256, asset: b256, amount: b256) {
-    storage.refund_amounts.insert((from, asset), amount);
+    storage.refund_amounts.get(from).insert(asset, amount);
     log(RefundRegisteredEvent {
         from,
         asset,
