@@ -414,6 +414,7 @@ pub async fn construct_msg_data(
     amount: Unsigned256,
     config: Option<BridgeFungibleTokenContractConfigurables>,
     deposit_to_contract: bool,
+    // TODO: use data, add test
     data: Option<Vec<u8>>,
 ) -> ((u64, Vec<u8>), (u64, AssetId), Option<ContractId>) {
     let mut message_data = Vec::with_capacity(5);

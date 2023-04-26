@@ -164,6 +164,7 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
     let token = input_message_data(msg_idx, 32);
     let ptr =  __addr_of(msg_data.token);
     token.buf.ptr().copy_to::<b256>(ptr, 1);
+    // TODO: when https://github.com/FuelLabs/sway/issues/4450 is fixed, remove 3 lines above and uncomment line below. Same applies to msg_data.from, msg_data.amount & msg_data.to
     // msg_data.token = input_message_data(msg_idx, 32).into();
 
     let from = input_message_data(msg_idx, 32 + 32);

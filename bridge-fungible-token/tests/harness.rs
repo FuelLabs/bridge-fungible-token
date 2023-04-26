@@ -911,14 +911,7 @@ mod success {
         .await;
 
         // Set up the environment
-        let (
-            test_contract,
-            contract_inputs,
-            coin_inputs,
-            message_inputs,
-            test_contract_id,
-            provider,
-        ) = env::setup_environment(
+        let (_, contract_inputs, coin_inputs, message_inputs, _, _) = env::setup_environment(
             &mut wallet,
             vec![coin],
             vec![message],
@@ -941,8 +934,6 @@ mod success {
         )
         .await;
     }
-
-    // TODO test reentrancy_guard() !!!
 }
 
 mod revert {
