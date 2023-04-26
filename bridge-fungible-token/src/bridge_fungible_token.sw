@@ -63,36 +63,39 @@ impl MessageReceiver for Contract {
     #[storage(read, write)]
     #[payable]
     fn process_message(msg_idx: u8) {
-        log(111);
         // Protect against reentrancy attacks that could allow replaying messages
+        // TODO: add a test to sway_libs::reentrancy to test a cross-contract message replay attack vector.
         reentrancy_guard();
+
         let input_sender = input_message_sender(msg_idx);
         require(input_sender.value == BRIDGED_TOKEN_GATEWAY, BridgeFungibleTokenError::UnauthorizedSender);
+
         let message_data = parse_message_data(msg_idx);
         require(message_data.amount != ZERO_B256, BridgeFungibleTokenError::NoCoinsSent);
+
         // register a refund if tokens don't match
         if (message_data.token != BRIDGED_TOKEN) {
-            log(222);
             register_refund(message_data.from, message_data.token, message_data.amount);
             return;
         };
 
         let res_amount = adjust_deposit_decimals(message_data.amount, DECIMALS, BRIDGED_TOKEN_DECIMALS);
+
         match res_amount {
             Result::Err(e) => {
                 // register a refund if value can't be adjusted
                 register_refund(message_data.from, message_data.token, message_data.amount);
             },
-            Result::Ok(a) => {
+            Result::Ok(amount) => {
                 match storage.tokens_minted.try_read() {
-                    Option::Some(v) => storage.tokens_minted.write(v + a),
-                    Option::None => storage.tokens_minted.write(a),
+                    Option::Some(value) => storage.tokens_minted.write(value + amount),
+                    Option::None => storage.tokens_minted.write(amount),
                 };
-                mint_to(a, message_data.to);
+                mint_to(amount, message_data.to);
                 log(DepositEvent {
                     to: message_data.to,
                     from: message_data.from,
-                    amount: a,
+                    amount: amount,
                 });
 
                 if message_data.len > 161 {
@@ -101,7 +104,7 @@ impl MessageReceiver for Contract {
                             let dest_contract = abi(MessageReceiver, id.into());
                             dest_contract.process_message(msg_idx);
                         },
-                        Identity::Address(a) => revert(0),
+                        Identity::Address(amount) => revert(0),
                     }
                 }
             }

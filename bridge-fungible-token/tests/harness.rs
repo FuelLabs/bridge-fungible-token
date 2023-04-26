@@ -63,7 +63,6 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &env::generate_variable_output(),
         )
         .await;
 
@@ -127,7 +126,6 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &env::generate_variable_output(),
         )
         .await;
 
@@ -194,7 +192,6 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &env::generate_variable_output(),
         )
         .await;
 
@@ -310,7 +307,6 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &env::generate_variable_output(),
         )
         .await;
 
@@ -425,7 +421,6 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &env::generate_variable_output(),
         )
         .await;
 
@@ -540,7 +535,6 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &env::generate_variable_output(),
         )
         .await;
 
@@ -617,7 +611,6 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &env::generate_variable_output(),
         )
         .await;
 
@@ -697,7 +690,6 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &env::generate_variable_output(),
         )
         .await;
 
@@ -777,7 +769,6 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &env::generate_variable_output(),
         )
         .await;
 
@@ -937,7 +928,6 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &env::generate_variable_output(),
         )
         .await;
     }
@@ -995,7 +985,6 @@ mod revert {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &env::generate_variable_output(),
         )
         .await;
 
@@ -1081,7 +1070,6 @@ mod revert {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &env::generate_variable_output(),
         )
         .await;
     }
@@ -1129,7 +1117,6 @@ mod revert {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &env::generate_variable_output(),
         )
         .await;
 
@@ -1189,6 +1176,7 @@ mod revert {
             None,
         )
         .await;
+        println!("Here A");
 
         // Set up the environment
         let (
@@ -1208,20 +1196,23 @@ mod revert {
         )
         .await;
 
+        println!("Here B");
+
         // Relay the test message to the test contract
         let receipts = env::relay_message_to_contract(
             &wallet,
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
-            &env::generate_variable_output(),
         )
         .await;
 
         let log_decoder = test_contract.log_decoder();
+        println!("Here C");
         let refund_registered_event = log_decoder
             .get_logs_with_type::<RefundRegisteredEvent>(&receipts)
             .unwrap();
+        println!("Here D");
 
         // Verify the message value was received by the test contract
         let test_contract_balance = provider
