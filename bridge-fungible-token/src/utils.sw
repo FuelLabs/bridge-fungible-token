@@ -180,22 +180,18 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
     // any data beyond 160 bytes means deposit is meant for a contract.
     // if data is > 161 bytes, then we also need to call process_message on the destination contract.
     msg_data.len = input_message_data_length(msg_idx); 
-    if msg_data.len > 160u16 {
-        msg_data.deposit_to_contract = true;
-    };
-
 
     let mut raw_id = ZERO_B256;
     let to = input_message_data(msg_idx, 32 + 32 + 32);
     let ptr_4 = __addr_of(raw_id);
     to.buf.ptr().copy_to::<b256>(ptr_4, 1);
 
-    msg_data.to = match msg_data.deposit_to_contract {
-        // false => Identity::Address(Address::from(input_message_data(msg_idx, 32 + 32 + 32).into())),
-        false => Identity::Address(Address::from(raw_id)),
-        // true => Identity::ContractId(ContractId::from(input_message_data(msg_idx, 32 + 32 + 32).into())),
-        true => Identity::ContractId(ContractId::from(raw_id)),
-    };
+    if msg_data.len > 160u16 {
+        msg_data.deposit_to_contract = true;
+        msg_data.to = Identity::ContractId(ContractId::from(raw_id)); 
+    } else {
+        msg_data.to = Identity::Address(Address::from(raw_id)); 
+    }
 
     msg_data 
 }

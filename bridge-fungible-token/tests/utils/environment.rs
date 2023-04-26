@@ -117,11 +117,11 @@ abigen!(
     ),
 );
 
-pub const MESSAGE_SENDER_ADDRESS: &str =
+const MESSAGE_SENDER_ADDRESS: &str =
     "0x00000000000000000000000096c53cd98B7297564716a8f2E1de2C83928Af2fe";
-pub const TEST_BRIDGE_FUNGIBLE_TOKEN_CONTRACT_BINARY: &str =
+const TEST_BRIDGE_FUNGIBLE_TOKEN_CONTRACT_BINARY: &str =
     "../bridge-fungible-token/out/debug/bridge_fungible_token.bin";
-pub const DEPOSIT_RECIPIENT_CONTRACT_BINARY: &str =
+const DEPOSIT_RECIPIENT_CONTRACT_BINARY: &str =
     "../test-deposit-recipient-contract/out/debug/test_deposit_recipient_contract.bin";
 
 pub fn setup_wallet() -> WalletUnlocked {
