@@ -63,6 +63,7 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
+            &env::generate_variable_output(),
         )
         .await;
 
@@ -126,6 +127,7 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
+            &env::generate_variable_output(),
         )
         .await;
 
@@ -192,6 +194,7 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
+            &env::generate_variable_output(),
         )
         .await;
 
@@ -307,6 +310,7 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
+            &env::generate_variable_output(),
         )
         .await;
 
@@ -421,6 +425,7 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
+            &env::generate_variable_output(),
         )
         .await;
 
@@ -535,6 +540,7 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
+            &env::generate_variable_output(),
         )
         .await;
 
@@ -611,6 +617,7 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
+            &env::generate_variable_output(),
         )
         .await;
 
@@ -690,6 +697,7 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
+            &env::generate_variable_output(),
         )
         .await;
 
@@ -769,6 +777,7 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
+            &env::generate_variable_output(),
         )
         .await;
 
@@ -928,6 +937,7 @@ mod success {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
+            &env::generate_variable_output(),
         )
         .await;
     }
@@ -985,6 +995,7 @@ mod revert {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
+            &env::generate_variable_output(),
         )
         .await;
 
@@ -1070,6 +1081,7 @@ mod revert {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
+            &env::generate_variable_output(),
         )
         .await;
     }
@@ -1117,6 +1129,7 @@ mod revert {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
+            &env::generate_variable_output(),
         )
         .await;
 
@@ -1204,6 +1217,7 @@ mod revert {
             message_inputs[0].clone(),
             contract_inputs,
             &coin_inputs[..],
+            &env::generate_variable_output(),
         )
         .await;
 
