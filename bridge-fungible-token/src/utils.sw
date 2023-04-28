@@ -19,12 +19,12 @@ use ::errors::BridgeFungibleTokenError;
 use ::data::MessageData;
 
 fn shift_decimals_left(bn: U256, d: u8) -> Result<U256, BridgeFungibleTokenError> {
-    let mut bn_clone = bn;
+    let mut bn_clone = bn ;
     let mut decimals_to_shift = asm(r1: d) { r1: u64 };
 
     // the zero case
     if (decimals_to_shift == 0) {
-        return Result::Ok(bn);
+        return Result::Ok(bn_clone );
     }
 
     // the too large case
@@ -36,7 +36,7 @@ fn shift_decimals_left(bn: U256, d: u8) -> Result<U256, BridgeFungibleTokenError
     // shift decimals in increments of the max power of 10 that bn_mult will allow (10^19)
     while (decimals_to_shift > 19) {
         // note: 10_000_000_000_000_000_000 = 10.pow(19)
-        let (adjusted, overflow) = bn_mult(bn, 10_000_000_000_000_000_000);
+        let (adjusted, overflow) = bn_mult(bn_clone , 10_000_000_000_000_000_000);
         if (overflow != 0) {
             return Result::Err(BridgeFungibleTokenError::OverflowError);
         };
@@ -44,7 +44,7 @@ fn shift_decimals_left(bn: U256, d: u8) -> Result<U256, BridgeFungibleTokenError
         bn_clone = adjusted;
     }
 
-    let (adjusted, overflow) = bn_mult(bn, 10.pow(decimals_to_shift));
+    let (adjusted, overflow) = bn_mult(bn_clone , 10.pow(decimals_to_shift));
     if (overflow != 0) {
         return Result::Err(BridgeFungibleTokenError::OverflowError);
     }
@@ -57,7 +57,7 @@ fn shift_decimals_right(bn: U256, d: u8) -> Result<U256, BridgeFungibleTokenErro
 
     // the zero case
     if (decimals_to_shift == 0u32) {
-        return Result::Ok(bn);
+        return Result::Ok(bn_clone );
     }
 
     // the too large case
@@ -69,7 +69,7 @@ fn shift_decimals_right(bn: U256, d: u8) -> Result<U256, BridgeFungibleTokenErro
     // shift decimals in increments of the max power of 10 that bn_div will allow (10^9)
     while (decimals_to_shift > 9u32) {
         // note: 1_000_000_000 = 10.pow(9)
-        let (adjusted, remainder) = bn_div(bn, 1_000_000_000u32);
+        let (adjusted, remainder) = bn_div(bn_clone , 1_000_000_000u32);
         if remainder != 0u32 {
             return Result::Err(BridgeFungibleTokenError::UnderflowError);
         };
