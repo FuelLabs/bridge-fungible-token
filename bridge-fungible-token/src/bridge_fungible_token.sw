@@ -64,7 +64,6 @@ impl MessageReceiver for Contract {
     #[payable]
     fn process_message(msg_idx: u8) {
         // Protect against reentrancy attacks that could allow replaying messages
-        // TODO: add a test to sway_libs::reentrancy to test a cross-contract message replay attack vector.
         reentrancy_guard();
 
         let input_sender = input_message_sender(msg_idx);
@@ -98,6 +97,8 @@ impl MessageReceiver for Contract {
                     amount: amount,
                 });
 
+                // when depositing to an address, the message is 160 bytes. If it is greater,
+                // we know that we need to call `process_message()` on the receiving contract.
                 if message_data.len > 161 {
                     match message_data.to {
                         Identity::ContractId(id) => {
