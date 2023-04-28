@@ -903,7 +903,7 @@ mod success {
             BRIDGED_TOKEN,
             FROM,
             *deposit_contract_id,
-            config.overflow_3,
+            config.max_amount,
             configurables.clone(),
             true,
             None,
@@ -911,18 +911,25 @@ mod success {
         .await;
 
         // Set up the environment
-        let (_, contract_inputs, coin_inputs, message_inputs, _, _) = env::setup_environment(
-            &mut wallet,
-            vec![coin],
-            vec![message],
-            deposit_contract,
-            None,
-            configurables,
-        )
-        .await;
+        let (_, contract_inputs, coin_inputs, message_inputs, _, provider) =
+            env::setup_environment(
+                &mut wallet,
+                vec![coin],
+                vec![message],
+                deposit_contract,
+                None,
+                configurables,
+            )
+            .await;
 
-        let (_deposit_contract, _) =
+        let (deposit_contract, _) =
             env::get_deposit_recipient_contract_instance(wallet.clone()).await;
+
+        // get the balance for the deposit contract before
+        let deposit_contract_base_asset_balance_before = provider
+            .get_contract_asset_balance(deposit_contract.contract_id(), AssetId::default())
+            .await
+            .unwrap();
 
         // Relay the test message to the test contract
         let _receipts = env::relay_message_to_contract(
@@ -933,6 +940,19 @@ mod success {
             &env::generate_variable_output(),
         )
         .await;
+        // TODO: Actually test that the deposit was successful ! Need to check which token we're depositing and make sure to check balances of the same token !
+
+        // get the balance for the deposit contract after
+        let deposit_contract_base_asset_balance_after = provider
+            .get_contract_asset_balance(deposit_contract.contract_id(), AssetId::default())
+            .await
+            .unwrap();
+
+        assert_eq!(
+            deposit_contract_base_asset_balance_after,
+            deposit_contract_base_asset_balance_before
+                + env::fuel_side_equivalent_amount(config.max_amount, &config)
+        );
     }
 }
 
