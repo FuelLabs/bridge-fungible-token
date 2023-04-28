@@ -15,7 +15,7 @@ const CONTRACT_MESSAGE_SCRIPT_BINARY: &str =
 /// Gets the message to contract script
 pub async fn get_contract_message_script() -> (Vec<u8>, Bytes32) {
     let script_bytecode = std::fs::read(CONTRACT_MESSAGE_SCRIPT_BINARY).unwrap();
-    let script_hash = Hasher::hash(&script_bytecode.clone());
+    let script_hash = Hasher::hash(script_bytecode.clone());
     (script_bytecode, script_hash)
 }
 
@@ -63,7 +63,7 @@ pub async fn build_contract_message_tx(
             Input::CoinSigned { owner, .. } | Input::CoinPredicate { owner, .. } => {
                 // Add change output
                 tx_outputs.push(Output::Change {
-                    to: owner.clone(),
+                    to: *owner,
                     amount: 0,
                     asset_id: AssetId::default(),
                 });

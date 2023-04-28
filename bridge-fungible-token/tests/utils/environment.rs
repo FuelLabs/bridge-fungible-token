@@ -46,12 +46,18 @@ pub fn generate_test_config(decimals: (u8, u8)) -> TestConfig {
     let proxy_token_decimals = Unsigned256::from(decimals.1);
     let one = Unsigned256::from(1);
 
-    let adjustment_factor = if bridged_token_decimals > proxy_token_decimals {
-        Unsigned256::from(10).pow(bridged_token_decimals - proxy_token_decimals)
-    } else if bridged_token_decimals < proxy_token_decimals {
-        Unsigned256::from(10).pow(proxy_token_decimals - bridged_token_decimals)
-    } else {
-        one
+    let adjustment_factor = match (bridged_token_decimals, proxy_token_decimals) {
+        (bridged_token_decimals, proxy_token_decimals)
+            if bridged_token_decimals > proxy_token_decimals =>
+        {
+            Unsigned256::from(10).pow(bridged_token_decimals - proxy_token_decimals)
+        }
+        (bridged_token_decimals, proxy_token_decimals)
+            if bridged_token_decimals < proxy_token_decimals =>
+        {
+            Unsigned256::from(10).pow(proxy_token_decimals - bridged_token_decimals)
+        }
+        _ => one,
     };
 
     let adjustment_is_div = bridged_token_decimals < proxy_token_decimals;
@@ -62,12 +68,18 @@ pub fn generate_test_config(decimals: (u8, u8)) -> TestConfig {
         one
     };
 
-    let max_amount = if bridged_token_decimals > proxy_token_decimals {
-        Unsigned256::from(u64::MAX) * adjustment_factor
-    } else if bridged_token_decimals < proxy_token_decimals {
-        Unsigned256::from(u64::MAX) / adjustment_factor
-    } else {
-        one
+    let max_amount = match (bridged_token_decimals, proxy_token_decimals) {
+        (bridged_token_decimals, proxy_token_decimals)
+            if bridged_token_decimals > proxy_token_decimals =>
+        {
+            Unsigned256::from(u64::MAX) * adjustment_factor
+        }
+        (bridged_token_decimals, proxy_token_decimals)
+            if bridged_token_decimals < proxy_token_decimals =>
+        {
+            Unsigned256::from(u64::MAX) / adjustment_factor
+        }
+        (_, _) => one,
     };
 
     let test_amount = (min_amount + max_amount) / Unsigned256::from(2);
@@ -181,7 +193,7 @@ pub async fn setup_environment(
     for msg in messages {
         all_messages.push(setup_single_message(
             &message_sender.into(),
-            &predicate_root,
+            predicate_root,
             msg.0,
             message_nonce,
             msg.1.clone(),
@@ -208,14 +220,14 @@ pub async fn setup_environment(
     let test_contract_id = match configurables {
         Some(config) => Contract::deploy(
             TEST_BRIDGE_FUNGIBLE_TOKEN_CONTRACT_BINARY,
-            &wallet,
+            wallet,
             DeployConfiguration::default().set_configurables(config),
         )
         .await
         .unwrap(),
         None => Contract::deploy(
             TEST_BRIDGE_FUNGIBLE_TOKEN_CONTRACT_BINARY,
-            &wallet,
+            wallet,
             DeployConfiguration::default(),
         )
         .await
@@ -228,10 +240,10 @@ pub async fn setup_environment(
     let coin_inputs: Vec<Input> = all_coins
         .into_iter()
         .map(|coin| Input::CoinSigned {
-            utxo_id: UtxoId::from(coin.utxo_id.clone()),
+            utxo_id: coin.utxo_id,
             owner: Address::from(coin.owner.clone()),
-            amount: coin.amount.clone().into(),
-            asset_id: AssetId::from(coin.asset_id.clone()),
+            amount: coin.amount,
+            asset_id: coin.asset_id,
             tx_pointer: TxPointer::default(),
             witness_index: 0,
             maturity: 0,
@@ -248,7 +260,7 @@ pub async fn setup_environment(
             amount: message.amount,
             nonce: message.nonce,
             data: message.data.clone(),
-            predicate: predicate.code().clone(),
+            predicate: predicate.code(),
             predicate_data: vec![],
         })
         .collect();
@@ -269,7 +281,7 @@ pub async fn setup_environment(
             balance_root: Bytes32::zeroed(),
             state_root: Bytes32::zeroed(),
             tx_pointer: TxPointer::default(),
-            contract_id: id.clone().into(),
+            contract_id: id,
         });
     }
 
@@ -327,7 +339,7 @@ pub async fn precalculate_deposit_id() -> ContractId {
 
 /// Prefixes the given bytes with the test contract ID
 pub async fn prefix_contract_id(
-    data: Vec<u8>,
+    mut data: Vec<u8>,
     config: Option<BridgeFungibleTokenContractConfigurables>,
 ) -> Vec<u8> {
     // Compute the test contract ID
@@ -349,7 +361,7 @@ pub async fn prefix_contract_id(
     // Turn contract id into array with the given data appended to it
     let test_contract_id: [u8; 32] = test_contract_id.into();
     let mut test_contract_id = test_contract_id.to_vec();
-    test_contract_id.append(&mut data.clone());
+    test_contract_id.append(&mut data);
     test_contract_id
 }
 
@@ -414,12 +426,12 @@ pub async fn construct_msg_data(
     amount: Unsigned256,
     config: Option<BridgeFungibleTokenContractConfigurables>,
     deposit_to_contract: bool,
-    // TODO: use data, add test
-    data: Option<Vec<u8>>,
+    // TODO: https://github.com/FuelLabs/bridge-fungible-token/issues/61
+    _data: Option<Vec<u8>>,
 ) -> ((u64, Vec<u8>), (u64, AssetId), Option<ContractId>) {
     let mut message_data = Vec::with_capacity(5);
-    message_data.append(&mut decode_hex(&token));
-    message_data.append(&mut decode_hex(&from));
+    message_data.append(&mut decode_hex(token));
+    message_data.append(&mut decode_hex(from));
     message_data.append(&mut to.to_vec());
     message_data.append(&mut encode_hex(amount).to_vec());
 
@@ -450,6 +462,6 @@ pub fn parse_output_message_data(data: &[u8]) -> (Vec<u8>, Bits256, Bits256, Uns
     let token_array: [u8; 32] = data[36..68].try_into().unwrap();
     let token = Bits256(token_array);
     let amount_array: [u8; 32] = data[68..100].try_into().unwrap();
-    let amount: Unsigned256 = Unsigned256::from_big_endian(&amount_array.to_vec());
+    let amount: Unsigned256 = Unsigned256::from_big_endian(amount_array.as_ref());
     (selector.to_vec(), Bits256(to), token, amount)
 }

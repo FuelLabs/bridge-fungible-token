@@ -220,11 +220,11 @@ mod success {
         );
         assert_eq!(
             refund_registered_event[0].asset,
-            Bits256::from_hex_str(&BRIDGED_TOKEN).unwrap()
+            Bits256::from_hex_str(BRIDGED_TOKEN).unwrap()
         );
         assert_eq!(
             refund_registered_event[0].from,
-            Bits256::from_hex_str(&FROM).unwrap()
+            Bits256::from_hex_str(FROM).unwrap()
         );
 
         // verify that no tokens were minted for message.data.to
@@ -232,8 +232,8 @@ mod success {
         let call_response = test_contract
             .methods()
             .claim_refund(
-                Bits256::from_hex_str(&FROM).unwrap(),
-                Bits256::from_hex_str(&BRIDGED_TOKEN).unwrap(),
+                Bits256::from_hex_str(FROM).unwrap(),
+                Bits256::from_hex_str(BRIDGED_TOKEN).unwrap(),
             )
             .append_message_outputs(1)
             .call()
@@ -262,8 +262,8 @@ mod success {
         let (selector, to, token, amount) =
             env::parse_output_message_data(message_receipt.data().unwrap());
         assert_eq!(selector, env::decode_hex("0x53ef1461").to_vec());
-        assert_eq!(to, Bits256::from_hex_str(&FROM).unwrap());
-        assert_eq!(token, Bits256::from_hex_str(&BRIDGED_TOKEN).unwrap());
+        assert_eq!(to, Bits256::from_hex_str(FROM).unwrap());
+        assert_eq!(token, Bits256::from_hex_str(BRIDGED_TOKEN).unwrap());
         // Compare the value output in the message with the original value sent
         assert_eq!(amount, config.overflow_2);
     }
@@ -375,7 +375,7 @@ mod success {
             env::parse_output_message_data(message_receipt.data().unwrap());
         assert_eq!(selector, env::decode_hex("0x53ef1461").to_vec());
         assert_eq!(to, Bits256(*wallet.address().hash()));
-        assert_eq!(token, Bits256::from_hex_str(&BRIDGED_TOKEN).unwrap());
+        assert_eq!(token, Bits256::from_hex_str(BRIDGED_TOKEN).unwrap());
         assert_eq!(amount, withdrawal_amount);
     }
 
@@ -488,7 +488,7 @@ mod success {
             env::parse_output_message_data(message_receipt.data().unwrap());
         assert_eq!(selector, env::decode_hex("0x53ef1461").to_vec());
         assert_eq!(to, Bits256(*wallet.address().hash()));
-        assert_eq!(token, Bits256::from_hex_str(&BRIDGED_TOKEN).unwrap());
+        assert_eq!(token, Bits256::from_hex_str(BRIDGED_TOKEN).unwrap());
 
         // now verify that the initial amount == the final amount
         assert_eq!(msg_data_amount, config.min_amount);
@@ -498,7 +498,7 @@ mod success {
     async fn depositing_amount_too_small_registers_refund() {
         // In cases where BRIDGED_TOKEN_DECIMALS == PROXY_TOKEN_DECIMALS or BRIDGED_TOKEN_DECIMALS < PROXY_TOKEN_DECIMALS, this test will fail because it will attempt to bridge 0 coins which will always revert.
         if BRIDGED_TOKEN_DECIMALS <= PROXY_TOKEN_DECIMALS {
-            return ();
+            return;
         }
         let configurables: Option<BridgeFungibleTokenContractConfigurables> = None;
 
@@ -566,11 +566,11 @@ mod success {
         );
         assert_eq!(
             refund_registered_event[0].asset,
-            Bits256::from_hex_str(&BRIDGED_TOKEN).unwrap()
+            Bits256::from_hex_str(BRIDGED_TOKEN).unwrap()
         );
         assert_eq!(
             refund_registered_event[0].from,
-            Bits256::from_hex_str(&FROM).unwrap()
+            Bits256::from_hex_str(FROM).unwrap()
         );
 
         // verify that no tokens were minted for message.data.to
@@ -645,11 +645,11 @@ mod success {
         );
         assert_eq!(
             refund_registered_event[0].asset,
-            Bits256::from_hex_str(&BRIDGED_TOKEN).unwrap()
+            Bits256::from_hex_str(BRIDGED_TOKEN).unwrap()
         );
         assert_eq!(
             refund_registered_event[0].from,
-            Bits256::from_hex_str(&FROM).unwrap()
+            Bits256::from_hex_str(FROM).unwrap()
         );
 
         // verify that no tokens were minted for message.data.to
@@ -725,11 +725,11 @@ mod success {
         );
         assert_eq!(
             refund_registered_event[0].asset,
-            Bits256::from_hex_str(&BRIDGED_TOKEN).unwrap()
+            Bits256::from_hex_str(BRIDGED_TOKEN).unwrap()
         );
         assert_eq!(
             refund_registered_event[0].from,
-            Bits256::from_hex_str(&FROM).unwrap()
+            Bits256::from_hex_str(FROM).unwrap()
         );
 
         // verify that no tokens were minted for message.data.to
@@ -805,11 +805,11 @@ mod success {
         );
         assert_eq!(
             refund_registered_event[0].asset,
-            Bits256::from_hex_str(&BRIDGED_TOKEN).unwrap()
+            Bits256::from_hex_str(BRIDGED_TOKEN).unwrap()
         );
         assert_eq!(
             refund_registered_event[0].from,
-            Bits256::from_hex_str(&FROM).unwrap()
+            Bits256::from_hex_str(FROM).unwrap()
         );
 
         // verify that no tokens were minted for message.data.to
@@ -854,7 +854,7 @@ mod success {
         let wallet = launch_provider_and_get_wallet().await;
         // Set up the environment
         let (contract, _id) = env::get_fungible_token_instance(wallet.clone()).await;
-        let bridged_token = Address::from_str(&BRIDGED_TOKEN).unwrap();
+        let bridged_token = Address::from_str(BRIDGED_TOKEN).unwrap();
 
         let call_response = contract.methods().bridged_token().call().await.unwrap();
         assert_eq!(call_response.value, Bits256(*bridged_token))
@@ -880,7 +880,7 @@ mod success {
         let wallet = launch_provider_and_get_wallet().await;
         // Set up the environment
         let (contract, _id) = env::get_fungible_token_instance(wallet.clone()).await;
-        let token_gateway = Address::from_str(&BRIDGED_TOKEN_GATEWAY).unwrap();
+        let token_gateway = Address::from_str(BRIDGED_TOKEN_GATEWAY).unwrap();
 
         let call_response = contract
             .methods()
@@ -1149,11 +1149,11 @@ mod revert {
 
             assert_eq!(
                 refund_registered_event[0].asset,
-                Bits256::from_hex_str(&BRIDGED_TOKEN).unwrap()
+                Bits256::from_hex_str(BRIDGED_TOKEN).unwrap()
             );
             assert_eq!(
                 refund_registered_event[0].from,
-                Bits256::from_hex_str(&FROM).unwrap()
+                Bits256::from_hex_str(FROM).unwrap()
             );
 
             // verify that no tokens were minted for message.data.to
@@ -1240,11 +1240,11 @@ mod revert {
         );
         assert_eq!(
             refund_registered_event[0].asset,
-            Bits256::from_hex_str(&wrong_token_value).unwrap()
+            Bits256::from_hex_str(wrong_token_value).unwrap()
         );
         assert_eq!(
             refund_registered_event[0].from,
-            Bits256::from_hex_str(&FROM).unwrap()
+            Bits256::from_hex_str(FROM).unwrap()
         );
 
         // verify that no tokens were minted for message.data.to
