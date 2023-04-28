@@ -1,6 +1,5 @@
 library;
 
-
 use std::{
     bytes::Bytes,
     constants::ZERO_B256,
@@ -162,16 +161,14 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
 
     // Parse the message data
     let token = input_message_data(msg_idx, 32);
-    let ptr =  __addr_of(msg_data.token);
+    let ptr = __addr_of(msg_data.token);
     token.buf.ptr().copy_to::<b256>(ptr, 1);
     // TODO: when https://github.com/FuelLabs/sway/issues/4450 is fixed, remove 3 lines above and uncomment line below. Same applies to msg_data.from, msg_data.amount & msg_data.to
     // msg_data.token = input_message_data(msg_idx, 32).into();
-
     let from = input_message_data(msg_idx, 32 + 32);
     let ptr_2 = __addr_of(msg_data.from);
     from.buf.ptr().copy_to::<b256>(ptr_2, 1);
     // msg_data.from = input_message_data(msg_idx, 32 + 32).into();
-
     let amount = input_message_data(msg_idx, 32 + 32 + 32 + 32);
     let ptr_3 = __addr_of(msg_data.amount);
     amount.buf.ptr().copy_to::<b256>(ptr_3, 1);
@@ -179,8 +176,7 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
 
     // any data beyond 160 bytes means deposit is meant for a contract.
     // if data is > 161 bytes, then we also need to call process_message on the destination contract.
-    msg_data.len = input_message_data_length(msg_idx); 
-
+    msg_data.len = input_message_data_length(msg_idx);
     let mut raw_id = ZERO_B256;
     let to = input_message_data(msg_idx, 32 + 32 + 32);
     let ptr_4 = __addr_of(raw_id);
@@ -188,12 +184,12 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
 
     if msg_data.len > 160u16 {
         msg_data.deposit_to_contract = true;
-        msg_data.to = Identity::ContractId(ContractId::from(raw_id)); 
+        msg_data.to = Identity::ContractId(ContractId::from(raw_id));
     } else {
-        msg_data.to = Identity::Address(Address::from(raw_id)); 
+        msg_data.to = Identity::Address(Address::from(raw_id));
     }
 
-    msg_data 
+    msg_data
 }
 
 /// Encode the data to be passed out of the contract when sending a message
@@ -274,9 +270,9 @@ fn bn_div(bn: U256, d: u32) -> (U256, u32) {
     let mask: u64 = 0x00000000FFFFFFFF;
     let result = (U256::new(), 0u32);
     asm(bn: __addr_of(bn_clone), d: d, m: mask, r0, r1, r2, r3, v0, v1, sum_1, sum_2, q, result: __addr_of(result)) {
-		// The upper 64bits can just be divided normal
+        // The upper 64bits can just be divided normal
         lw   v0 bn i0;
-        r#mod  r0 v0 d; // record the remainder
+        mod  r0 v0 d; // record the remainder
         div  q v0 d;
         sw   result q i0;
 
@@ -286,11 +282,11 @@ fn bn_div(bn: U256, d: u32) -> (U256, u32) {
         srli v0 v0 i32;
         slli r1 r0 i32; // the previous remainder is shifted up and added before next division
         add  v0 r1 v0;
-        r#mod  r2 v0 d; // record the remainder
+        mod  r2 v0 d; // record the remainder
         div  v0 v0 d;
         slli r3 r2 i32; // the previous remainder is shifted up and added before next division
         add  sum_1 r3 v1;
-        r#mod  r0 sum_1 d; // record the remainder
+        mod  r0 sum_1 d; // record the remainder
         div  q sum_1 d;
         slli v0 v0 i32; // re-combine the 2 32bit numbers
         add  sum_2 v0 q;
@@ -302,11 +298,11 @@ fn bn_div(bn: U256, d: u32) -> (U256, u32) {
         srli v0 v0 i32;
         slli r1 r0 i32; // the previous remainder is shifted up and added before next division
         add  v0 r1 v0;
-        r#mod  r2 v0 d; // record the remainder
+        mod  r2 v0 d; // record the remainder
         div  v0 v0 d;
         slli r3 r2 i32; // the previous remainder is shifted up and added before next division
         add  v1 r3 v1;
-        r#mod  r0 v1 d; // record the remainder
+        mod  r0 v1 d; // record the remainder
         div  v1 v1 d;
         slli v0 v0 i32; // re-combine the 2 32bit numbers
         add  v0 v0 v1;
@@ -318,11 +314,11 @@ fn bn_div(bn: U256, d: u32) -> (U256, u32) {
         srli v0 v0 i32;
         slli r1 r0 i32; // the previous remainder is shifted up and added before next division
         add  v0 r1 v0;
-        r#mod  r2 v0 d; // record the remainder
+        mod  r2 v0 d; // record the remainder
         div  v0 v0 d;
         slli r3 r2 i32; // the previous remainder is shifted up and added before next division
         add  v1 r3 v1;
-        r#mod  r0 v1 d; // record the remainder
+        mod  r0 v1 d; // record the remainder
         div  v1 v1 d;
         slli v0 v0 i32; // re-combine the 2 32bit numbers
         add  v0 v0 v1;
@@ -332,4 +328,3 @@ fn bn_div(bn: U256, d: u32) -> (U256, u32) {
         result: (U256, u32)
     }
 }
-
