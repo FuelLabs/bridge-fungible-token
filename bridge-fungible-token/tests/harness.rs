@@ -911,7 +911,7 @@ mod success {
         .await;
 
         // Set up the environment
-        let (_, contract_inputs, coin_inputs, message_inputs, _, provider) =
+        let (_, contract_inputs, coin_inputs, message_inputs, test_contract_id, provider) =
             env::setup_environment(
                 &mut wallet,
                 vec![coin],
@@ -926,8 +926,11 @@ mod success {
             env::get_deposit_recipient_contract_instance(wallet.clone()).await;
 
         // get the balance for the deposit contract before
-        let deposit_contract_base_asset_balance_before = provider
-            .get_contract_asset_balance(deposit_contract.contract_id(), AssetId::default())
+        let deposit_contract_balance_before = provider
+            .get_contract_asset_balance(
+                deposit_contract.contract_id(),
+                AssetId::new(*test_contract_id.hash()),
+            )
             .await
             .unwrap();
 
@@ -940,17 +943,19 @@ mod success {
             &env::generate_variable_output(),
         )
         .await;
-        // TODO: Actually test that the deposit was successful ! Need to check which token we're depositing and make sure to check balances of the same token !
 
         // get the balance for the deposit contract after
-        let deposit_contract_base_asset_balance_after = provider
-            .get_contract_asset_balance(deposit_contract.contract_id(), AssetId::default())
+        let deposit_contract_balance_after = provider
+            .get_contract_asset_balance(
+                deposit_contract.contract_id(),
+                AssetId::new(*test_contract_id.hash()),
+            )
             .await
             .unwrap();
 
         assert_eq!(
-            deposit_contract_base_asset_balance_after,
-            deposit_contract_base_asset_balance_before
+            deposit_contract_balance_after,
+            deposit_contract_balance_before
                 + env::fuel_side_equivalent_amount(config.max_amount, &config)
         );
     }
