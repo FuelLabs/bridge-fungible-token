@@ -960,7 +960,6 @@ mod success {
         );
     }
 
-    
     #[tokio::test]
     async fn can_deposit_to_contract_with_extra_data() {
         let mut wallet = env::setup_wallet();
@@ -976,7 +975,7 @@ mod success {
             config.max_amount,
             configurables.clone(),
             true,
-            Some(vec!(11u8, 42u8, 69u8)),
+            Some(vec![11u8, 42u8, 69u8]),
         )
         .await;
 

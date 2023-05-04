@@ -2,7 +2,7 @@ contract;
 
 use contract_message_receiver::MessageReceiver;
 use std::inputs::input_message_data_length;
- 
+
 storage {
     val: bool = false,
 }
@@ -16,7 +16,7 @@ impl MessageReceiver for Contract {
     #[storage(read, write)]
     #[payable]
     fn process_message(msg_idx: u8) {
-         assert(input_message_data_length(msg_idx) > 161);   
+        assert(input_message_data_length(msg_idx) > 161);
     }
 }
 

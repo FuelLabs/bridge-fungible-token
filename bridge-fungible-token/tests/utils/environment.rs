@@ -445,8 +445,8 @@ pub async fn construct_msg_data(
         deposit_recipient = Option::Some(ContractId::new(to));
     };
 
-    if let Some(mut data) = extra_data{
-        message_data.append(&mut data);    
+    if let Some(mut data) = extra_data {
+        message_data.append(&mut data);
     };
 
     let message_data = prefix_contract_id(message_data, config).await;
