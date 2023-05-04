@@ -155,7 +155,6 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
         from: ZERO_B256,
         to: Identity::Address(Address::from(ZERO_B256)),
         amount: ZERO_B256,
-        deposit_to_contract: false,
         len: 160,
     };
 
@@ -183,7 +182,6 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
     to.buf.ptr().copy_to::<b256>(ptr_4, 1);
 
     if msg_data.len > 160u16 {
-        msg_data.deposit_to_contract = true;
         msg_data.to = Identity::ContractId(ContractId::from(raw_id));
     } else {
         msg_data.to = Identity::Address(Address::from(raw_id));
