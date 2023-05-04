@@ -28,7 +28,8 @@ use std::{
     message::send_message,
     token::{
         burn,
-        mint_to,
+        mint,
+        transfer,
     },
     u256::U256,
 };
@@ -86,32 +87,45 @@ impl MessageReceiver for Contract {
                 register_refund(message_data.from, message_data.token, message_data.amount);
             },
             Result::Ok(amount) => {
+                // mint tokens & update storage
+                mint(amount);
                 match storage.tokens_minted.try_read() {
                     Option::Some(value) => storage.tokens_minted.write(value + amount),
                     Option::None => storage.tokens_minted.write(amount),
                 };
-                mint_to(amount, message_data.to);
+
+                // when depositing to an address, msg_data.len is 160 bytes.
+                // when depositing to a contract, msg_data.len is 161 bytes.
+                // If msg_data.len is > 161 bytes, we must call `process_message()` on the receiving contract, forwarding the newly minted coins with the call.
+                match message_data.len {
+                    160 => {
+                        transfer(amount, contract_id(), message_data.to);
+                    },
+                    161 => {
+                        transfer(amount, contract_id(), message_data.to);
+                    },
+                    _ => {
+                        if let Identity::ContractId(id) = message_data.to {
+                            let dest_contract = abi(MessageReceiver, id.into());
+                            dest_contract.process_message {
+                                gas: 10000,
+                                coins: amount,
+                                asset_id: contract_id().value,
+                            }(msg_idx);
+                        };
+                    },
+                }
+
                 log(DepositEvent {
                     to: message_data.to,
                     from: message_data.from,
                     amount: amount,
                 });
-
-                // when depositing to an address, the message is 160 bytes. If it is greater,
-                // we know that we need to call `process_message()` on the receiving contract.
-                if message_data.len > 161 {
-                    match message_data.to {
-                        Identity::ContractId(id) => {
-                            let dest_contract = abi(MessageReceiver, id.into());
-                            dest_contract.process_message(msg_idx);
-                        },
-                        Identity::Address(amount) => revert(0),
-                    }
-                }
             }
         }
     }
 }
+
 impl FungibleBridge for Contract {
     #[storage(read, write)]
     fn claim_refund(originator: b256, asset: b256) {
