@@ -427,7 +427,7 @@ pub async fn construct_msg_data(
     config: Option<BridgeFungibleTokenContractConfigurables>,
     deposit_to_contract: bool,
     // TODO: https://github.com/FuelLabs/bridge-fungible-token/issues/61
-    _data: Option<Vec<u8>>,
+    extra_data: Option<Vec<u8>>,
 ) -> ((u64, Vec<u8>), (u64, AssetId), Option<ContractId>) {
     let mut message_data = Vec::with_capacity(5);
     message_data.append(&mut decode_hex(token));
@@ -443,6 +443,10 @@ pub async fn construct_msg_data(
         byte.copy_from_slice(&hash[..1]);
         message_data.append(&mut byte);
         deposit_recipient = Option::Some(ContractId::new(to));
+    };
+
+    if let Some(mut data) = extra_data{
+        message_data.append(&mut data);    
     };
 
     let message_data = prefix_contract_id(message_data, config).await;

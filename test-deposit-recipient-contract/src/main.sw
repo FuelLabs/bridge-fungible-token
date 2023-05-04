@@ -1,7 +1,8 @@
 contract;
 
 use contract_message_receiver::MessageReceiver;
-
+use std::inputs::input_message_data_length;
+ 
 storage {
     val: bool = false,
 }
@@ -14,7 +15,9 @@ abi DepositRecipient {
 impl MessageReceiver for Contract {
     #[storage(read, write)]
     #[payable]
-    fn process_message(msg_idx: u8) {}
+    fn process_message(msg_idx: u8) {
+         assert(input_message_data_length(msg_idx) > 161);   
+    }
 }
 
 impl DepositRecipient for Contract {

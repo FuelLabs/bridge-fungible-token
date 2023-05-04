@@ -959,6 +959,76 @@ mod success {
                 + env::fuel_side_equivalent_amount(config.max_amount, &config)
         );
     }
+
+    
+    #[tokio::test]
+    async fn can_deposit_to_contract_with_extra_data() {
+        let mut wallet = env::setup_wallet();
+        let deposit_contract_id = env::precalculate_deposit_id().await;
+
+        let configurables: Option<BridgeFungibleTokenContractConfigurables> = None;
+        let config = env::generate_test_config((BRIDGED_TOKEN_DECIMALS, PROXY_TOKEN_DECIMALS));
+
+        let (message, coin, deposit_contract) = env::construct_msg_data(
+            BRIDGED_TOKEN,
+            FROM,
+            *deposit_contract_id,
+            config.max_amount,
+            configurables.clone(),
+            true,
+            Some(vec!(11u8, 42u8, 69u8)),
+        )
+        .await;
+
+        // Set up the environment
+        let (_, contract_inputs, coin_inputs, message_inputs, test_contract_id, provider) =
+            env::setup_environment(
+                &mut wallet,
+                vec![coin],
+                vec![message],
+                deposit_contract,
+                None,
+                configurables,
+            )
+            .await;
+
+        let (deposit_contract, _) =
+            env::get_deposit_recipient_contract_instance(wallet.clone()).await;
+
+        // get the balance for the deposit contract before
+        let deposit_contract_balance_before = provider
+            .get_contract_asset_balance(
+                deposit_contract.contract_id(),
+                AssetId::new(*test_contract_id.hash()),
+            )
+            .await
+            .unwrap();
+
+        // Relay the test message to the test contract
+        let _receipts = env::relay_message_to_contract(
+            &wallet,
+            message_inputs[0].clone(),
+            contract_inputs,
+            &coin_inputs[..],
+            &env::generate_variable_output(),
+        )
+        .await;
+
+        // get the balance for the deposit contract after
+        let deposit_contract_balance_after = provider
+            .get_contract_asset_balance(
+                deposit_contract.contract_id(),
+                AssetId::new(*test_contract_id.hash()),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(
+            deposit_contract_balance_after,
+            deposit_contract_balance_before
+                + env::fuel_side_equivalent_amount(config.max_amount, &config)
+        );
+    }
 }
 
 mod revert {
