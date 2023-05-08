@@ -108,7 +108,6 @@ impl MessageReceiver for Contract {
                         if let Identity::ContractId(id) = message_data.to {
                             let dest_contract = abi(MessageReceiver, id.into());
                             dest_contract.process_message {
-                                gas: 10000,
                                 coins: amount,
                                 asset_id: contract_id().value,
                             }(msg_idx);
