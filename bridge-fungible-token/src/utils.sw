@@ -133,7 +133,7 @@ pub fn adjust_deposit_decimals(
     };
 
     match adjusted.as_u64() {
-        Result::Err(e) => Result::Err(BridgeFungibleTokenError::OverflowError),
+        Result::Err(_) => Result::Err(BridgeFungibleTokenError::OverflowError),
         Result::Ok(v) => Result::Ok(v),
     }
 }
