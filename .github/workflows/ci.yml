@@ -42,12 +42,12 @@ jobs:
     strategy:
       matrix:
         project: 
-        [
-          'bridge-fungible-token',
-          'fungible-bridge-abi',
-          'FRC20-abi',
-          'test-deposit-recipient-contract'
-        ]
+          [
+            'bridge-fungible-token',
+            'fungible-bridge-abi',
+            'FRC20-abi',
+            'test-deposit-recipient-contract'
+          ]
 
     steps:
       - name: Checkout repository
