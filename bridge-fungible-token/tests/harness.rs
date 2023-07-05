@@ -7,7 +7,7 @@ use crate::env::{BridgeFungibleTokenContractConfigurables, RefundRegisteredEvent
 use std::str::FromStr;
 use utils::environment as env;
 
-use fuels::tx::{Address, AssetId, Receipt};
+use fuels::tx::Receipt;
 use fuels::{prelude::*, types::Bits256};
 
 pub const BRIDGED_TOKEN: &str =
@@ -200,7 +200,7 @@ mod success {
 
         let log_decoder = test_contract.log_decoder();
         let refund_registered_event = log_decoder
-            .get_logs_with_type::<RefundRegisteredEvent>(&receipts)
+            .decode_logs_with_type::<RefundRegisteredEvent>(&receipts)
             .unwrap();
 
         // Verify the message value was received by the test contract
@@ -235,13 +235,12 @@ mod success {
                 Bits256::from_hex_str(FROM).unwrap(),
                 Bits256::from_hex_str(BRIDGED_TOKEN).unwrap(),
             )
-            .tx_params(TxParameters::default().set_gas_limit(1001873))
-            .append_message_outputs(1)
+            .tx_params(TxParameters::default().set_gas_limit(2000000))
             .call()
             .await
             .unwrap();
-        // verify correct message was sent
 
+        // verify correct message was sent
         let message_receipt = call_response
             .receipts
             .iter()
@@ -349,7 +348,6 @@ mod success {
             .tx_params(custom_tx_params)
             .call_params(call_params)
             .expect("Call param Error")
-            .append_message_outputs(1)
             .call()
             .await
             .unwrap();
@@ -462,7 +460,6 @@ mod success {
             .tx_params(custom_tx_params)
             .call_params(call_params)
             .expect("Call param Error")
-            .append_message_outputs(1)
             .call()
             .await
             .unwrap();
@@ -547,7 +544,7 @@ mod success {
 
         let log_decoder = test_contract.log_decoder();
         let refund_registered_event = log_decoder
-            .get_logs_with_type::<RefundRegisteredEvent>(&receipts)
+            .decode_logs_with_type::<RefundRegisteredEvent>(&receipts)
             .unwrap();
 
         // Verify the message value was received by the test contract
@@ -624,7 +621,7 @@ mod success {
 
         let log_decoder = test_contract.log_decoder();
         let refund_registered_event = log_decoder
-            .get_logs_with_type::<RefundRegisteredEvent>(&receipts)
+            .decode_logs_with_type::<RefundRegisteredEvent>(&receipts)
             .unwrap();
 
         let test_contract_balance = provider
@@ -704,7 +701,7 @@ mod success {
 
         let log_decoder = test_contract.log_decoder();
         let refund_registered_event = log_decoder
-            .get_logs_with_type::<RefundRegisteredEvent>(&receipts)
+            .decode_logs_with_type::<RefundRegisteredEvent>(&receipts)
             .unwrap();
 
         let test_contract_balance = provider
@@ -784,7 +781,7 @@ mod success {
 
         let log_decoder = test_contract.log_decoder();
         let refund_registered_event = log_decoder
-            .get_logs_with_type::<RefundRegisteredEvent>(&receipts)
+            .decode_logs_with_type::<RefundRegisteredEvent>(&receipts)
             .unwrap();
 
         let test_contract_balance = provider
@@ -1117,7 +1114,6 @@ mod revert {
             .tx_params(custom_tx_params)
             .call_params(call_params)
             .expect("Call param Error")
-            .append_message_outputs(1)
             .call()
             .await
             .unwrap();
@@ -1222,7 +1218,7 @@ mod revert {
         if BRIDGED_TOKEN_DECIMALS > PROXY_TOKEN_DECIMALS + 19 {
             let log_decoder = test_contract.log_decoder();
             let refund_registered_event = log_decoder
-                .get_logs_with_type::<RefundRegisteredEvent>(&receipts)
+                .decode_logs_with_type::<RefundRegisteredEvent>(&receipts)
                 .unwrap();
 
             // Verify the message value was received by the test contract
@@ -1306,7 +1302,7 @@ mod revert {
 
         let log_decoder = test_contract.log_decoder();
         let refund_registered_event = log_decoder
-            .get_logs_with_type::<RefundRegisteredEvent>(&receipts)
+            .decode_logs_with_type::<RefundRegisteredEvent>(&receipts)
             .unwrap();
 
         // Verify the message value was received by the test contract

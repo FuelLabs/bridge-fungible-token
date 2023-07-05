@@ -6,8 +6,9 @@ edition = "2021"
 license = "Apache-2.0"
 
 [dependencies]
-fuel-core-interfaces = "0.15"
-fuels = { version = "0.38", features = ["fuel-core-lib"] }
+#fuels = { version = "0.43", features = ["fuel-core-lib"] }
+fuels = { git = "https://github.com/FuelLabs/fuels-rs.git" }
+fuel-core-types = { version = "0.18.2", default-features = false }
 primitive-types = "0.12.1"
 sha3 = "0.10.1"
 tokio = { version = "1.12", features = ["rt", "macros"] }

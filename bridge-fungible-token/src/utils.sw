@@ -150,17 +150,17 @@ pub fn decompose(val: b256) -> (u64, u64, u64, u64) {
 
 /// Read the bytes passed as message data into an in-memory representation using the MessageData type.
 pub fn parse_message_data(msg_idx: u8) -> MessageData {
+    let token: b256 = input_message_data(msg_idx, 32).into();
+    let from: b256 = input_message_data(msg_idx, 32 + 32).into();
+    let amount: b256 = input_message_data(msg_idx, 32 + 32 + 32 + 32).into();
+
     let mut msg_data = MessageData {
-        token: input_message_data(msg_idx, 32).into(),
-        from: ZERO_B256,
+        token,
+        from,
         to: Identity::Address(Address::from(ZERO_B256)),
-        amount: ZERO_B256,
+        amount,
         len: input_message_data_length(msg_idx),
     };
-
-    // TODO: tests fail when these are plugged into the struct init above...
-    msg_data.from = input_message_data(msg_idx, 32 + 32).into();
-    msg_data.amount = input_message_data(msg_idx, 32 + 32 + 32 + 32).into();
 
     // any data beyond 160 bytes means deposit is meant for a contract.
     // if data is > 161 bytes, then we also need to call process_message on the destination contract.
