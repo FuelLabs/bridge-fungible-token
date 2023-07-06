@@ -7,7 +7,13 @@ use crate::env::{BridgeFungibleTokenContractConfigurables, RefundRegisteredEvent
 use std::str::FromStr;
 use utils::environment as env;
 
-use fuels::{prelude::*, tx::Receipt, types::Bits256};
+use fuels::{
+    accounts::ViewOnlyAccount,
+    prelude::{launch_provider_and_get_wallet, Address, AssetId, CallParameters, TxParameters},
+    programs::contract::SettableContract,
+    tx::Receipt,
+    types::Bits256,
+};
 
 pub const BRIDGED_TOKEN: &str =
     "0x00000000000000000000000000000000000000000000000000000000deadbeef";
