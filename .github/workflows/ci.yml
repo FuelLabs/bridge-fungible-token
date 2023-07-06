@@ -16,7 +16,6 @@ env:
   CARGO_TERM_COLOR: always
   REGISTRY: ghcr.io
   RUST_VERSION: 1.70.0
-  PATH_TO_SCRIPTS: .github/scripts
 
 jobs:
   lint-toml-files:
@@ -72,10 +71,11 @@ jobs:
         run: forc fmt --path ${{ matrix.project }} --check
 
       - name: Rust Formatting
-        run: sh ${{ env.PATH_TO_SCRIPTS }}/fmt.sh ${{ matrix.project }}
+        run: cd ${{ matrix.project }} && cargo fmt --verbose --check
 
       - name: Build Sway
         run: forc build --path ${{ matrix.project }}
 
       - name: Rust Tests
-        run: sh ${{ env.PATH_TO_SCRIPTS }}/test.sh ${{ matrix.project }}
+        if: ${{ matrix.project }} == "bridge-fungible-token"
+        run: cd ${{ matrix.project }} && cargo test
