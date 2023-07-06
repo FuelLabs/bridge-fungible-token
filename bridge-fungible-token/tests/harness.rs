@@ -7,8 +7,7 @@ use crate::env::{BridgeFungibleTokenContractConfigurables, RefundRegisteredEvent
 use std::str::FromStr;
 use utils::environment as env;
 
-use fuels::tx::Receipt;
-use fuels::{prelude::*, types::Bits256};
+use fuels::{prelude::*, tx::Receipt, types::Bits256};
 
 pub const BRIDGED_TOKEN: &str =
     "0x00000000000000000000000000000000000000000000000000000000deadbeef";
@@ -80,10 +79,7 @@ mod success {
         // Verify the message value was received by the test contract
         assert_eq!(test_contract_base_asset_balance, 100);
         // Check that wallet now has bridged coins
-        assert_eq!(
-            balance,
-            env::fuel_side_equivalent_amount(config.test_amount, &config)
-        );
+        assert_eq!(balance, config.fuel_equivalent_amount(config.test_amount));
     }
 
     #[tokio::test]
@@ -145,10 +141,7 @@ mod success {
         assert_eq!(test_contract_base_asset_balance, 100);
 
         // Check that wallet now has bridged coins
-        assert_eq!(
-            balance,
-            env::fuel_side_equivalent_amount(config.max_amount, &config)
-        );
+        assert_eq!(balance, config.fuel_equivalent_amount(config.max_amount));
     }
 
     #[tokio::test]
@@ -328,16 +321,13 @@ mod success {
         assert_eq!(test_contract_base_asset_balance, 100);
 
         // Check that wallet now has bridged coins
-        assert_eq!(
-            balance,
-            env::fuel_side_equivalent_amount(config.max_amount, &config)
-        );
+        assert_eq!(balance, config.fuel_equivalent_amount(config.max_amount));
 
         // Now try to withdraw
         let withdrawal_amount = config.test_amount;
         let custom_tx_params = TxParameters::new(0, 30_000_000, 0);
         let call_params = CallParameters::new(
-            env::fuel_side_equivalent_amount(withdrawal_amount, &config),
+            config.fuel_equivalent_amount(config.test_amount),
             AssetId::new(*test_contract_id.hash()),
             5000,
         );
@@ -442,7 +432,7 @@ mod success {
         assert_eq!(test_contract_base_asset_balance, 100);
         // Check that wallet now has bridged coins
 
-        let fuel_side_token_amount = env::fuel_side_equivalent_amount(config.min_amount, &config);
+        let fuel_side_token_amount = config.fuel_equivalent_amount(config.min_amount);
 
         assert_eq!(balance, fuel_side_token_amount);
 
@@ -953,8 +943,7 @@ mod success {
 
         assert_eq!(
             deposit_contract_balance_after,
-            deposit_contract_balance_before
-                + env::fuel_side_equivalent_amount(config.max_amount, &config)
+            deposit_contract_balance_before + config.fuel_equivalent_amount(config.max_amount)
         );
     }
 
@@ -1022,8 +1011,7 @@ mod success {
 
         assert_eq!(
             deposit_contract_balance_after,
-            deposit_contract_balance_before
-                + env::fuel_side_equivalent_amount(config.max_amount, &config)
+            deposit_contract_balance_before + config.fuel_equivalent_amount(config.max_amount)
         );
     }
 }
@@ -1096,10 +1084,7 @@ mod revert {
         assert_eq!(test_contract_base_asset_balance, 100);
 
         // Check that wallet now has bridged coins
-        assert_eq!(
-            balance,
-            env::fuel_side_equivalent_amount(config.max_amount, &config)
-        );
+        assert_eq!(balance, config.fuel_equivalent_amount(config.max_amount));
 
         // Now try to withdraw
         let withdrawal_amount = 999999999;

@@ -1,9 +1,6 @@
 use crate::utils::builder;
 
-use std::mem::size_of;
-use std::num::ParseIntError;
-use std::result::Result as StdResult;
-use std::str::FromStr;
+use std::{mem::size_of, num::ParseIntError, result::Result as StdResult, str::FromStr};
 
 use fuel_core_types::{
     fuel_tx::{Bytes32, Input, Output, Receipt, TxPointer, UtxoId},
@@ -25,17 +22,34 @@ use fuels::{
 use primitive_types::U256 as Unsigned256;
 use sha3::{Digest, Keccak256};
 
-fn keccak_hash<B>(data: B) -> Bytes32
-where
-    B: AsRef<[u8]>,
-{
-    let mut hasher = Keccak256::new();
-    hasher.update(data);
-    <[u8; Bytes32::LEN]>::from(hasher.finalize()).into()
-}
-
 const CONTRACT_MESSAGE_PREDICATE_BINARY: &str =
     "../bridge-message-predicates/contract_message_predicate.bin";
+const MESSAGE_SENDER_ADDRESS: &str =
+    "0x00000000000000000000000096c53cd98B7297564716a8f2E1de2C83928Af2fe";
+const TEST_BRIDGE_FUNGIBLE_TOKEN_CONTRACT_BINARY: &str =
+    "../bridge-fungible-token/out/debug/bridge_fungible_token.bin";
+const DEPOSIT_RECIPIENT_CONTRACT_BINARY: &str =
+    "../test-deposit-recipient-contract/out/debug/test_deposit_recipient_contract.bin";
+
+abigen!(
+    Contract(
+        name = "BridgeFungibleTokenContract",
+        abi = "./bridge-fungible-token/out/debug/bridge_fungible_token-abi.json",
+    ),
+    Predicate(
+        name = "ContractMessagePredicate",
+        abi = "./bridge-message-predicates/contract_message_predicate-abi.json"
+    ),
+    Script(
+        name = "ContractMessageScript",
+        abi = "./bridge-message-predicates/contract_message_script-abi.json",
+    ),
+    Contract(
+        name = "DepositRecipientContract",
+        abi =
+            "./test-deposit-recipient-contract/out/debug/test_deposit_recipient_contract-abi.json",
+    ),
+);
 
 pub struct TestConfig {
     pub adjustment_factor: Unsigned256,
@@ -47,6 +61,25 @@ pub struct TestConfig {
     pub overflow_1: Unsigned256,
     pub overflow_2: Unsigned256,
     pub overflow_3: Unsigned256,
+}
+
+impl TestConfig {
+    pub fn fuel_equivalent_amount(&self, amount: Unsigned256) -> u64 {
+        if self.adjustment_is_div {
+            (amount * self.adjustment_factor).as_u64()
+        } else {
+            (amount / self.adjustment_factor).as_u64()
+        }
+    }
+}
+
+fn keccak_hash<B>(data: B) -> Bytes32
+where
+    B: AsRef<[u8]>,
+{
+    let mut hasher = Keccak256::new();
+    hasher.update(data);
+    <[u8; Bytes32::LEN]>::from(hasher.finalize()).into()
 }
 
 pub fn generate_test_config(decimals: (u8, u8)) -> TestConfig {
@@ -109,41 +142,6 @@ pub fn generate_test_config(decimals: (u8, u8)) -> TestConfig {
     }
 }
 
-pub fn fuel_side_equivalent_amount(test_amount: Unsigned256, config: &TestConfig) -> u64 {
-    if config.adjustment_is_div {
-        (test_amount * config.adjustment_factor).as_u64()
-    } else {
-        (test_amount / config.adjustment_factor).as_u64()
-    }
-}
-
-abigen!(
-    Contract(
-        name = "BridgeFungibleTokenContract",
-        abi = "./bridge-fungible-token/out/debug/bridge_fungible_token-abi.json",
-    ),
-    Predicate(
-        name = "ContractMessagePredicate",
-        abi = "./bridge-message-predicates/contract_message_predicate-abi.json"
-    ),
-    Script(
-        name = "ContractMessageScript",
-        abi = "./bridge-message-predicates/contract_message_script-abi.json",
-    ),
-    Contract(
-        name = "DepositRecipientContract",
-        abi =
-            "./test-deposit-recipient-contract/out/debug/test_deposit_recipient_contract-abi.json",
-    ),
-);
-
-const MESSAGE_SENDER_ADDRESS: &str =
-    "0x00000000000000000000000096c53cd98B7297564716a8f2E1de2C83928Af2fe";
-const TEST_BRIDGE_FUNGIBLE_TOKEN_CONTRACT_BINARY: &str =
-    "../bridge-fungible-token/out/debug/bridge_fungible_token.bin";
-const DEPOSIT_RECIPIENT_CONTRACT_BINARY: &str =
-    "../test-deposit-recipient-contract/out/debug/test_deposit_recipient_contract.bin";
-
 pub fn setup_wallet() -> WalletUnlocked {
     // Create secret for wallet
     const SIZE_SECRET_KEY: usize = size_of::<SecretKey>();
@@ -153,8 +151,7 @@ pub fn setup_wallet() -> WalletUnlocked {
 
     // Generate wallet
     let wallet = WalletUnlocked::new_from_private_key(
-        SecretKey::try_from(secret_key.as_slice())
-            .expect("This should never happen as we provide a [u8; SIZE_SECRET_KEY] array"),
+        SecretKey::try_from(secret_key.as_slice()).unwrap(),
         None,
     );
     wallet
