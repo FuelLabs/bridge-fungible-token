@@ -150,8 +150,10 @@ pub fn decompose(val: b256) -> (u64, u64, u64, u64) {
 
 /// Read the bytes passed as message data into an in-memory representation using the MessageData type.
 pub fn parse_message_data(msg_idx: u8) -> MessageData {
+    let token: b256 = input_message_data(msg_idx, 32).into();
+
     let mut msg_data = MessageData {
-        token: ZERO_B256,
+        token,
         from: ZERO_B256,
         to: Identity::Address(Address::from(ZERO_B256)),
         amount: ZERO_B256,
@@ -159,19 +161,9 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
     };
 
     // Parse the message data
-    let token = input_message_data(msg_idx, 32);
-    let ptr = __addr_of(msg_data.token);
-    token.buf.ptr().copy_to::<b256>(ptr, 1);
-    // TODO: when https://github.com/FuelLabs/sway/issues/4450 is fixed, remove 3 lines above and uncomment line below. Same applies to msg_data.from, msg_data.amount & msg_data.to
-    // msg_data.token = input_message_data(msg_idx, 32).into();
-    let from = input_message_data(msg_idx, 32 + 32);
-    let ptr_2 = __addr_of(msg_data.from);
-    from.buf.ptr().copy_to::<b256>(ptr_2, 1);
-    // msg_data.from = input_message_data(msg_idx, 32 + 32).into();
-    let amount = input_message_data(msg_idx, 32 + 32 + 32 + 32);
-    let ptr_3 = __addr_of(msg_data.amount);
-    amount.buf.ptr().copy_to::<b256>(ptr_3, 1);
-    // msg_data.amount = input_message_data(msg_idx, 32 + 32 + 32 + 32).into();
+    // TODO: Bug, have to mutate this struct for these values or tests fail
+    msg_data.from = input_message_data(msg_idx, 32 + 32).into();
+    msg_data.amount = input_message_data(msg_idx, 32 + 32 + 32 + 32).into();
 
     // any data beyond 160 bytes means deposit is meant for a contract.
     // if data is > 161 bytes, then we also need to call process_message on the destination contract.
@@ -194,9 +186,6 @@ pub fn parse_message_data(msg_idx: u8) -> MessageData {
 pub fn encode_data(to: b256, amount: b256, bridged_token: b256) -> Bytes {
     // capacity is 4 + 32 + 32 + 32 = 100
     let mut data = Bytes::with_capacity(100);
-    let padded_to_bytes = Bytes::from(to);
-    let padded_token_bytes = Bytes::from(bridged_token);
-    let amount_bytes = Bytes::from(amount);
 
     // first, we push the selector 1 byte at a time
     // the function selector for finalizeWithdrawal on the base layer gateway contract:
@@ -206,14 +195,9 @@ pub fn encode_data(to: b256, amount: b256, bridged_token: b256) -> Bytes {
     data.push(0x14u8);
     data.push(0x61u8);
 
-    // next, we append the `to` address including padding:
-    data.append(padded_to_bytes);
-
-    // next, we append the `BRIDGED_TOKEN` address including padding:
-    data.append(padded_token_bytes);
-
-    // next, we append the `amount`:
-    data.append(amount_bytes);
+    data.append(Bytes::from(to));
+    data.append(Bytes::from(bridged_token));
+    data.append(Bytes::from(amount));
 
     data
 }
