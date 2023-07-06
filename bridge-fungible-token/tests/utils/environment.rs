@@ -283,25 +283,21 @@ pub async fn setup_environment(
         .collect();
 
     // Build contract inputs
-    let mut contract_inputs = vec![Input::Contract(
-        fuel_core_types::fuel_tx::input::contract::Contract {
-            utxo_id: UtxoId::new(Bytes32::zeroed(), 0u8),
-            balance_root: Bytes32::zeroed(),
-            state_root: Bytes32::zeroed(),
-            tx_pointer: TxPointer::default(),
-            contract_id: test_contract_id.clone().into(),
-        },
+    let mut contract_inputs = vec![Input::contract(
+        UtxoId::new(Bytes32::zeroed(), 0u8),
+        Bytes32::zeroed(),
+        Bytes32::zeroed(),
+        TxPointer::default(),
+        test_contract_id.clone().into(),
     )];
 
     if let Some(id) = deposit_contract {
-        contract_inputs.push(Input::Contract(
-            fuel_core_types::fuel_tx::input::contract::Contract {
-                utxo_id: UtxoId::new(Bytes32::zeroed(), 0u8),
-                balance_root: Bytes32::zeroed(),
-                state_root: Bytes32::zeroed(),
-                tx_pointer: TxPointer::default(),
-                contract_id: id,
-            },
+        contract_inputs.push(Input::contract(
+            UtxoId::new(Bytes32::zeroed(), 0u8),
+            Bytes32::zeroed(),
+            Bytes32::zeroed(),
+            TxPointer::default(),
+            id,
         ));
     }
 
