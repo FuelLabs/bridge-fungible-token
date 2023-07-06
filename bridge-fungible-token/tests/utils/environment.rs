@@ -243,17 +243,15 @@ pub async fn setup_environment(
     let coin_inputs = all_coins
         .into_iter()
         .map(|coin| {
-            Input::CoinSigned(fuel_core_types::fuel_tx::input::coin::CoinSigned {
-                utxo_id: coin.utxo_id,
-                owner: coin.owner.into(),
-                amount: coin.amount,
-                asset_id: coin.asset_id,
-                tx_pointer: TxPointer::default(),
-                witness_index: 0,
-                maturity: coin.maturity.into(),
-                predicate: (),
-                predicate_data: (),
-            })
+            Input::coin_signed(
+                coin.utxo_id,
+                coin.owner.into(),
+                coin.amount,
+                coin.asset_id,
+                Default::default(),
+                0,
+                coin.maturity.into(),
+            )
         })
         .collect();
 
@@ -261,18 +259,26 @@ pub async fn setup_environment(
     let message_inputs = all_messages
         .into_iter()
         .map(|message| {
-            Input::MessageCoinPredicate(
-                fuel_core_types::fuel_tx::input::message::MessageCoinPredicate {
-                    sender: message.sender.into(),
-                    recipient: message.recipient.into(),
-                    amount: message.amount,
-                    nonce: message.nonce,
-                    witness_index: (),
-                    data: (),
-                    predicate: predicate.code().to_vec(),
-                    predicate_data: vec![],
-                },
-            )
+            if message.data.is_empty() {
+                Input::message_coin_predicate(
+                    message.sender.into(),
+                    message.recipient.into(),
+                    message.amount,
+                    message.nonce,
+                    predicate.code().to_vec(),
+                    vec![],
+                )
+            } else {
+                Input::message_data_predicate(
+                    message.sender.into(),
+                    message.recipient.into(),
+                    message.amount,
+                    message.nonce,
+                    message.data,
+                    predicate.code().to_vec(),
+                    vec![],
+                )
+            }
         })
         .collect();
 
@@ -416,7 +422,9 @@ pub async fn get_deposit_recipient_contract_instance(
         LoadConfiguration::default(),
     )
     .unwrap()
-    .contract_id();
+    .deploy(&wallet, TxParameters::default())
+    .await
+    .unwrap();
 
     let deposit_recipient_contract =
         DepositRecipientContract::new(deposit_recipient_contract_id.clone(), wallet);

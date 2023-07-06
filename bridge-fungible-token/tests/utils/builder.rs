@@ -6,7 +6,7 @@ use fuel_core_types::fuel_tx::{input::Input, Bytes32, Output, Transaction};
  */
 use fuels::{accounts::fuel_crypto::Hasher, prelude::*};
 
-const CONTRACT_MESSAGE_MIN_GAS: u64 = 30_000_000;
+const CONTRACT_MESSAGE_MIN_GAS: u64 = 10_000_000;
 const CONTRACT_MESSAGE_SCRIPT_BINARY: &str =
     "../bridge-message-predicates/contract_message_script.bin";
 
