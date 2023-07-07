@@ -234,7 +234,6 @@ mod success {
                 Bits256::from_hex_str(FROM).unwrap(),
                 Bits256::from_hex_str(BRIDGED_TOKEN).unwrap(),
             )
-            .tx_params(TxParameters::default().set_gas_limit(2000000))
             .call()
             .await
             .unwrap();
