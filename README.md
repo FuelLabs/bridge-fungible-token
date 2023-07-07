@@ -25,11 +25,21 @@ This project uses the general contract message relaying script/predicate from th
 
 ### Building Sway
 
-In the root of the repository run `forc build` to build all the Sway programs. Each Sway project uses a `fuel-toolchain.toml` file with pinned versions so `forc` will install the correct versions for you if you do not have them installed.
+Each Sway project uses a `fuel-toolchain.toml` file with pinned versions so `forc` will install the correct versions for you if you do not have them installed.
+
+In the root of the repository run the following command to build all the Sway programs.
+
+```bash
+forc build
+```
 
 ### Running Rust Tests
 
-After the Sway programs have been built run `cargo test` in the root of the repository.
+After the Sway programs have been built run the following command in the root of the repository.
+
+```bash
+cargo test
+```
 
 ## License
 
