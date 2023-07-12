@@ -1,3 +1,8 @@
+# ⚠️ Archival Notice
+
+This repo has been migrated to https://github.com/FuelLabs/fuel-bridge
+
+
 <p align="center">
     <a href="https://crates.io/crates/forc/0.41.0" alt="forc">
         <img src="https://img.shields.io/badge/forc-v0.41.0-orange" />
